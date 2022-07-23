@@ -1,5 +1,5 @@
 /*
-  Copyright 2010-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2010-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -63,56 +63,6 @@ namespace org.pdfclown.documents.contents.fonts
     {
       get
       {return 0;}
-    }
-    #endregion
-
-    #region protected
-    protected override void LoadEncoding(
-      )
-    {
-      //FIXME: consolidate with Type1Font and TrueTypeFont!
-      // Encoding.
-      if(this.codes == null)
-      {
-        IDictionary<ByteArray,int> codes;
-        PdfDataObject encodingObject = BaseDataObject.Resolve(PdfName.Encoding);
-        if(encodingObject == null) // Native encoding.
-        {codes = GetNativeEncoding();}
-        else if(encodingObject is PdfName) // Predefined encoding.
-        {codes = Encoding.Get((PdfName)encodingObject).GetCodes();}
-        else // Custom encoding.
-        {
-          PdfDictionary encodingDictionary = (PdfDictionary)encodingObject;
-
-          // 1. Base encoding.
-          PdfName baseEncodingName = (PdfName)encodingDictionary[PdfName.BaseEncoding];
-          if(baseEncodingName == null) // Native base encoding.
-          {codes = GetNativeEncoding();}
-          else // Predefined base encoding.
-          {codes = Encoding.Get(baseEncodingName).GetCodes();}
-
-          // 2. Differences.
-          LoadEncodingDifferences(encodingDictionary, codes);
-        }
-        this.codes = new BiDictionary<ByteArray,int>(codes);
-      }
-
-      // Glyph indexes.
-      if(glyphIndexes == null)
-      {
-        glyphIndexes = new Dictionary<int,int>();
-        foreach(KeyValuePair<ByteArray,int> codeEntry in codes)
-        {glyphIndexes[codeEntry.Value] = ConvertUtils.ByteArrayToInt(codeEntry.Key.Data);}
-      }
-    }
-    #endregion
-
-    #region private
-    private IDictionary<ByteArray,int> GetNativeEncoding(
-      )
-    {
-      //FIXME: consolidate with Type1Font and TrueTypeFont!
-      return Encoding.Get(PdfName.StandardEncoding).GetCodes();
     }
     #endregion
     #endregion

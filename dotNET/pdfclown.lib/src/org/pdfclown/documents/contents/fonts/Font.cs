@@ -1,8 +1,9 @@
 /*
-  Copyright 2006-2011 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
+    * Manuel Guilbault (code contributor [FIX:27], manuel.guilbault at gmail.com)
 
   This file should be part of the source code distribution of "PDF Clown library" (the
   Program): see the accompanying README files for more info.
@@ -27,11 +28,13 @@ using org.pdfclown.bytes;
 using org.pdfclown.documents;
 using org.pdfclown.files;
 using org.pdfclown.objects;
+using org.pdfclown.tokens;
 using org.pdfclown.util;
 
 using System;
 using io = System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace org.pdfclown.documents.contents.fonts
@@ -90,6 +93,11 @@ namespace org.pdfclown.documents.contents.fonts
     #endregion
 
     #region static
+    #region fields
+    private const int UndefinedDefaultCode = int.MinValue;
+    private const int UndefinedWidth = int.MinValue;
+    #endregion
+
     #region interface
     #region public
     /**
@@ -221,10 +229,6 @@ namespace org.pdfclown.documents.contents.fonts
     */
     protected BiDictionary<ByteArray,int> codes;
     /**
-      <summary>Default glyph width.</summary>
-    */
-    protected int defaultGlyphWidth;
-    /**
       <summary>Glyph indexes by unicode.</summary>
     */
     protected Dictionary<int,int> glyphIndexes;
@@ -246,9 +250,21 @@ namespace org.pdfclown.documents.contents.fonts
     protected HashSet<int> usedCodes;
 
     /**
+      <summary>Average glyph width.</summary>
+    */
+    private int averageWidth = UndefinedWidth;
+    /**
       <summary>Maximum character code byte size.</summary>
     */
     private int charCodeMaxLength = 0;
+    /**
+      <summary>Default Unicode for missing characters.</summary>
+    */
+    private int defaultCode = UndefinedDefaultCode;
+    /**
+      <summary>Default glyph width.</summary>
+    */
+    private int defaultWidth = UndefinedWidth;
     #endregion
 
     #region constructors
@@ -287,12 +303,25 @@ namespace org.pdfclown.documents.contents.fonts
     public virtual double Ascent
     {
       get
-      {return ((IPdfNumber)Descriptor[PdfName.Ascent]).RawValue;}
+      {
+        IPdfNumber ascentObject = (IPdfNumber)GetDescriptorValue(PdfName.Ascent);
+        return ascentObject != null ? ascentObject.DoubleValue : 750;
+      }
+    }
+
+    /**
+      <summary>Gets the Unicode code-points supported by this font.</summary>
+    */
+    public ICollection<int> CodePoints
+    {
+      get
+      {return glyphIndexes.Keys;}
     }
 
     /**
       <summary>Gets the text from the given internal representation.</summary>
       <param name="code">Internal representation to decode.</param>
+      <exception cref="DecodeException"/>
     */
     public string Decode(
       byte[] code
@@ -307,36 +336,63 @@ namespace org.pdfclown.documents.contents.fonts
           codeBufferIndex++
           )
         {codeBuffers[codeBufferIndex] = new byte[codeBufferIndex];}
-        int position = 0;
+        int index = 0;
         int codeLength = code.Length;
         int codeBufferSize = 1;
-        while(position < codeLength)
+        while(index < codeLength)
         {
           byte[] codeBuffer = codeBuffers[codeBufferSize];
-          System.Buffer.BlockCopy(code,position,codeBuffer,0,codeBufferSize);
-          int textChar;
-          if(!codes.TryGetValue(new ByteArray(codeBuffer),out textChar))
+          System.Buffer.BlockCopy(code, index, codeBuffer, 0, codeBufferSize);
+          int textChar = 0;
+          if(!codes.TryGetValue(new ByteArray(codeBuffer), out textChar))
           {
-            if(codeBufferSize < charCodeMaxLength)
+            if(codeBufferSize < charCodeMaxLength
+              && codeBufferSize < codeLength - index)
             {
               codeBufferSize++;
               continue;
             }
-
-            /*
-              NOTE: In case no valid code entry is found, a default space is resiliantely
-              applied instead of throwing an exception.
-              This is potentially risky as failing to determine the actual code length
-              may result in a "code shifting" which could affect following characters.
-            */
-            textChar = (int)' ';
+            else // Missing character.
+            {
+              switch(Document.Configuration.EncodingFallback)
+              {
+                case EncodingFallbackEnum.Exclusion:
+                  textChar = -1;
+                  break;
+                case EncodingFallbackEnum.Substitution:
+                  textChar = defaultCode;
+                  break;
+                case EncodingFallbackEnum.Exception:
+                  throw new DecodeException(code, index);
+                default:
+                  throw new NotImplementedException();
+              }
+            }
           }
-          textBuilder.Append((char)textChar);
-          position += codeBufferSize;
+          if(textChar > -1)
+          {textBuilder.Append((char)textChar);}
+          index += codeBufferSize;
           codeBufferSize = 1;
         }
       }
       return textBuilder.ToString();
+    }
+
+    /**
+      <summary>Gets/Sets the Unicode codepoint used to substitute missing characters.</summary>
+      <exception cref="EncodeException">If the value is not mapped in the font's encoding.</exception>
+    */
+    public int DefaultCode
+    {
+      get
+      {return defaultCode;}
+      set
+      {
+        if(!glyphIndexes.ContainsKey(value))
+          throw new EncodeException((char)value);
+
+        defaultCode = value;
+      }
     }
 
     /**
@@ -346,12 +402,20 @@ namespace org.pdfclown.documents.contents.fonts
     public virtual double Descent
     {
       get
-      {return ((IPdfNumber)Descriptor[PdfName.Descent]).RawValue;}
+      {
+        /*
+          NOTE: Sometimes font descriptors specify positive descent, therefore normalization is
+          required [FIX:27].
+        */
+        IPdfNumber descentObject = (IPdfNumber)GetDescriptorValue(PdfName.Descent);
+        return -Math.Abs(descentObject != null ? descentObject.DoubleValue : 250);
+      }
     }
 
     /**
       <summary>Gets the internal representation of the given text.</summary>
       <param name="text">Text to encode.</param>
+      <exception cref="EncodeException"/>
     */
     public byte[] Encode(
       string text
@@ -361,7 +425,27 @@ namespace org.pdfclown.documents.contents.fonts
       for(int index = 0, length = text.Length; index < length; index++)
       {
         int textCode = text[index];
-        byte[] charCode = codes.GetKey(textCode).Data;
+        if(textCode < 32) // NOTE: Control characters are ignored [FIX:7].
+          continue;
+
+        ByteArray code = codes.GetKey(textCode);
+        if(code == null) // Missing glyph.
+        {
+          switch(Document.Configuration.EncodingFallback)
+          {
+            case EncodingFallbackEnum.Exclusion:
+              continue;
+            case EncodingFallbackEnum.Substitution:
+              code = codes.GetKey(defaultCode);
+              break;
+            case EncodingFallbackEnum.Exception:
+              throw new EncodeException(text, index);
+            default:
+              throw new NotImplementedException();
+          }
+        }
+
+        byte[] charCode = code.Data;
         encodedStream.Write(charCode, 0, charCode.Length);
         usedCodes.Add(textCode);
       }
@@ -385,11 +469,8 @@ namespace org.pdfclown.documents.contents.fonts
     {
       get
       {
-        PdfInteger flagsObject = (PdfInteger)Descriptor.Resolve(PdfName.Flags);
-        if(flagsObject == null)
-          return (FlagsEnum)Enum.ToObject(typeof(FlagsEnum),null);
-
-        return (FlagsEnum)Enum.ToObject(typeof(FlagsEnum),flagsObject.RawValue);
+        PdfInteger flagsObject = (PdfInteger)GetDescriptorValue(PdfName.Flags);
+        return flagsObject != null ? (FlagsEnum)Enum.ToObject(typeof(FlagsEnum),flagsObject.RawValue) : 0;
       }
     }
 
@@ -417,6 +498,7 @@ namespace org.pdfclown.documents.contents.fonts
       )
     {return Name.GetHashCode();}
 
+    private double textHeight = -1; // TODO: temporary until glyph bounding boxes are implemented.
     /**
       <summary>Gets the unscaled height of the given character.</summary>
       <param name="textChar">Character whose height has to be calculated.</param>
@@ -424,7 +506,14 @@ namespace org.pdfclown.documents.contents.fonts
     public double GetHeight(
       char textChar
       )
-    {return LineHeight;}
+    {
+      /*
+        TODO: Calculate actual text height through glyph bounding box.
+      */
+      if(textHeight == -1)
+      {textHeight = Ascent - Descent;}
+      return textHeight;
+    }
 
     /**
       <summary>Gets the height of the given character, scaled to the given font size.</summary>
@@ -444,7 +533,16 @@ namespace org.pdfclown.documents.contents.fonts
     public double GetHeight(
       string text
       )
-    {return LineHeight;}
+    {
+      double height = 0;
+      for(int index = 0, length = text.Length; index < length; index++)
+      {
+        double charHeight = GetHeight(text[index]);
+        if(charHeight > height)
+        {height = charHeight;}
+      }
+      return height;
+    }
 
     /**
       <summary>Gets the height of the given text, scaled to the given font size.</summary>
@@ -461,6 +559,7 @@ namespace org.pdfclown.documents.contents.fonts
       <summary>Gets the width (kerning inclusive) of the given text, scaled to the given font size.</summary>
       <param name="text">Text whose width has to be calculated.</param>
       <param name="size">Font size.</param>
+      <exception cref="EncodeException"/>
     */
     public double GetKernedWidth(
       string text,
@@ -490,13 +589,10 @@ namespace org.pdfclown.documents.contents.fonts
         return 0;
 
       int kerning;
-      if(!glyphKernings.TryGetValue(
+      return glyphKernings.TryGetValue(
         textChar1Index << 16 // Left-hand glyph index.
           + textChar2Index, // Right-hand glyph index.
-        out kerning))
-        return 0;
-
-      return kerning;
+        out kerning) ? kerning : 0;
     }
 
     /**
@@ -508,17 +604,11 @@ namespace org.pdfclown.documents.contents.fonts
       )
     {
       int kerning = 0;
-      char[] textChars = text.ToCharArray();
-      for(
-        int index = 0,
-          length = text.Length - 1;
-        index < length;
-        index++
-        )
+      for(int index = 0, length = text.Length - 1; index < length; index++)
       {
         kerning += GetKerning(
-          textChars[index],
-          textChars[index + 1]
+          text[index],
+          text[index + 1]
           );
       }
       return kerning;
@@ -547,6 +637,7 @@ namespace org.pdfclown.documents.contents.fonts
     /**
       <summary>Gets the unscaled width of the given character.</summary>
       <param name="textChar">Character whose width has to be calculated.</param>
+      <exception cref="EncodeException"/>
     */
     public int GetWidth(
       char textChar
@@ -554,16 +645,29 @@ namespace org.pdfclown.documents.contents.fonts
     {
       int glyphIndex;
       if(!glyphIndexes.TryGetValue((int)textChar, out glyphIndex))
-        return 0;
+      {
+        switch(Document.Configuration.EncodingFallback)
+        {
+          case EncodingFallbackEnum.Exclusion:
+            return 0;
+          case EncodingFallbackEnum.Substitution:
+            return DefaultWidth;
+          case EncodingFallbackEnum.Exception:
+            throw new EncodeException(textChar);
+          default:
+            throw new NotImplementedException();
+        }
+      }
 
       int glyphWidth;
-      return glyphWidths.TryGetValue(glyphIndex, out glyphWidth) ? glyphWidth : defaultGlyphWidth;
+      return glyphWidths.TryGetValue(glyphIndex, out glyphWidth) ? glyphWidth : DefaultWidth;
     }
 
     /**
       <summary>Gets the width of the given character, scaled to the given font size.</summary>
       <param name="textChar">Character whose height has to be calculated.</param>
       <param name="size">Font size.</param>
+      <exception cref="EncodeException"/>
     */
     public double GetWidth(
       char textChar,
@@ -574,14 +678,15 @@ namespace org.pdfclown.documents.contents.fonts
     /**
       <summary>Gets the unscaled width (kerning exclusive) of the given text.</summary>
       <param name="text">Text whose width has to be calculated.</param>
+      <exception cref="EncodeException"/>
     */
     public int GetWidth(
       string text
       )
     {
       int width = 0;
-      foreach(char textChar in text.ToCharArray())
-      {width += GetWidth(textChar);}
+      for(int index = 0, length = text.Length; index < length; index++)
+      {width += GetWidth(text[index]);}
       return width;
     }
 
@@ -590,6 +695,7 @@ namespace org.pdfclown.documents.contents.fonts
       size.</summary>
       <param name="text">Text whose width has to be calculated.</param>
       <param name="size">Font size.</param>
+      <exception cref="EncodeException"/>
     */
     public double GetWidth(
       string text,
@@ -627,12 +733,51 @@ namespace org.pdfclown.documents.contents.fonts
 
     #region protected
     /**
-      <summary>Gets the font descriptor.</summary>
+      <summary>Gets/Sets the average glyph width.</summary>
     */
-    protected abstract PdfDictionary Descriptor
+    protected int AverageWidth
     {
-      get;
+      get
+      {
+        if(averageWidth == UndefinedWidth)
+        {
+          if(glyphWidths.Count == 0)
+          {averageWidth = 1000;}
+          else
+          {
+            averageWidth = 0;
+            foreach(int glyphWidth in glyphWidths.Values)
+            {averageWidth += glyphWidth;}
+            averageWidth /= glyphWidths.Count;
+          }
+        }
+        return averageWidth;
+      }
+      set
+      {averageWidth = value;}
     }
+
+    /**
+      <summary>Gets/Sets the default glyph width.</summary>
+    */
+    protected int DefaultWidth
+    {
+      get
+      {
+        if(defaultWidth == UndefinedWidth)
+        {defaultWidth = AverageWidth;}
+        return defaultWidth;
+      }
+      set
+      {defaultWidth = value;}
+    }
+
+    /**
+      <summary>Gets the specified font descriptor entry value.</summary>
+    */
+    protected abstract PdfDataObject GetDescriptorValue(
+      PdfName key
+      );
 
     /**
       <summary>Loads font information from existing PDF font structure.</summary>
@@ -656,10 +801,21 @@ namespace org.pdfclown.documents.contents.fonts
         if(charCode.Data.Length > charCodeMaxLength)
         {charCodeMaxLength = charCode.Data.Length;}
       }
+      // Missing character substitute.
+      if(defaultCode == UndefinedDefaultCode)
+      {
+        ICollection<int> codePoints = CodePoints;
+        if(codePoints.Contains((int)'?'))
+        {DefaultCode = '?';}
+        else if(codePoints.Contains((int)' '))
+        {DefaultCode = ' ';}
+        else
+        {DefaultCode = codePoints.First();}
+      }
     }
 
     /**
-      <summary>Notifies the loading of font information from an existing PDF font structure.</summary>
+      <summary>Notifies font information loading from an existing PDF font structure.</summary>
     */
     protected abstract void OnLoad(
       );

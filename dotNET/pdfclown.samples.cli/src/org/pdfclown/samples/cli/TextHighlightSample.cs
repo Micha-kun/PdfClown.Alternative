@@ -90,7 +90,7 @@ namespace org.pdfclown.samples.cli
           highlightQuads.Add(Quad.Get(textBox.Value));
         }
         // Highlight the text pattern match!
-        new TextMarkup(page, null, TextMarkup.MarkupTypeEnum.Highlight, highlightQuads);
+        new TextMarkup(page, highlightQuads, null, TextMarkup.MarkupTypeEnum.Highlight);
       }
 
       public void Reset(
@@ -103,7 +103,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(File file = new File(filePath))
+      using(var file = new File(filePath))
       {
         // Define the text pattern to look for!
         string textRegEx = PromptChoice("Please enter the pattern to look for: ");
@@ -113,7 +113,7 @@ namespace org.pdfclown.samples.cli
         TextExtractor textExtractor = new TextExtractor(true, true);
         foreach(Page page in file.Document.Pages)
         {
-          Console.WriteLine("\nScanning page " + (page.Index+1) + "...\n");
+          Console.WriteLine("\nScanning page " + page.Number + "...\n");
   
           // 2.1. Extract the page text!
           IDictionary<RectangleF?,IList<ITextString>> textStrings = textExtractor.Extract(page);

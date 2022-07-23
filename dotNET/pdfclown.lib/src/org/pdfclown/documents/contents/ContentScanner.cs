@@ -1,5 +1,5 @@
 /*
-  Copyright 2007-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2007-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -36,7 +36,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Reflection;
 using System.Text;
 
 namespace org.pdfclown.documents.contents
@@ -307,6 +306,43 @@ namespace org.pdfclown.documents.contents
       }
 
       /**
+        <summary>Gets the text-to-device space transformation matrix [PDF:1.6:5.3.3].</summary>
+        <param name="topDown">Whether the y-axis orientation has to be adjusted to common top-down
+        orientation rather than standard PDF coordinate system (bottom-up).</param>
+      */
+      public Matrix GetTextToDeviceMatrix(
+        bool topDown
+        )
+      {
+        /*
+          NOTE: The text rendering matrix (trm) is obtained from the concatenation of the current
+          transformation matrix (ctm) and the text matrix (tm).
+        */
+        Matrix matrix = GetUserToDeviceMatrix(topDown);
+        matrix.Multiply(tm);
+        return matrix;
+      }
+
+      /**
+        <summary>Gets the user-to-device space transformation matrix [PDF:1.6:4.2.3].</summary>
+        <param name="topDown">Whether the y-axis orientation has to be adjusted to common top-down
+        orientation rather than standard PDF coordinate system (bottom-up).</param>
+      */
+      public Matrix GetUserToDeviceMatrix(
+        bool topDown
+        )
+      {
+        if(topDown)
+        {
+          Matrix matrix = new Matrix(1, 0, 0, -1, 0, scanner.CanvasSize.Height);
+          matrix.Multiply(ctm);
+          return matrix;
+        }
+        else
+          return ctm.Clone();
+      }
+
+      /**
         <summary>Gets/Sets the current leading [PDF:1.6:5.2.4].</summary>
       */
       public double Lead
@@ -395,7 +431,7 @@ namespace org.pdfclown.documents.contents
       }
 
       /**
-        <summary>Gets/Sets the current horizontal scaling [PDF:1.6:5.2.3].</summary>
+        <summary>Gets/Sets the current horizontal scaling [PDF:1.6:5.2.3], normalized to 1.</summary>
       */
       public double Scale
       {
@@ -437,41 +473,6 @@ namespace org.pdfclown.documents.contents
       }
 
       /**
-        <summary>Resolves the given text-space point to its equivalent device-space one [PDF:1.6:5.3.3],
-        expressed in standard PDF coordinate system (lower-left origin).</summary>
-        <param name="point">Point to transform.</param>
-      */
-      public PointF TextToDeviceSpace(
-        PointF point
-        )
-      {return TextToDeviceSpace(point, false);}
-
-      /**
-        <summary>Resolves the given text-space point to its equivalent device-space one [PDF:1.6:5.3.3].</summary>
-        <param name="point">Point to transform.</param>
-        <param name="topDown">Whether the y-axis orientation has to be adjusted to common top-down orientation
-        rather than standard PDF coordinate system (bottom-up).</param>
-      */
-      public PointF TextToDeviceSpace(
-        PointF point,
-        bool topDown
-        )
-      {
-        /*
-          NOTE: The text rendering matrix (trm) is obtained from the concatenation
-          of the current transformation matrix (ctm) and the text matrix (tm).
-        */
-        Matrix trm = topDown
-          ? new Matrix(1, 0, 0, -1, 0, scanner.CanvasSize.Height)
-          : new Matrix();
-        trm.Multiply(ctm);
-        trm.Multiply(tm);
-        PointF[] points = new PointF[]{point};
-        trm.TransformPoints(points);
-        return points[0];
-      }
-
-      /**
         <summary>Gets/Sets the current text line matrix [PDF:1.6:5.3].</summary>
       */
       public Matrix Tlm
@@ -491,20 +492,6 @@ namespace org.pdfclown.documents.contents
         {return tm;}
         set
         {tm = value;}
-      }
-
-      /**
-        <summary>Resolves the given user-space point to its equivalent device-space one [PDF:1.6:4.2.3],
-        expressed in standard PDF coordinate system (lower-left origin).</summary>
-        <param name="point">Point to transform.</param>
-      */
-      public PointF UserToDeviceSpace(
-        PointF point
-        )
-      {
-        PointF[] points = new PointF[]{point};
-        ctm.TransformPoints(points);
-        return points[0];
       }
 
       /**
@@ -548,7 +535,7 @@ namespace org.pdfclown.documents.contents
         miterLimit = 10;
         renderMode = TextRenderModeEnum.Fill;
         rise = 0;
-        scale = 100;
+        scale = 1;
         strokeColor = colors::DeviceGrayColor.Default;
         strokeColorSpace = colors::DeviceGrayColorSpace.Default;
         tlm = new Matrix();
@@ -651,7 +638,7 @@ namespace org.pdfclown.documents.contents
         Matrix ctm = scanner.State.Ctm;
         this.box = new RectangleF(
           ctm.Elements[4],
-          scanner.ContentContext.Box.Height - ctm.Elements[5],
+          scanner.ContextSize.Height - ctm.Elements[5],
           ctm.Elements[0],
           Math.Abs(ctm.Elements[3])
           );
@@ -698,11 +685,26 @@ namespace org.pdfclown.documents.contents
         }
       }
 
+      public string Text
+      {
+        get
+        {
+          StringBuilder textBuilder = new StringBuilder();
+          foreach(TextStringWrapper textString in textStrings)
+          {textBuilder.Append(textString.Text);}
+          return textBuilder.ToString();
+        }
+      }
+
       /**
         <summary>Gets the text strings.</summary>
       */
       public List<TextStringWrapper> TextStrings
       {get{return textStrings;}}
+
+      public override string ToString(
+        )
+      {return Text;}
 
       private void Extract(
         ContentScanner level
@@ -772,7 +774,9 @@ namespace org.pdfclown.documents.contents
             state.StrokeColor,
             state.StrokeColorSpace,
             state.FillColor,
-            state.FillColorSpace
+            state.FillColorSpace,
+            state.Scale * state.Tm.Elements[0],
+            state.Tm.Elements[3]
             );
           BaseDataObject.Scan(
             state,
@@ -818,6 +822,10 @@ namespace org.pdfclown.documents.contents
 
       public List<TextChar> TextChars
       {get{return textChars;}}
+
+      public override string ToString(
+        )
+      {return Text;}
     }
 
     /**
@@ -833,16 +841,15 @@ namespace org.pdfclown.documents.contents
         ContentScanner scanner
         ) : base((XObject)scanner.Current)
       {
-        IContentContext context = scanner.ContentContext;
         Matrix ctm = scanner.State.Ctm;
         this.box = new RectangleF(
           ctm.Elements[4],
-          context.Box.Height - ctm.Elements[5],
+          scanner.ContextSize.Height - ctm.Elements[5],
           ctm.Elements[0],
           Math.Abs(ctm.Elements[3])
           );
         this.name = BaseDataObject.Name;
-        this.xObject = BaseDataObject.GetResource(context);
+        this.xObject = BaseDataObject.GetResource(scanner.ContentContext);
       }
 
       /**
@@ -900,10 +907,18 @@ namespace org.pdfclown.documents.contents
       Rendering object.
     */
     private GraphicsPath renderObject;
+
     /**
-      Device-space size of the rendering canvas.
+      <summary>Size of the graphics canvas.</summary>
+      <remarks>According to the current processing (whether it is device-independent scanning or
+      device-based rendering), it may be expressed, respectively, in user-space units or in
+      device-space units.</remarks>
     */
-    private SizeF? renderSize;
+    private SizeF canvasSize;
+    /**
+      <summary>Device-independent size of the graphics canvas.</summary>
+    */
+    private SizeF contextSize;
     #endregion
 
     #region constructors
@@ -917,6 +932,8 @@ namespace org.pdfclown.documents.contents
     {
       this.parentLevel = null;
       this.objects = this.contents = contents;
+
+      canvasSize = contextSize = contents.ContentContext.Box.Size;
 
       MoveStart();
     }
@@ -943,6 +960,8 @@ namespace org.pdfclown.documents.contents
       this.parentLevel = parentLevel;
       this.objects = this.contents = formXObject.Contents;
 
+      canvasSize = contextSize = parentLevel.contextSize;
+
       OnStart += delegate(
         ContentScanner scanner
         )
@@ -968,6 +987,8 @@ namespace org.pdfclown.documents.contents
       this.contents = parentLevel.contents;
       this.objects = ((CompositeObject)parentLevel.Current).Objects;
 
+      canvasSize = contextSize = parentLevel.contextSize;
+
       MoveStart();
     }
     #endregion
@@ -976,36 +997,49 @@ namespace org.pdfclown.documents.contents
     #region public
     /**
       <summary>Gets the size of the current imageable area.</summary>
-      <remarks>It can be either the user-space area (dry scanning)
-      or the device-space area (wet scanning).</remarks>
+      <remarks>It can be either the user-space area (dry scanning) or the device-space area (wet
+      scanning).</remarks>
     */
     public SizeF CanvasSize
     {
       get
-      {
-        return renderSize.HasValue
-          ? renderSize.Value // Device-dependent (device-space) area.
-          : ContentContext.Box.Size; // Device-independent (user-space) area.
-      }
+      {return canvasSize;}
     }
 
     /**
       <summary>Gets the current child scan level.</summary>
     */
     public ContentScanner ChildLevel
-    {get{return childLevel;}}
+    {
+      get
+      {return childLevel;}
+    }
 
     /**
       <summary>Gets the content context associated to the content objects collection.</summary>
     */
     public IContentContext ContentContext
-    {get{return contents.ContentContext;}}
+    {
+      get{return contents.ContentContext;}
+    }
 
     /**
       <summary>Gets the content objects collection this scanner is inspecting.</summary>
     */
     public Contents Contents
-    {get{return contents;}}
+    {
+      get
+      {return contents;}
+    }
+
+    /**
+      <summary>Gets the size of the current imageable area in user-space units.</summary>
+    */
+    public SizeF ContextSize
+    {
+      get
+      {return contextSize;}
+    }
 
     /**
       <summary>Gets/Sets the current content object.</summary>
@@ -1030,13 +1064,19 @@ namespace org.pdfclown.documents.contents
       <summary>Gets the current content object's information.</summary>
     */
     public GraphicsObjectWrapper CurrentWrapper
-    {get{return GraphicsObjectWrapper.Get(this);}}
+    {
+      get
+      {return GraphicsObjectWrapper.Get(this);}
+    }
 
     /**
       <summary>Gets the current position.</summary>
     */
     public int Index
-    {get{return index;}}
+    {
+      get
+      {return index;}
+    }
 
     /**
       <summary>Inserts a content object at the current position.</summary>
@@ -1238,7 +1278,7 @@ namespace org.pdfclown.documents.contents
       try
       {
         this.renderContext = renderContext;
-        this.renderSize = renderSize;
+        this.canvasSize = renderSize;
         this.renderObject = renderObject;
 
         // Scan this level for rendering!
@@ -1248,7 +1288,7 @@ namespace org.pdfclown.documents.contents
       finally
       {
         this.renderContext = null;
-        this.renderSize = null;
+        this.canvasSize = contextSize;
         this.renderObject = null;
       }
     }

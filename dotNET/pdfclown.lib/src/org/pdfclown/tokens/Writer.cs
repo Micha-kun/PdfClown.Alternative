@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -61,11 +61,11 @@ namespace org.pdfclown.tokens
       )
     {
       // Which cross-reference table mode?
-      switch(file.Document.Configuration.XrefMode)
+      switch(file.Configuration.XRefMode)
       {
-        case Document.ConfigurationImpl.XRefModeEnum.Plain:
+        case XRefModeEnum.Plain:
           return new PlainWriter(file, stream);
-        case Document.ConfigurationImpl.XRefModeEnum.Compressed:
+        case XRefModeEnum.Compressed:
           return new CompressedWriter(file, stream);
         default:
           throw new NotSupportedException();

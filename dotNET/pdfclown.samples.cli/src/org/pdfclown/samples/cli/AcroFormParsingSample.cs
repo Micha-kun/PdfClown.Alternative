@@ -24,7 +24,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(File file = new File(filePath))
+      using(var file = new File(filePath))
       {
         Document document = file.Document;
 
@@ -52,7 +52,7 @@ namespace org.pdfclown.samples.cli
             {
               Console.WriteLine("    Widget " + (++widgetIndex) + ":");
               Page widgetPage = widget.Page;
-              Console.WriteLine("      Page: " + (widgetPage == null ? "undefined" : (widgetPage.Index + 1) + " (" + widgetPage.BaseObject + ")"));
+              Console.WriteLine("      Page: " + (widgetPage == null ? "undefined" : widgetPage.Number + " (" + widgetPage.BaseObject + ")"));
 
               RectangleF widgetBox = widget.Box;
               Console.WriteLine("      Coordinates: {x:" + Math.Round(widgetBox.X) + "; y:" + Math.Round(widgetBox.Y) + "; width:" + Math.Round(widgetBox.Width) + "; height:" + Math.Round(widgetBox.Height) + "}");

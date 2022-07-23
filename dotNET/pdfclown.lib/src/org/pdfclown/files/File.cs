@@ -1,8 +1,9 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
+    * Kasper Fabaech Brandt (patch contributor [FIX:45], http://sourceforge.net/u/kasperfb/)
 
   This file should be part of the source code distribution of "PDF Clown library" (the
   Program): see the accompanying README files for more info.
@@ -44,54 +45,6 @@ namespace org.pdfclown.files
     : IDisposable
   {
     #region types
-    /**
-      <summary>File configuration.</summary>
-    */
-    public sealed class ConfigurationImpl
-    {
-      private string realFormat;
-
-      private readonly File file;
-
-      internal ConfigurationImpl(
-        File file
-        )
-      {this.file = file;}
-
-      /**
-        <summary>Gets the file associated with this configuration.</summary>
-      */
-      public File File
-      {
-        get
-        {return file;}
-      }
-
-      /**
-        <summary>Gets/Sets the format applied to real number serialization.</summary>
-      */
-      public string RealFormat
-      {
-        get
-        {
-          if(realFormat == null)
-          {SetRealFormat(5);}
-          return realFormat;
-        }
-        set
-        {realFormat = value;}
-      }
-
-      /**
-        <param name="decimalPlacesCount">Number of digits in decimal places.</param>
-        <seealso cref="RealFormat"/>
-      */
-      public void SetRealFormat(
-        int decimalPlacesCount
-        )
-      {realFormat = "0." + new string('#', decimalPlacesCount);}
-    }
-
     private sealed class ImplicitContainer
       : PdfIndirectObject
     {
@@ -111,7 +64,7 @@ namespace org.pdfclown.files
 
     #region dynamic
     #region fields
-    private ConfigurationImpl configuration;
+    private FileConfiguration configuration;
     private readonly Document document;
     private readonly int hashCode = hashCodeGenerator.Next();
     private readonly IndirectObjects indirectObjects;
@@ -149,25 +102,46 @@ namespace org.pdfclown.files
     {this.path = path;}
 
     public File(
+      byte[] data
+      ) : this(new bytes.Buffer(data))
+    {}
+
+    public File(
+      System.IO.Stream stream
+      ) : this(new bytes.Stream(stream))
+    {}
+
+    public File(
       IInputStream stream
       )
     {
       Initialize();
 
       reader = new Reader(stream, this);
+      try // [FIX:45] File constructor didn't dispose reader on error.
+      {
+        Reader.FileInfo info = reader.ReadInfo();
+        version = info.Version;
+        trailer = PrepareTrailer(info.Trailer);
+        if(trailer.ContainsKey(PdfName.Encrypt)) // Encrypted file.
+          throw new NotImplementedException("Encrypted files are currently not supported.");
 
-      Reader.FileInfo info = reader.ReadInfo();
-      version = info.Version;
-      trailer = PrepareTrailer(info.Trailer);
-      if(trailer.ContainsKey(PdfName.Encrypt)) // Encrypted file.
-        throw new NotImplementedException("Encrypted files are currently not supported.");
-
-      indirectObjects = new IndirectObjects(this, info.XrefEntries);
-      document = new Document(trailer[PdfName.Root]);
-      document.Configuration.XrefMode = (PdfName.XRef.Equals(trailer[PdfName.Type])
-        ? Document.ConfigurationImpl.XRefModeEnum.Compressed
-        : Document.ConfigurationImpl.XRefModeEnum.Plain);
+        indirectObjects = new IndirectObjects(this, info.XrefEntries);
+        document = new Document(trailer[PdfName.Root]);
+        Configuration.XRefMode = (PdfName.XRef.Equals(trailer[PdfName.Type])
+          ? XRefModeEnum.Compressed
+          : XRefModeEnum.Plain);
+      }
+      catch(Exception)
+      {
+        reader.Dispose();
+        throw;
+      }
     }
+
+    ~File(
+      )
+    {Dispose(false);}
     #endregion
 
     #region interface
@@ -191,7 +165,7 @@ namespace org.pdfclown.files
     /**
       <summary>Gets the file configuration.</summary>
     */
-    public ConfigurationImpl Configuration
+    public FileConfiguration Configuration
     {
       get
       {return configuration;}
@@ -294,18 +268,21 @@ namespace org.pdfclown.files
       SerializationModeEnum mode
       )
     {
-      FileStream outputStream = new System.IO.FileStream(
-        path,
-        System.IO.FileMode.Create,
-        System.IO.FileAccess.Write
-        );
-      Save(
-        new bytes.Stream(outputStream),
-        mode
-        );
-      outputStream.Flush();
-      outputStream.Close();
+      using(var outputStream = new System.IO.FileStream(path, FileMode.Create, FileAccess.Write))
+      {Save(new bytes.Stream(outputStream), mode);}
     }
+
+    /**
+      <summary>Serializes the file to the specified stream.</summary>
+      <remarks>It's caller responsibility to close the stream after this method ends.</remarks>
+      <param name="stream">Target stream.</param>
+      <param name="mode">Serialization mode.</param>
+    */
+    public void Save(
+      System.IO.Stream stream,
+      SerializationModeEnum mode
+      )
+    {Save(new bytes.Stream(stream), mode);}
 
     /**
       <summary>Serializes the file to the specified stream.</summary>
@@ -318,18 +295,22 @@ namespace org.pdfclown.files
       SerializationModeEnum mode
       )
     {
+      var information = Document.Information;
       if(Reader == null)
       {
+        information.CreationDate = DateTime.Now;
         try
         {
           string assemblyTitle = ((AssemblyTitleAttribute)Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyTitleAttribute))).Title;
           string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-          Document.Information.Producer = assemblyTitle + " " + assemblyVersion;
+          information.Producer = assemblyTitle + " " + assemblyVersion;
         }
         catch
         {/* NOOP */}
       }
-  
+      else
+      {information.ModificationDate = DateTime.Now;}
+
       Writer writer = Writer.Get(this, stream);
       writer.Write(mode);
     }
@@ -352,6 +333,15 @@ namespace org.pdfclown.files
     {indirectObjects.RemoveAt(reference.ObjectNumber);}
 
     /**
+      <summary>Gets whether the initial state of this file has been modified.</summary>
+    */
+    public bool Updated
+    {
+      get
+      {return indirectObjects.ModifiedObjects.Count > 0;}
+    }
+
+    /**
       <summary>Gets the file header version [PDF:1.6:3.4.1].</summary>
       <remarks>This property represents just the original file version; to get the actual version,
       use the <see cref="org.pdfclown.documents.Document.Version">Document.Version</see> method.
@@ -367,30 +357,39 @@ namespace org.pdfclown.files
     public void Dispose(
       )
     {
-      if(reader != null)
-      {
-        reader.Dispose();
-        reader = null;
-
-        /*
-          NOTE: If the temporary file exists (see Save() method), it must overwrite the document file.
-        */
-        if(System.IO.File.Exists(TempPath))
-        {
-          System.IO.File.Delete(path);
-          System.IO.File.Move(TempPath,path);
-        }
-      }
-
+      Dispose(true);
       GC.SuppressFinalize(this);
     }
     #endregion
     #endregion
 
     #region private
+    private void Dispose(
+      bool disposing
+      )
+    {
+      if(disposing)
+      {
+        if(reader != null)
+        {
+          reader.Dispose();
+          reader = null;
+
+          /*
+            NOTE: If the temporary file exists (see Save() method), it must overwrite the document file.
+          */
+          if(System.IO.File.Exists(TempPath))
+          {
+            System.IO.File.Delete(path);
+            System.IO.File.Move(TempPath,path);
+          }
+        }
+      }
+    }
+
     private void Initialize(
       )
-    {configuration = new ConfigurationImpl(this);}
+    {configuration = new FileConfiguration(this);}
 
     private PdfDictionary PrepareTrailer(
       PdfDictionary trailer

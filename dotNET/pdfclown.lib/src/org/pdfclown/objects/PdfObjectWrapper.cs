@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -82,15 +82,23 @@ namespace org.pdfclown.objects
     #region interface
     #region public
     /**
-      <summary>Gets a clone of the object, registered inside the given document context.</summary>
-      <param name="context">Which document the clone has to be registered in.</param>
+      <summary>Gets a clone of the object, registered inside the specified document context using
+      the default object cloner.</summary>
     */
     public virtual object Clone(
       Document context
       )
+    {return Clone(context.File.Cloner);}
+
+    /**
+      <summary>Gets a clone of the object, registered using the specified object cloner.</summary>
+    */
+    public virtual object Clone(
+      Cloner cloner
+      )
     {
       PdfObjectWrapper clone = (PdfObjectWrapper)base.MemberwiseClone();
-      clone.BaseObject = (PdfDirectObject)BaseObject.Clone(context.File);
+      clone.BaseObject = (PdfDirectObject)BaseObject.Clone(cloner);
       return clone;
     }
 
@@ -114,22 +122,14 @@ namespace org.pdfclown.objects
 
     /**
       <summary>Removes the object from its document context.</summary>
-      <remarks>The object is no more usable after this method returns.</remarks>
-      <returns>Whether the object was actually decontextualized (only indirect objects can be
-      decontextualize).</returns>
+      <remarks>Only indirect objects can be removed through this method; direct objects have to be
+      explicitly removed from their parent object. The object is no more usable after this method
+      returns.</remarks>
+      <returns>Whether the object was removed from its document context.</returns>
     */
     public virtual bool Delete(
       )
-    {
-      // Is the object indirect?
-      if(baseObject is PdfReference) // Indirect object.
-      {
-        ((PdfReference)baseObject).Delete();
-        return true;
-      }
-      else // Direct object.
-      {return false;}
-    }
+    {return baseObject.Delete();}
 
     /**
       <summary>Gets the document context.</summary>
@@ -144,12 +144,12 @@ namespace org.pdfclown.objects
     }
 
     public override bool Equals(
-      object obj
+      object other
       )
     {
-      return obj != null
-        && obj.GetType().Equals(GetType())
-        && ((PdfObjectWrapper)obj).baseObject.Equals(baseObject);
+      return other != null
+        && other.GetType().Equals(GetType())
+        && ((PdfObjectWrapper)other).baseObject.Equals(baseObject);
     }
 
     /**
@@ -164,6 +164,10 @@ namespace org.pdfclown.objects
     public override int GetHashCode(
       )
     {return baseObject.GetHashCode();}
+
+    public override string ToString(
+      )
+    {return String.Format("{0} {{{1}}}", GetType().Name, BaseObject is PdfReference ? (PdfObject)BaseObject.DataContainer : BaseObject);}
 
     #region IPdfObjectWrapper
     public virtual PdfDirectObject BaseObject
@@ -188,15 +192,15 @@ namespace org.pdfclown.objects
         </list>
       </param>
     */
-    protected void CheckCompatibility(
+    internal void CheckCompatibility(
       object feature
       )
     {
       /*
         TODO: Caching!
       */
-      Document.ConfigurationImpl.CompatibilityModeEnum compatibilityMode = Document.Configuration.CompatibilityMode;
-      if(compatibilityMode == Document.ConfigurationImpl.CompatibilityModeEnum.Passthrough) // No check required.
+      var compatibilityMode = Document.Configuration.CompatibilityMode;
+      if(compatibilityMode == CompatibilityModeEnum.Passthrough) // No check required.
         return;
 
       if(feature is Enum)
@@ -259,11 +263,11 @@ namespace org.pdfclown.objects
       // The feature version is NOT compatible: how to solve the conflict?
       switch(compatibilityMode)
       {
-        case Document.ConfigurationImpl.CompatibilityModeEnum.Loose: // Accepts the feature version.
+        case CompatibilityModeEnum.Loose: // Accepts the feature version.
           // Synchronize the document version!
           Document.Version = featureVersion;
           break;
-        case  Document.ConfigurationImpl.CompatibilityModeEnum.Strict: // Refuses the feature version.
+        case CompatibilityModeEnum.Strict: // Refuses the feature version.
           // Throw a violation to the document version!
           throw new Exception("Incompatible feature (version " + featureVersion + " was required against document version " + Document.Version);
         default:
@@ -339,7 +343,7 @@ namespace org.pdfclown.objects
 
     /**
       <summary>Instantiates a wrapper from the specified base object.</summary>
-      <param name="baseObject">PDF object backing this wrapper. MUST be a <see cref="PdfReference"/>
+      <param name="baseObject">PDF object backing this wrapper. It MUST be a <see cref="PdfReference"/>
       every time available.</param>
     */
     protected PdfObjectWrapper(
@@ -358,7 +362,7 @@ namespace org.pdfclown.objects
     protected PdfObjectWrapper(
       Document context,
       TDataObject baseDataObject
-      ) : this(context.File, baseDataObject)
+      ) : this(context != null ? context.File : null, baseDataObject)
     {}
 
     /**
@@ -372,7 +376,7 @@ namespace org.pdfclown.objects
     protected PdfObjectWrapper(
       File context,
       TDataObject baseDataObject
-      ) : this(context.Register(baseDataObject))
+      ) : this(context != null ? context.Register(baseDataObject) : (PdfDirectObject)(PdfDataObject)baseDataObject)
     {}
     #endregion
 

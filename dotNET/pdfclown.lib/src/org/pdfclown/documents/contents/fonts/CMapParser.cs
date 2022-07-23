@@ -1,5 +1,5 @@
 /*
-  Copyright 2009-2011 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2009-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -33,6 +33,7 @@ using org.pdfclown.util.parsers;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using io = System.IO;
 using System.Text;
@@ -51,6 +52,10 @@ namespace org.pdfclown.documents.contents.fonts
     private static readonly string BeginBaseFontRangeOperator = "beginbfrange";
     private static readonly string BeginCIDCharOperator = "begincidchar";
     private static readonly string BeginCIDRangeOperator = "begincidrange";
+    private static readonly string DefOperator = "def";
+    private static readonly string UseCMapOperator = "usecmap";
+
+    private static readonly string CMapName = PdfName.CMapName.StringValue;
     #endregion
     #endregion
 
@@ -75,49 +80,48 @@ namespace org.pdfclown.documents.contents.fonts
     public IDictionary<ByteArray,int> Parse(
       )
     {
-      Stream.Position = 0;
+      Stream.Seek(0);
       IDictionary<ByteArray,int> codes = new Dictionary<ByteArray,int>();
       {
-        int itemCount = 0;
+        IList<object> operands = new List<object>();
+        string cmapName = null;
         while(MoveNext())
         {
           switch(TokenType)
           {
             case TokenTypeEnum.Keyword:
             {
-              string operator_ = (string)Token;
-              if(operator_.Equals(BeginBaseFontCharOperator)
-                || operator_.Equals(BeginCIDCharOperator))
+              string @operator = (string)Token;
+              if(@operator.Equals(BeginBaseFontCharOperator)
+                || @operator.Equals(BeginCIDCharOperator))
               {
                 /*
                   NOTE: The first element on each line is the input code of the template font;
                   the second element is the code or name of the character.
                 */
-                for(
-                  int itemIndex = 0;
-                  itemIndex < itemCount;
-                  itemIndex++
-                  )
+                for(int itemIndex = 0, itemCount = (int)operands[0]; itemIndex < itemCount; itemIndex++)
                 {
                   MoveNext();
                   ByteArray inputCode = new ByteArray(ParseInputCode());
                   MoveNext();
-                  codes[inputCode] = ParseUnicode();
+                  // FIXME: Unicode character sequences (such as ligatures) have not been supported yet [BUG:72].
+                  try
+                  {
+                    codes[inputCode] = ParseUnicode();
+                  }
+                  catch(OverflowException)
+                  {Debug.WriteLine(String.Format("WARN: Unable to process Unicode sequence from {0} CMap: {1}", cmapName, Token));}
                 }
               }
-              else if(operator_.Equals(BeginBaseFontRangeOperator)
-                || operator_.Equals(BeginCIDRangeOperator))
+              else if(@operator.Equals(BeginBaseFontRangeOperator)
+                || @operator.Equals(BeginCIDRangeOperator))
               {
                 /*
                   NOTE: The first and second elements in each line are the beginning and
                   ending valid input codes for the template font; the third element is
                   the beginning character code for the range.
                 */
-                for(
-                  int itemIndex = 0;
-                  itemIndex < itemCount;
-                  itemIndex++
-                  )
+                for(int itemIndex = 0, itemCount = (int)operands[0]; itemIndex < itemCount; itemIndex++)
                 {
                   // 1. Beginning input code.
                   MoveNext();
@@ -135,7 +139,13 @@ namespace org.pdfclown.documents.contents.fonts
                       while(MoveNext()
                         && TokenType != TokenTypeEnum.ArrayEnd)
                       {
-                        codes[new ByteArray(inputCode)] = ParseUnicode();
+                        // FIXME: Unicode character sequences (such as ligatures) have not been supported yet [BUG:72].
+                        try
+                        {
+                          codes[new ByteArray(inputCode)] = ParseUnicode();
+                        }
+                        catch(OverflowException)
+                        {Debug.WriteLine(String.Format("WARN: Unable to process Unicode sequence from {0} CMap: {1}", cmapName, Token));}
                         OperationUtils.Increment(inputCode);
                       }
                       break;
@@ -159,11 +169,34 @@ namespace org.pdfclown.documents.contents.fonts
                   }
                 }
               }
+              else if(@operator.Equals(UseCMapOperator))
+              {codes = CMap.Get((string)operands[0]);}
+              else if(@operator.Equals(DefOperator) && operands.Count != 0)
+              {
+                if(CMapName.Equals(operands[0]))
+                {cmapName = (string)operands[1];}
+              }
+              operands.Clear();
               break;
             }
-            case TokenTypeEnum.Integer:
+            case TokenTypeEnum.ArrayBegin:
+            case TokenTypeEnum.DictionaryBegin:
             {
-              itemCount = (int)Token;
+              // Skip.
+              while(MoveNext())
+              {
+                if(TokenType == TokenTypeEnum.ArrayEnd
+                  || TokenType == TokenTypeEnum.DictionaryEnd)
+                  break;
+              }
+              break;
+            }
+            case TokenTypeEnum.Comment:
+              // Skip.
+              break;
+            default:
+            {
+              operands.Add(Token);
               break;
             }
           }

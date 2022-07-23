@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2011-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -30,34 +30,13 @@ using System;
 namespace org.pdfclown.documents.contents.layers
 {
   /**
-    <summary>Optional content group collection.</summary>
+    <summary>Read-only collection of all the layers existing in the document.</summary>
   */
   [PDF(VersionEnum.PDF15)]
   public sealed class Layers
-    : Array<ILayerNode>,
-      ILayerNode
+    : Array<Layer>
   {
-    #region types
-    private delegate int EvaluateNode(
-      int currentNodeIndex,
-      int currentBaseIndex
-      );
-
-    private class ItemWrapper
-      : IWrapper<ILayerNode>
-    {
-      public ILayerNode Wrap(
-        PdfDirectObject baseObject
-        )
-      {return LayerNode.Wrap(baseObject);}
-    }
-    #endregion
-
     #region static
-    #region fields
-    private static readonly ItemWrapper Wrapper = new ItemWrapper();
-    #endregion
-
     #region interface
     #region public
     public static Layers Wrap(
@@ -70,188 +49,31 @@ namespace org.pdfclown.documents.contents.layers
 
     #region dynamic
     #region constructors
-    public Layers(
-      Document context
-      ) : this(context, null)
-    {}
-
-    public Layers(
-      Document context,
-      string title
-      ) : base(context, Wrapper)
-    {Title = title;}
-
     private Layers(
       PdfDirectObject baseObject
-      ) : base(Wrapper, baseObject)
+      ) : base(baseObject)
     {}
     #endregion
 
     #region interface
     #region public
-    public override int Count
-    {
-      get
-      {
-        return Evaluate(delegate(
-          int currentNodeIndex,
-          int currentBaseIndex
-          )
-        {
-          if(currentBaseIndex == -1)
-            return currentNodeIndex;
-          else
-            return -1;
-        }) + 1;
-      }
-    }
-
-    public override int IndexOf(
-      ILayerNode item
-      )
-    {return GetNodeIndex(base.IndexOf(item));}
-
     public override void Insert(
       int index,
-      ILayerNode item
+      Layer item
       )
-    {base.Insert(GetBaseIndex(index), item);}
+    {throw new NotSupportedException();}
 
     public override void RemoveAt(
       int index
       )
-    {
-      int baseIndex = GetBaseIndex(index);
-      ILayerNode removedItem = base[baseIndex];
-      base.RemoveAt(baseIndex);
-      if(removedItem is Layer
-        && baseIndex < base.Count)
-      {
-        /*
-          NOTE: Sublayers MUST be removed as well.
-        */
-        if(BaseDataObject.Resolve(baseIndex) is PdfArray)
-        {BaseDataObject.RemoveAt(baseIndex);}
-      }
-    }
+    {throw new NotSupportedException();}
 
-    public override ILayerNode this[
+    public override Layer this[
       int index
       ]
     {
-      get
-      {return base[GetBaseIndex(index)];}
       set
-      {base[GetBaseIndex(index)] = value;}
-    }
-
-    public override string ToString(
-      )
-    {return Title;}
-
-    #region ILayerNode
-    Layers ILayerNode.Layers
-    {
-      get
-      {return this;}
-    }
-
-    public string Title
-    {
-      get
-      {
-        if(BaseDataObject.Count == 0)
-          return null;
-
-        PdfDirectObject firstObject = BaseDataObject[0];
-        return firstObject is PdfTextString ? (string)((PdfTextString)firstObject).Value : null;
-      }
-      set
-      {
-        PdfTextString titleObject = PdfTextString.Get(value);
-        PdfArray baseDataObject = BaseDataObject;
-        PdfDirectObject firstObject = (baseDataObject.Count == 0 ? null : baseDataObject[0]);
-        if(firstObject is PdfTextString)
-        {
-          if(titleObject != null)
-          {baseDataObject[0] = titleObject;}
-          else
-          {baseDataObject.RemoveAt(0);}
-        }
-        else if(titleObject != null)
-        {baseDataObject.Insert(0, titleObject);}
-      }
-    }
-    #endregion
-    #endregion
-
-    #region private
-    /**
-      <summary>Gets the positional information resulting from the collection evaluation.</summary>
-      <param name="evaluator">Expression used to evaluate the positional matching.</param>
-    */
-    private int Evaluate(
-      EvaluateNode evaluateNode
-      )
-    {
-      /*
-        NOTE: Layer hierarchies are represented through a somewhat flatten structure which needs
-        to be evaluated in order to match nodes in their actual place.
-      */
-      PdfArray baseDataObject = BaseDataObject;
-      int nodeIndex = -1;
-      bool groupAllowed = true;
-      for(
-        int baseIndex = 0,
-          baseLength = base.Count;
-        baseIndex < baseLength;
-        baseIndex++
-        )
-      {
-        PdfDataObject itemDataObject = baseDataObject.Resolve(baseIndex);
-        if(itemDataObject is PdfDictionary
-          || (itemDataObject is PdfArray && groupAllowed))
-        {
-          nodeIndex++;
-          int evaluation = evaluateNode(nodeIndex, baseIndex);
-          if(evaluation > -1)
-            return evaluation;
-        }
-        groupAllowed = !(itemDataObject is PdfDictionary);
-      }
-      return evaluateNode(nodeIndex, -1);
-    }
-
-    private int GetBaseIndex(
-      int nodeIndex
-      )
-    {
-      return Evaluate(delegate(
-        int currentNodeIndex,
-        int currentBaseIndex
-        )
-      {
-        if(currentNodeIndex == nodeIndex)
-          return currentBaseIndex;
-        else
-          return -1;
-      });
-    }
-
-    private int GetNodeIndex(
-      int baseIndex
-      )
-    {
-      return Evaluate(delegate(
-        int currentNodeIndex,
-        int currentBaseIndex
-        )
-      {
-        if(currentBaseIndex == baseIndex)
-          return currentNodeIndex;
-        else
-          return -1;
-      });
+      {throw new NotSupportedException();}
     }
     #endregion
     #endregion

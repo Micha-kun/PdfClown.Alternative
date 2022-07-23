@@ -33,7 +33,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(files::File file = new files::File(filePath))
+      using(var file = new files::File(filePath))
       {
         Document document = file.Document;
   
@@ -130,19 +130,19 @@ namespace org.pdfclown.samples.cli
         {
           FileSpecification destinationFile = (FileSpecification)action.Get("DestinationFile");
           if(destinationFile != null)
-          {Console.WriteLine("    Filename: " + destinationFile.Path);}
+          {Console.WriteLine("      Filename: " + destinationFile.Path);}
 
           if(action is actions::GoToEmbedded)
           {
             actions::GoToEmbedded.PathElement target = ((actions::GoToEmbedded)action).DestinationPath;
-            Console.WriteLine("    EmbeddedFilename: " + target.EmbeddedFileName + " Relation: " + target.Relation);
+            Console.WriteLine("      EmbeddedFilename: " + target.EmbeddedFileName + " Relation: " + target.Relation);
           }
         }
-        Console.Write("    ");
+        Console.Write("      ");
         PrintDestination((Destination)action.Get("Destination"));
       }
       else if(action is actions::GoToURI)
-      {Console.WriteLine("    URI: " + ((actions::GoToURI)action).URI);}
+      {Console.WriteLine("      URI: " + ((actions::GoToURI)action).URI);}
     }
 
     private void PrintDestination(
@@ -150,15 +150,23 @@ namespace org.pdfclown.samples.cli
       )
     {
       Console.WriteLine(destination.GetType().Name + " " + destination.BaseObject);
-      Console.Write("    Page ");
+      Console.Write("        Page ");
       object pageRef = destination.Page;
       if(pageRef is Page)
       {
         Page page = (Page)pageRef;
-        Console.WriteLine((page.Index+1) + " [ID: " + page.BaseObject + "]");
+        Console.WriteLine(page.Number + " [ID: " + page.BaseObject + "]");
       }
       else
       {Console.WriteLine((int)pageRef+1);}
+
+      object location = destination.Location;
+      if(location != null)
+      {Console.WriteLine("        Location {0}", location);}
+
+      double? zoom = destination.Zoom;
+      if(zoom.HasValue)
+      {Console.WriteLine("        Zoom {0}", zoom.Value);}
     }
   }
 }

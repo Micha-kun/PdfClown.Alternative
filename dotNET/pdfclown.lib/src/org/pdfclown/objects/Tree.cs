@@ -1,5 +1,5 @@
 /*
-  Copyright 2007-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2007-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -103,29 +103,30 @@ namespace org.pdfclown.objects
         else
           throw new Exception("Malformed tree node.");
 
-        PdfArray children = (PdfArray)node.Resolve(childrenTypeName);
-        return new Children(node, children, childrenTypeName);
+        return new Children(node, childrenTypeName);
       }
 
-      /** Children's collection */
-      public readonly PdfArray Items;
-      /** Node's children info. */
-      public readonly InfoImpl Info;
-      /** Parent node. */
-      public readonly PdfDictionary Parent;
-      /** Node's children type. */
-      public readonly PdfName TypeName;
+      private InfoImpl info;
+      private PdfArray items;
+      private PdfDictionary parent;
+      private PdfName typeName;
 
       private Children(
         PdfDictionary parent,
-        PdfArray items,
         PdfName typeName
         )
       {
-        Parent = parent;
-        Items = items;
+        this.parent = parent;
         TypeName = typeName;
-        Info = InfoImpl.Get(typeName);
+      }
+
+      /**
+        <summary>Gets the node's children info.</summary>
+      */
+      public InfoImpl Info
+      {
+        get
+        {return info;}
       }
 
       /**
@@ -162,6 +163,39 @@ namespace org.pdfclown.objects
       public bool IsValid(
         )
       {return !(IsUndersized() || IsOversized());}
+
+      /**
+        <summary>Gets the node's children collection.</summary>
+      */
+      public PdfArray Items
+      {
+        get
+        {return items;}
+      }
+
+      /**
+        <summary>Gets the node.</summary>
+      */
+      public PdfDictionary Parent
+      {
+        get
+        {return parent;}
+      }
+
+      /**
+        <summary>Gets/Sets the node's children type.</summary>
+      */
+      public PdfName TypeName
+      {
+        get
+        {return typeName;}
+        set
+        {
+          typeName = value;
+          items = (PdfArray)parent.Resolve(typeName);
+          info = InfoImpl.Get(typeName);
+        }
+      }
     }
 
     private class Enumerator
@@ -214,7 +248,7 @@ namespace org.pdfclown.objects
         PdfDirectObject kidsObject =  rootNode[PdfName.Kids];
         if(kidsObject == null) // Leaf node.
         {
-          PdfDirectObject namesObject = rootNode[PdfName.Names];
+          PdfDirectObject namesObject = rootNode[tree.pairsKey];
           if(namesObject is PdfReference)
           {container = ((PdfReference)namesObject).IndirectObject;}
           names = (PdfArray)namesObject.Resolve();
@@ -303,7 +337,7 @@ namespace org.pdfclown.objects
               PdfDirectObject kidsObject = kid[PdfName.Kids];
               if(kidsObject == null) // Leaf node.
               {
-                PdfDirectObject namesObject = kid[PdfName.Names];
+                PdfDirectObject namesObject = kid[tree.pairsKey];
                 if(namesObject is PdfReference)
                 {container = ((PdfReference)namesObject).IndirectObject;}
                 names = (PdfArray)namesObject.Resolve();
@@ -602,7 +636,7 @@ namespace org.pdfclown.objects
                       kidChildren.Items.Insert(0, item);
                     }
                     nodeChildren.Items.RemoveAt(mid - 1);
-                    leftSibling.Reference.Delete();
+                    leftSibling.Delete();
                   }
                   else if(rightSibling != null)
                   {
@@ -615,20 +649,32 @@ namespace org.pdfclown.objects
                       kidChildren.Items.Add(item);
                     }
                     nodeChildren.Items.RemoveAt(mid + 1);
-                    rightSibling.Reference.Delete();
+                    rightSibling.Delete();
                   }
                   if(nodeChildren.Items.Count == 1)
                   {
-                    // Collapsing root...
+                    // Collapsing node...
+                    // Remove the lonely intermediate node from the parent!
                     nodeChildren.Items.RemoveAt(0);
+                    if(node == BaseDataObject) // Root node [FIX:50].
+                    {
+                      /*
+                        NOTE: In case of root collapse, Kids entry must be converted to
+                        key-value-pairs entry, as no more intermediate nodes are available.
+                      */
+                      node[pairsKey] = node[PdfName.Kids];
+                      node.Remove(PdfName.Kids);
+                      nodeChildren.TypeName = pairsKey;
+                    }
+                    // Populate the parent with the lonely intermediate node's children!
                     for(int index = kidChildren.Items.Count; index-- > 0;)
                     {
-                      int itemIndex = 0;
-                      PdfDirectObject item = kidChildren.Items[itemIndex];
-                      kidChildren.Items.RemoveAt(itemIndex);
+                      const int RemovedItemIndex = 0;
+                      PdfDirectObject item = kidChildren.Items[RemovedItemIndex];
+                      kidChildren.Items.RemoveAt(RemovedItemIndex);
                       nodeChildren.Items.Add(item);
                     }
-                    kid.Reference.Delete();
+                    kid.Delete();
                     kid = node;
                     kidReference = kid.Reference;
                     kidChildren = nodeChildren;
@@ -977,7 +1023,7 @@ namespace org.pdfclown.objects
       PdfArray kidsObject = (PdfArray)node.Resolve(PdfName.Kids);
       if(kidsObject == null) // Leaf node.
       {
-        PdfArray namesObject = (PdfArray)node.Resolve(PdfName.Names);
+        PdfArray namesObject = (PdfArray)node.Resolve(pairsKey);
         for(
           int index = 0,
             length = namesObject.Count;
@@ -1001,7 +1047,7 @@ namespace org.pdfclown.objects
       PdfDictionary node
       )
     {
-      PdfArray children = (PdfArray)node.Resolve(PdfName.Names);
+      PdfArray children = (PdfArray)node.Resolve(pairsKey);
       if(children != null) // Leaf node.
       {return (children.Count / 2);}
       else // Intermediate node.
@@ -1087,13 +1133,13 @@ namespace org.pdfclown.objects
       PdfName childrenTypeName
       )
     {
+      // Root node?
+      if(node == BaseDataObject)
+        return; // NOTE: Root nodes DO NOT specify limits.
+
       PdfDirectObject lowLimit, highLimit;
       if(childrenTypeName.Equals(PdfName.Kids))
       {
-        // Non-leaf root node?
-        if(node == BaseDataObject)
-          return; // NOTE: Non-leaf root nodes DO NOT specify limits.
-
         lowLimit = ((PdfArray)((PdfDictionary)children.Resolve(0)).Resolve(PdfName.Limits))[0];
         highLimit = ((PdfArray)((PdfDictionary)children.Resolve(children.Count-1)).Resolve(PdfName.Limits))[1];
       }

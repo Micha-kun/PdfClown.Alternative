@@ -25,7 +25,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(File file = new File(filePath))
+      using(var file = new File(filePath))
       {
         Document document = file.Document;
   
@@ -61,13 +61,14 @@ namespace org.pdfclown.samples.cli
         Console.WriteLine("\nIterating through the indirect-object collection (please wait)...");
 
         // 2.2. Counting the indirect objects, grouping them by type...
-        Dictionary<string,int> objCounters = new Dictionary<string,int>();
+        var objCounters = new SortedDictionary<string,int>();
         objCounters["xref free entry"] = 0;
         foreach(PdfIndirectObject obj in file.IndirectObjects)
         {
           if(obj.IsInUse()) // In-use entry.
           {
-            string typeName = obj.DataObject.GetType().Name;
+            PdfDataObject dataObject = obj.DataObject;
+            string typeName = (dataObject != null ? dataObject.GetType().Name : "empty entry");
             if(objCounters.ContainsKey(typeName))
             {objCounters[typeName]++;}
             else
@@ -109,8 +110,8 @@ namespace org.pdfclown.samples.cli
       Console.WriteLine(" ID: " + ((PdfReference)page.BaseObject).Id);
       PdfDictionary pageDictionary = page.BaseDataObject;
       Console.WriteLine(" Dictionary entries:");
-      foreach(PdfName key in pageDictionary.Keys)
-      {Console.WriteLine("  " + key.Value);}
+      foreach(KeyValuePair<PdfName,PdfDirectObject> entry in pageDictionary)
+      {Console.WriteLine("  " + entry.Key.Value + " = " + entry.Value);}
 
       // 2. Showing page contents information...
       Contents contents = page.Contents;

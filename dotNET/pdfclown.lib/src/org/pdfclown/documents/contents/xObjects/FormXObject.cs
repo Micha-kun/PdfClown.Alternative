@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -27,6 +27,7 @@ using org.pdfclown.documents;
 using org.pdfclown.documents.contents;
 using org.pdfclown.documents.contents.composition;
 using org.pdfclown.documents.contents.objects;
+using org.pdfclown.documents.interchange.metadata;
 using org.pdfclown.files;
 using org.pdfclown.objects;
 
@@ -50,7 +51,24 @@ namespace org.pdfclown.documents.contents.xObjects
     public static new FormXObject Wrap(
       PdfDirectObject baseObject
       )
-    {return baseObject != null ? new FormXObject(baseObject) : null;}
+    {
+      if(baseObject == null)
+        return null;
+
+      PdfDictionary header = ((PdfStream)PdfObject.Resolve(baseObject)).Header;
+      PdfName subtype = (PdfName)header[PdfName.Subtype];
+      /*
+        NOTE: Sometimes the form stream's header misses the mandatory Subtype entry; therefore, here
+        we force integrity for convenience (otherwise, content resource allocation may fail, for
+        example in case of Acroform flattening).
+      */
+      if(subtype == null && header.ContainsKey(PdfName.BBox))
+      {header[PdfName.Subtype] = PdfName.Form;}
+      else if(!subtype.Equals(PdfName.Form))
+        return null;
+
+      return new FormXObject(baseObject);
+    }
     #endregion
     #endregion
     #endregion
@@ -132,15 +150,15 @@ namespace org.pdfclown.documents.contents.xObjects
       {
         PdfArray box = (PdfArray)BaseDataObject.Header.Resolve(PdfName.BBox);
         return new drawing::SizeF(
-          ((IPdfNumber)box[2]).FloatValue,
-          ((IPdfNumber)box[3]).FloatValue
+          ((IPdfNumber)box[2]).FloatValue - ((IPdfNumber)box[0]).FloatValue,
+          ((IPdfNumber)box[3]).FloatValue - ((IPdfNumber)box[1]).FloatValue
           );
       }
       set
       {
         PdfArray boxObject = (PdfArray)BaseDataObject.Header.Resolve(PdfName.BBox);
-        boxObject[2] = PdfReal.Get(value.Width);
-        boxObject[3] = PdfReal.Get(value.Height);
+        boxObject[2] = PdfReal.Get(value.Width + ((IPdfNumber)boxObject[0]).FloatValue);
+        boxObject[3] = PdfReal.Get(value.Height + ((IPdfNumber)boxObject[1]).FloatValue);
       }
     }
     #endregion
@@ -183,6 +201,39 @@ namespace org.pdfclown.documents.contents.xObjects
       get
       {return RotationEnum.Downward;}
     }
+
+    #region IAppDataHolder
+    public AppDataCollection AppData
+    {
+      get
+      {return AppDataCollection.Wrap(BaseDataObject.Header.Get<PdfDictionary>(PdfName.PieceInfo), this);}
+    }
+
+    public AppData GetAppData(
+      PdfName appName
+      )
+    {return AppData.Ensure(appName);}
+
+    public DateTime? ModificationDate
+    {
+      get
+      {return (DateTime?)PdfSimpleObject<object>.GetValue(BaseDataObject.Header[PdfName.LastModified]);}
+    }
+
+    public void Touch(
+      PdfName appName
+      )
+    {Touch(appName, DateTime.Now);}
+
+    public void Touch(
+      PdfName appName,
+      DateTime modificationDate
+      )
+    {
+      GetAppData(appName).ModificationDate = modificationDate;
+      BaseDataObject.Header[PdfName.LastModified] = new PdfDate(modificationDate);
+    }
+    #endregion
 
     #region IContentEntity
     public ContentObject ToInlineObject(

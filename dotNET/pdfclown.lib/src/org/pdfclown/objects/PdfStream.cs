@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -166,7 +166,7 @@ namespace org.pdfclown.objects
         if(dataFile != null)
         {
           Updateable = false;
-          body.SetLength(0);
+          body.Clear();
           body.Write(dataFile.GetInputStream());
           body.Dirty = false;
           Updateable = true;
@@ -204,7 +204,9 @@ namespace org.pdfclown.objects
               body.Decode(bytes.filters.Filter.Get((PdfName)Resolve(filterIterator.Current)), filterParameters);
             }
           }
-          Filter = null; // The stream is free from encodings.
+          // The stream is free from encodings.
+          Filter = null;
+          Parameters = null;
           header.Updateable = true;
         }
       }
@@ -301,7 +303,7 @@ namespace org.pdfclown.objects
         else // Case A/C (substitute local/old file with new file).
         {
           // Dismiss local/old file data!
-          body.SetLength(0);
+          body.Clear();
           // Dismiss local/old file settings!
           Filter = null;
           Parameters = null;
@@ -324,7 +326,7 @@ namespace org.pdfclown.objects
           else // Case F (empty local).
           {
             // Dismiss old file data!
-            body.SetLength(0);
+            body.Clear();
             // Dismiss old file settings!
             Filter = null;
             Parameters = null;
@@ -382,65 +384,45 @@ namespace org.pdfclown.objects
       */
       header.Updateable = false;
 
-      byte[] bodyData;
+      byte[] bodyData = null;
       {
-        bool bodyUnencoded;
+        bool filterApplied = false;
         {
-          FileSpecification dataFile = DataFile;
           /*
             NOTE: In case of external file, the body buffer has to be saved back only if the file was
             actually resolved (that is brought into the body buffer) and modified.
           */
-          bool encodeBody = (dataFile == null || (bodyResolved && body.Dirty));
-          if(encodeBody)
+          FileSpecification dataFile = DataFile;
+          if(dataFile == null || (bodyResolved && body.Dirty))
           {
-            PdfDirectObject filterObject = Filter;
-            if(filterObject == null) // Unencoded body.
+            /*
+              NOTE: In order to keep the contents of metadata streams visible as plain text to tools
+              that are not PDF-aware, no filter is applied to them [PDF:1.7:10.2.2].
+            */
+            if(Filter == null
+               && context.Configuration.StreamFilterEnabled
+               && !PdfName.Metadata.Equals(header[PdfName.Type])) // Filter needed.
             {
-              /*
-                NOTE: Header entries related to stream body encoding are temporary, instrumental to
-                the current serialization process only.
-              */
-              bodyUnencoded = true;
-
-              // Set the filter to apply!
-              filterObject = PdfName.FlateDecode; // zlib/deflate filter.
-              // Get encoded body data applying the filter to the stream!
-              bodyData = body.Encode(bytes.filters.Filter.Get((PdfName)filterObject), null);
-              // Set 'Filter' entry!
-              Filter = filterObject;
+              // Apply the filter to the stream!
+              bodyData = body.Encode(bytes.filters.Filter.Get((PdfName)(Filter = PdfName.FlateDecode)), null);
+              filterApplied = true;
             }
-            else // Encoded body.
-            {
-              bodyUnencoded = false;
-
-              // Get encoded body data!
-              bodyData = body.ToByteArray();
-            }
+            else // No filter needed.
+            {bodyData = body.ToByteArray();}
 
             if(dataFile != null)
             {
-              /*
-                NOTE: In case of external file, body data has to be serialized there, leaving empty
-                its representation within this stream.
-              */
               try
               {
-                IOutputStream dataFileOutputStream = dataFile.GetOutputStream();
-                dataFileOutputStream.Write(bodyData);
-                dataFileOutputStream.Dispose();
+                using(var dataFileOutputStream = dataFile.GetOutputStream())
+                {dataFileOutputStream.Write(bodyData);}
               }
               catch(Exception e)
               {throw new Exception("Data writing into " + dataFile.Path + " failed.", e);}
-              // Local serialization is empty!
-              bodyData = new byte[]{};
             }
           }
-          else
-          {
-            bodyUnencoded = false;
-            bodyData = new byte[]{};
-          }
+          if(dataFile != null)
+          {bodyData = new byte[]{};}
         }
 
         // Set the encoded data length!
@@ -449,7 +431,7 @@ namespace org.pdfclown.objects
         // 1. Header.
         header.WriteTo(stream, context);
 
-        if(bodyUnencoded)
+        if(filterApplied)
         {
           // Restore actual header entries!
           header[PdfName.Length] = PdfInteger.Get((int)body.Length);

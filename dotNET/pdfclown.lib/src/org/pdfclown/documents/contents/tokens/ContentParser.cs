@@ -1,8 +1,9 @@
 /*
-  Copyright 2011-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2011-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
+    * Stephen Cleary (bug reporter [FIX:51], https://sourceforge.net/u/stephencleary/)
 
   This file should be part of the source code distribution of "PDF Clown library" (the
   Program): see the accompanying README files for more info.
@@ -27,9 +28,11 @@ using bytes = org.pdfclown.bytes;
 using org.pdfclown.documents.contents.objects;
 using org.pdfclown.objects;
 using org.pdfclown.tokens;
+using org.pdfclown.util.parsers;
 
 using System;
 using System.Collections.Generic;
+using sysIO = System.IO;
 
 namespace org.pdfclown.documents.contents.tokens
 {
@@ -115,7 +118,7 @@ namespace org.pdfclown.documents.contents.tokens
     public Operation ParseOperation(
       )
     {
-      string operator_ = null;
+      string @operator = null;
       List<PdfDirectObject> operands = new List<PdfDirectObject>();
       // Parsing the operation parts...
       do
@@ -123,14 +126,14 @@ namespace org.pdfclown.documents.contents.tokens
         switch(TokenType)
         {
           case TokenTypeEnum.Keyword:
-            operator_ = (string)Token;
+            @operator = (string)Token;
             break;
           default:
             operands.Add((PdfDirectObject)ParsePdfObject());
             break;
         }
-      } while(operator_ == null && MoveNext());
-      return Operation.Get(operator_,operands);
+      } while(@operator == null && MoveNext());
+      return Operation.Get(@operator,operands);
     }
 
     public override PdfDataObject ParsePdfObject(
@@ -140,16 +143,10 @@ namespace org.pdfclown.documents.contents.tokens
       {
         case TokenTypeEnum.Literal:
           if(Token is string)
-            return new PdfString(
-              Encoding.Pdf.Encode((string)Token),
-              PdfString.SerializationModeEnum.Literal
-              );
+            return new PdfByteString(Encoding.Pdf.Encode((string)Token));
           break;
         case TokenTypeEnum.Hex:
-          return new PdfString(
-            (string)Token,
-            PdfString.SerializationModeEnum.Hex
-            );
+          return new PdfByteString((string)Token);
       }
       return base.ParsePdfObject();
     }
@@ -176,17 +173,65 @@ namespace org.pdfclown.documents.contents.tokens
 
       InlineImageBody body;
       {
+        // [FIX:51,74] Wrong 'EI' token handling on inline image parsing.
         bytes::IInputStream stream = Stream;
-        MoveNext();
+        stream.ReadByte(); // Should be the whitespace following the 'ID' token.
         bytes::Buffer data = new bytes::Buffer();
-        byte prevByte = 0;
+        var endChunkBuffer = new sysIO::MemoryStream(3);
+        int endChunkIndex = -1;
         while(true)
         {
-          byte curByte = (byte)stream.ReadByte();
-          if(prevByte == 'E' && curByte == 'I')
-            break;
+          int curByte = stream.ReadByte();
+          if(curByte == -1)
+            throw new PostScriptParseException("No 'EI' token found to close inline image data stream.");
 
-          data.Append(prevByte = curByte);
+          if(endChunkIndex == -1)
+          {
+            if(IsWhitespace(curByte))
+            {
+              /*
+                NOTE: Whitespace characters may announce the beginning of the end image operator.
+              */
+              endChunkBuffer.WriteByte((byte)curByte);
+              endChunkIndex++;
+            }
+            else
+            {data.Append((byte)curByte);}
+          }
+          else if(endChunkIndex == 0 && IsWhitespace(curByte))
+          {
+            /*
+              NOTE: Only the last whitespace character may announce the beginning of the end image
+              operator.
+            */
+            data.Append(endChunkBuffer.ToArray());
+            endChunkBuffer.SetLength(0);
+            endChunkBuffer.WriteByte((byte)curByte);
+          }
+          else if((endChunkIndex == 0 && curByte == 'E')
+            || (endChunkIndex == 1 && curByte == 'I'))
+          {
+            /*
+              NOTE: End image operator characters.
+            */
+            endChunkBuffer.WriteByte((byte)curByte);
+            endChunkIndex++;
+          }
+          else if(endChunkIndex == 2 && IsWhitespace(curByte))
+            /*
+              NOTE: The whitespace character after the end image operator completes the pattern.
+            */
+            break;
+          else
+          {
+            if(endChunkIndex > -1)
+            {
+              data.Append(endChunkBuffer.ToArray());
+              endChunkBuffer.SetLength(0);
+              endChunkIndex = -1;
+            }
+            data.Append((byte)curByte);
+          }
         }
         body = new InlineImageBody(data);
       }

@@ -25,7 +25,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(File file = new File(filePath))
+      using(var file = new File(filePath))
       {
         Document document = file.Document;
   
@@ -67,7 +67,7 @@ namespace org.pdfclown.samples.cli
           foreground.SetFillColor(redColor);
 
           SizeF pageSize = page.Size;
-          int pageNumber = page.Index + 1;
+          int pageNumber = page.Number;
           bool pageIsEven = (pageNumber % 2 == 0);
           foreground.ShowText(
             pageNumber.ToString(),

@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -52,6 +52,10 @@ namespace org.pdfclown.bytes
       System.IO.Stream stream
       )
     {this.stream = stream;}
+
+    ~Stream(
+      )
+    {Dispose(false);}
     #endregion
 
     #region interface
@@ -201,11 +205,7 @@ namespace org.pdfclown.bytes
     public void Dispose(
       )
     {
-      if(stream != null)
-      {
-        stream.Dispose();
-        stream = null;
-      }
+      Dispose(true);
       GC.SuppressFinalize(this);
     }
     #endregion
@@ -213,6 +213,10 @@ namespace org.pdfclown.bytes
     #endregion
 
     #region IOutputStream
+    public void Clear(
+      )
+    {stream.SetLength(0);}
+
     public void Write(
       byte[] data
       )
@@ -237,13 +241,29 @@ namespace org.pdfclown.bytes
       // TODO:IMPL bufferize!!!
       byte[] baseData = new byte[data.Length];
       // Force the source pointer to the BOF (as we must copy the entire content)!
-      data.Position = 0;
+      data.Seek(0);
       // Read source content!
       data.Read(baseData, 0, baseData.Length);
       // Write target content!
       Write(baseData);
     }
     #endregion
+    #endregion
+
+    #region private
+    private void Dispose(
+      bool disposing
+      )
+    {
+      if(disposing)
+      {
+        if(stream != null)
+        {
+          stream.Dispose();
+          stream = null;
+        }
+      }
+    }
     #endregion
     #endregion
     #endregion

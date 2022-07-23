@@ -32,7 +32,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(File file = new File(filePath))
+      using(var file = new File(filePath))
       {
         Document document = file.Document;
   
@@ -41,7 +41,7 @@ namespace org.pdfclown.samples.cli
         // 2. Iterating through the document pages...
         foreach(Page page in document.Pages)
         {
-          Console.WriteLine("\nScanning page " + (page.Index+1) + "...\n");
+          Console.WriteLine("\nScanning page " + page.Number + "...\n");
   
           stamper.Page = page;
   
@@ -108,17 +108,28 @@ namespace org.pdfclown.samples.cli
 
             // Drawing text string bounding box...
             composer.BeginLocalState();
-            composer.SetLineDash(new LineDash(new double[]{5,5}));
+            composer.SetLineDash(new LineDash(new double[]{5}));
             composer.SetStrokeColor(textStringBoxColor);
             composer.DrawRectangle(textString.Box.Value);
             composer.Stroke();
             composer.End();
           }
         }
+        else if(content is XObject)
+        {
+          // Scan the external level!
+          Extract(
+            ((XObject)content).GetScanner(level),
+            composer
+            );
+        }
         else if(content is ContainerObject)
         {
           // Scan the inner level!
-          Extract(level.ChildLevel, composer);
+          Extract(
+            level.ChildLevel,
+            composer
+            );
         }
       }
     }

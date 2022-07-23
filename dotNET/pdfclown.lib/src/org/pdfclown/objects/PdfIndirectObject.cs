@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -107,7 +107,8 @@ namespace org.pdfclown.objects
       // Remove from previous object stream!
       Uncompress();
 
-      if(objectStream != null)
+      if(objectStream != null
+         && IsCompressible())
       {
         // Add to the object stream!
         objectStream[xrefEntry.Number] = DataObject;
@@ -132,15 +133,7 @@ namespace org.pdfclown.objects
 
     public override int GetHashCode(
       )
-    {
-      /*
-        NOTE: Uniqueness should be achieved XORring the (local) reference hashcode with the (global)
-        file hashcode.
-        NOTE: Do NOT directly invoke reference.GetHashCode() method here as, conversely relying on
-        this method, it would trigger an infinite loop.
-      */
-      return reference.Id.GetHashCode() ^ file.GetHashCode();
-    }
+    {return reference.GetHashCode();}
 
     /**
       <summary>Gets whether this object is compressed within an object stream [PDF:1.6:3.4.6].
@@ -149,6 +142,20 @@ namespace org.pdfclown.objects
     public bool IsCompressed(
       )
     {return xrefEntry.Usage == XRefEntry.UsageEnum.InUseCompressed;}
+
+    /**
+      <summary>Gets whether this object can be compressed within an object stream [PDF:1.6:3.4.6].
+      </summary>
+    */
+    public bool IsCompressible(
+      )
+    {
+      return !IsCompressed()
+        && IsInUse()
+        && !(DataObject is PdfStream
+          || dataObject is PdfInteger)
+        && Reference.GenerationNumber == 0;
+    }
 
     /**
       <summary>Gets whether this object contains a data object.</summary>
@@ -199,7 +206,7 @@ namespace org.pdfclown.objects
       oldObjectStream.Remove(xrefEntry.Number);
       // Update its xref entry!
       xrefEntry.Usage = XRefEntry.UsageEnum.InUse;
-      xrefEntry.StreamNumber = -1; // No object stream.
+      xrefEntry.StreamNumber = XRefEntry.UndefinedStreamNumber; // No object stream.
       xrefEntry.Offset = XRefEntry.UndefinedOffset; // Offset unknown (to set on file serialization -- see CompressedWriter).
     }
 
@@ -264,11 +271,8 @@ namespace org.pdfclown.objects
             // In-use entry (late-bound data object).
             case XRefEntry.UsageEnum.InUse:
             {
-              FileParser parser = file.Reader.Parser;
-              // Retrieve the associated data object among the original objects!
-              parser.Seek(xrefEntry.Offset);
               // Get the indirect data object!
-              dataObject = Include(parser.ParsePdfObject(4)); // NOTE: Skips the indirect-object header.
+              dataObject = Include(file.Reader.Parser.ParsePdfObject(xrefEntry));
               break;
             }
             case XRefEntry.UsageEnum.InUseCompressed:
@@ -295,18 +299,19 @@ namespace org.pdfclown.objects
       }
     }
 
-    public void Delete(
+    public override bool Delete(
       )
     {
-      if(file == null)
-        return;
-
-      /*
-        NOTE: It's expected that DropFile() is invoked by IndirectObjects.Remove() method;
-        such an action is delegated because clients may invoke directly Remove() method,
-        skipping this method.
-      */
-      file.IndirectObjects.RemoveAt(xrefEntry.Number);
+      if(file != null)
+      {
+        /*
+          NOTE: It's expected that DropFile() is invoked by IndirectObjects.Remove() method;
+          such an action is delegated because clients may invoke directly Remove() method,
+          skipping this method.
+        */
+        file.IndirectObjects.RemoveAt(xrefEntry.Number);
+      }
+      return true;
     }
 
     public override PdfIndirectObject IndirectObject

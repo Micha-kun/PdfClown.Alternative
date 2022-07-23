@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2011-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -58,13 +58,9 @@ namespace org.pdfclown.util.parsers
     #endregion
 
     #region static
-    #region fields
-    private static readonly NumberFormatInfo StandardNumberFormatInfo = NumberFormatInfo.InvariantInfo;
-    #endregion
-
     #region interface
-    #region private
-    private static int GetHex(
+    #region protected
+    protected static int GetHex(
       int c
       )
     {
@@ -81,7 +77,7 @@ namespace org.pdfclown.util.parsers
     /**
       <summary>Evaluate whether a character is a delimiter.</summary>
     */
-    private static bool IsDelimiter(
+    protected static bool IsDelimiter(
       int c
       )
     {
@@ -98,7 +94,7 @@ namespace org.pdfclown.util.parsers
     /**
       <summary>Evaluate whether a character is an EOL marker.</summary>
     */
-    private static bool IsEOL(
+    protected static bool IsEOL(
       int c
       )
     {return (c == 10 || c == 13);}
@@ -106,7 +102,7 @@ namespace org.pdfclown.util.parsers
     /**
       <summary>Evaluate whether a character is a white-space.</summary>
     */
-    private static bool IsWhitespace(
+    protected static bool IsWhitespace(
       int c
       )
     {return c == 32 || IsEOL(c) || c == 0 || c == 9 || c == 12;}
@@ -132,6 +128,10 @@ namespace org.pdfclown.util.parsers
       byte[] data
       )
     {this.stream = new org.pdfclown.bytes.Buffer(data);}
+
+    ~PostScriptParser(
+      )
+    {Dispose(false);}
     #endregion
 
     #region interface
@@ -269,7 +269,7 @@ namespace org.pdfclown.util.parsers
         {
           c = stream.ReadByte();
           if(c == -1)
-            throw new ParseException("Unexpected EOF (isolated opening angle-bracket character).");
+            throw new PostScriptParseException("Isolated opening angle-bracket character.");
           // Is it a dictionary (2nd angle bracket)?
           if(c == Symbol.OpenAngleBracket)
           {
@@ -288,14 +288,16 @@ namespace org.pdfclown.util.parsers
 
             c = stream.ReadByte();
             if(c == -1)
-              throw new ParseException("Unexpected EOF (malformed hex string).");
+              throw new PostScriptParseException("Malformed hex string.");
           }
         } break;
         case Symbol.CloseAngleBracket: // Dictionary (end).
         {
           c = stream.ReadByte();
-          if(c != Symbol.CloseAngleBracket)
-            throw new ParseException("Malformed dictionary.",stream.Position);
+          if(c == -1)
+            throw new PostScriptParseException("Malformed dictionary.");
+          else if(c != Symbol.CloseAngleBracket)
+            throw new PostScriptParseException("Malformed dictionary.", this);
 
           tokenType = TokenTypeEnum.DictionaryEnd;
         } break;
@@ -389,7 +391,7 @@ namespace org.pdfclown.util.parsers
             buffer.Append((char)c);
           }
           if(c == -1)
-            throw new ParseException("Malformed literal string.");
+            throw new PostScriptParseException("Malformed literal string.");
         } break;
         case Symbol.Percent: // Comment.
         {
@@ -435,7 +437,7 @@ namespace org.pdfclown.util.parsers
               case Keyword.False:
               case Keyword.True: // Boolean.
                 tokenType = TokenTypeEnum.Boolean;
-                token =  bool.Parse((string)token);
+                token = Boolean.Parse((string)token);
                 break;
               case Keyword.Null: // Null.
                 tokenType = TokenTypeEnum.Null;
@@ -450,18 +452,10 @@ namespace org.pdfclown.util.parsers
             token = buffer.ToString();
             break;
           case TokenTypeEnum.Integer:
-            token = Int32.Parse(
-              buffer.ToString(),
-              NumberStyles.Integer,
-              StandardNumberFormatInfo
-              );
+            token = ConvertUtils.ParseIntInvariant(buffer.ToString());
             break;
           case TokenTypeEnum.Real:
-            token = Double.Parse(
-              buffer.ToString(),
-              NumberStyles.Float,
-              StandardNumberFormatInfo
-              );
+            token = ConvertUtils.ParseDoubleInvariant(buffer.ToString());
             break;
         }
       }
@@ -491,25 +485,32 @@ namespace org.pdfclown.util.parsers
     {stream.Skip(offset);}
 
     /**
-      <summary>Moves the pointer before the next non-EOL character after the current position.</summary>
+      <summary>Moves the pointer after the next end-of-line character sequence (that is just before
+      the non-EOL character following the EOL sequence).</summary>
       <returns>Whether the stream can be further read.</returns>
     */
     public bool SkipEOL(
       )
     {
       int c;
-      do
+      bool found = false;
+      while(true)
       {
         c = stream.ReadByte();
         if(c == -1)
           return false;
-      } while(IsEOL(c)); // Keeps going till there's an EOL character.
-      stream.Skip(-1); // Moves back to the first non-EOL character position.
+        else if(IsEOL(c))
+        {found = true;}
+        else if(found) // After EOL.
+          break;
+      }
+      stream.Skip(-1); // Moves back to the first non-EOL character position (ready to read the next token).
       return true;
     }
 
     /**
-      <summary>Moves the pointer before the next non-whitespace character after the current position.</summary>
+      <summary>Moves the pointer after the current whitespace sequence (that is just before the
+      non-whitespace character following the whitespace sequence).</summary>
       <returns>Whether the stream can be further read.</returns>
     */
     public bool SkipWhitespace(
@@ -522,7 +523,7 @@ namespace org.pdfclown.util.parsers
         if(c == -1)
           return false;
       } while(IsWhitespace(c)); // Keeps going till there's a whitespace character.
-      stream.Skip(-1); // Moves back to the first non-whitespace character position.
+      stream.Skip(-1); // Moves back to the first non-whitespace character position (ready to read the next token).
       return true;
     }
 
@@ -558,15 +559,26 @@ namespace org.pdfclown.util.parsers
     public void Dispose(
       )
     {
-      if(stream != null)
-      {
-        stream.Dispose();
-        stream = null;
-      }
-
+      Dispose(true);
       GC.SuppressFinalize(this);
     }
     #endregion
+    #endregion
+
+    #region protected
+    protected virtual void Dispose(
+      bool disposing
+      )
+    {
+      if(disposing)
+      {
+        if(stream != null)
+        {
+          stream.Dispose();
+          stream = null;
+        }
+      }
+    }
     #endregion
     #endregion
     #endregion

@@ -1,5 +1,5 @@
 /*
-  Copyright 2008-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2008-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -112,7 +112,7 @@ namespace org.pdfclown.documents.contents.objects
 
         LineDash lineDash = state.LineDash;
         double[] dashArray = lineDash.DashArray;
-        if(dashArray != null && dashArray.Length > 0)
+        if(dashArray.Length > 0)
         {
           stroke.DashPattern = ConvertUtils.ToFloatArray(dashArray);
           stroke.DashOffset = (float)lineDash.DashPhase;
@@ -134,12 +134,12 @@ namespace org.pdfclown.documents.contents.objects
 
     #region constructors
     private PaintPath(
-      string operator_,
+      string @operator,
       bool closed,
       bool stroked,
       bool filled,
       WindModeEnum? fillMode
-      ) : base(operator_)
+      ) : base(@operator)
     {
       this.closed = closed;
       this.stroked = stroked;

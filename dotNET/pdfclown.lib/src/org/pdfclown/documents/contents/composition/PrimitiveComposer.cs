@@ -1,5 +1,5 @@
 /*
-  Copyright 2007-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2007-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -35,6 +35,7 @@ using actions = org.pdfclown.documents.interaction.actions;
 using org.pdfclown.documents.interaction.annotations;
 using org.pdfclown.files;
 using org.pdfclown.objects;
+using org.pdfclown.util.math;
 using org.pdfclown.util.math.geom;
 
 using System;
@@ -82,9 +83,9 @@ namespace org.pdfclown.documents.contents.composition
       <summary>Adds a content object.</summary>
       <returns>The added content object.</returns>
     */
-    public objects::ContentObject Add(
-      objects::ContentObject obj
-      )
+    public T Add<T>(
+      T obj
+      ) where T : objects::ContentObject
     {
       scanner.Insert(obj);
       scanner.MoveNext();
@@ -302,7 +303,7 @@ namespace org.pdfclown.documents.contents.composition
       PointF endControl
       )
     {
-      double contextHeight = scanner.ContentContext.Box.Height;
+      double contextHeight = scanner.ContextSize.Height;
       Add(
         new objects::DrawCurve(
           endPoint.X,
@@ -358,7 +359,7 @@ namespace org.pdfclown.documents.contents.composition
       Add(
         new objects::DrawLine(
           endPoint.X,
-          scanner.ContentContext.Box.Height - endPoint.Y
+          scanner.ContextSize.Height - endPoint.Y
           )
         );
     }
@@ -443,7 +444,7 @@ namespace org.pdfclown.documents.contents.composition
         Add(
           new objects::DrawRectangle(
             location.X,
-            scanner.ContentContext.Box.Height - location.Y - location.Height,
+            scanner.ContextSize.Height - location.Y - location.Height,
             location.Width,
             location.Height
             )
@@ -505,8 +506,8 @@ namespace org.pdfclown.documents.contents.composition
             );
           DrawArc(
             new RectangleF((float)(x2+xArc), (float)(y2+yArc), (float)(radius*2), (float)(radius*2)),
-            (float)((180 / Math.PI) * radians),
-            (float)((180 / Math.PI) * radians2),
+            (float)MathUtils.ToDegrees(radians),
+            (float)MathUtils.ToDegrees(radians2),
             0,
             1,
             false
@@ -608,7 +609,7 @@ namespace org.pdfclown.documents.contents.composition
       double angle
       )
     {
-      double rad = angle * Math.PI / 180;
+      double rad = MathUtils.ToRadians(angle);
       double cos = Math.Cos(rad);
       double sin = Math.Sin(rad);
       ApplyMatrix(cos, sin, -sin, cos, 0, 0);
@@ -629,14 +630,14 @@ namespace org.pdfclown.documents.contents.composition
       // Center to the new origin!
       Translate(
         origin.X,
-        scanner.ContentContext.Box.Height - origin.Y
+        scanner.ContextSize.Height - origin.Y
         );
       // Rotate on the new origin!
       Rotate(angle);
       // Restore the standard vertical coordinates system!
       Translate(
         0,
-        -scanner.ContentContext.Box.Height
+        -scanner.ContextSize.Height
         );
     }
 
@@ -708,22 +709,6 @@ namespace org.pdfclown.documents.contents.composition
       double size
       )
     {SetFont_(GetResourceName(value),size);}
-
-    /**
-      <summary>Sets the text horizontal scaling [PDF:1.6:5.2.3].</summary>
-    */
-    public void SetTextScale(
-      double value
-      )
-    {Add(new objects::SetTextScale(value));}
-
-    /**
-      <summary>Sets the text leading [PDF:1.6:5.2.4].</summary>
-    */
-    public void SetTextLead(
-      double value
-      )
-    {Add(new objects::SetTextLead(value));}
 
     /**
       <summary>Sets the line cap style [PDF:1.6:4.3.2].</summary>
@@ -809,6 +794,15 @@ namespace org.pdfclown.documents.contents.composition
     }
 
     /**
+      <summary>Sets the text leading [PDF:1.6:5.2.4], relative to the current text line height.
+      </summary>
+    */
+    public void SetTextLead(
+      double value
+      )
+    {Add(new objects::SetTextLead(value * State.Font.GetLineHeight(State.FontSize)));}
+
+    /**
       <summary>Sets the text rendering mode [PDF:1.6:5.2.5].</summary>
     */
     public void SetTextRenderMode(
@@ -825,6 +819,14 @@ namespace org.pdfclown.documents.contents.composition
     {Add(new objects::SetTextRise(value));}
 
     /**
+      <summary>Sets the text horizontal scaling [PDF:1.6:5.2.3], normalized to 1.</summary>
+    */
+    public void SetTextScale(
+      double value
+      )
+    {Add(new objects::SetTextScale(value * 100));}
+
+    /**
       <summary>Sets the word spacing [PDF:1.6:5.2.2].</summary>
     */
     public void SetWordSpace(
@@ -836,6 +838,7 @@ namespace org.pdfclown.documents.contents.composition
       <summary>Shows the specified text on the page at the current location [PDF:1.6:5.3.2].</summary>
       <param name="value">Text to show.</param>
       <returns>Bounding box vertices in default user space units.</returns>
+      <exception cref="EncodeException"/>
     */
     public Quad ShowText(
       string value
@@ -853,6 +856,7 @@ namespace org.pdfclown.documents.contents.composition
       <param name="value">Text to show.</param>
       <param name="action">Action to apply when the link is activated.</param>
       <returns>Link.</returns>
+      <exception cref="EncodeException"/>
     */
     public Link ShowText(
       string value,
@@ -872,6 +876,7 @@ namespace org.pdfclown.documents.contents.composition
       <param name="value">Text to show.</param>
       <param name="location">Position at which showing the text.</param>
       <returns>Bounding box vertices in default user space units.</returns>
+      <exception cref="EncodeException"/>
     */
     public Quad ShowText(
       string value,
@@ -894,6 +899,7 @@ namespace org.pdfclown.documents.contents.composition
       <param name="location">Position at which showing the text.</param>
       <param name="action">Action to apply when the link is activated.</param>
       <returns>Link.</returns>
+      <exception cref="EncodeException"/>
     */
     public Link ShowText(
       string value,
@@ -920,6 +926,7 @@ namespace org.pdfclown.documents.contents.composition
       <param name="yAlignment">Vertical alignment.</param>
       <param name="rotation">Rotational counterclockwise angle.</param>
       <returns>Bounding box vertices in default user space units.</returns>
+      <exception cref="EncodeException"/>
     */
     public Quad ShowText(
       string value,
@@ -929,91 +936,75 @@ namespace org.pdfclown.documents.contents.composition
       double rotation
       )
     {
-      ContentScanner.GraphicsState state = scanner.State;
-      fonts::Font font = state.Font;
-      double fontSize = state.FontSize;
-      double x = location.X;
-      double y = location.Y;
-      double width = font.GetKernedWidth(value,fontSize);
-      double height = font.GetLineHeight(fontSize);
-      double descent = font.GetDescent(fontSize);
       Quad frame;
-      if(xAlignment == XAlignmentEnum.Left
-        && yAlignment == YAlignmentEnum.Top)
+
+      BeginLocalState();
+      try
       {
+        // Anchor point positioning.
+        double rad = MathUtils.ToRadians(rotation);
+        double cos = Math.Cos(rad);
+        double sin = Math.Sin(rad);
+        ApplyMatrix(
+          cos,
+          sin,
+          -sin,
+          cos,
+          location.X,
+          scanner.ContextSize.Height - location.Y
+          );
+
+        string[] textLines = value.Split('\n');
+
+        ContentScanner.GraphicsState state = State;
+        fonts::Font font = state.Font;
+        double fontSize = state.FontSize;
+        double lineHeight = font.GetLineHeight(fontSize);
+        double lineSpace = state.Lead < lineHeight ? 0 : state.Lead - lineHeight;
+        lineHeight += lineSpace;
+        double textHeight = lineHeight * textLines.Length - lineSpace;
+        double ascent = font.GetAscent(fontSize);
+        /*
+          NOTE: Word spacing is automatically applied by viewers only in case of single-byte
+          character code 32 [PDF:1.7:5.2.2]. As several bug reports pointed out, mixed-length
+          encodings aren't properly handled by recent implementations like pdf.js, therefore
+          composite fonts are always treated as multi-byte encodings which require explicit word
+          spacing adjustment.
+        */
+        double wordSpaceAdjust = font is fonts::CompositeFont ? -state.WordSpace * 1000 * state.Scale / fontSize : 0;
+
+        // Vertical alignment.
+        double y;
+        switch(yAlignment)
+        {
+          case YAlignmentEnum.Top:
+            y = 0 - ascent;
+            break;
+          case YAlignmentEnum.Bottom:
+            y = textHeight - ascent;
+            break;
+          case YAlignmentEnum.Middle:
+            y = textHeight / 2 - ascent;
+            break;
+          default:
+            throw new NotImplementedException();
+        }
+
+        // Text placement.
+        double maxLineWidth = 0;
+        double minX = 0;
         BeginText();
         try
         {
-          if(rotation == 0)
+          for(int index = 0, length = textLines.Length; index < length; index++)
           {
-            TranslateText(
-              x,
-              scanner.ContentContext.Box.Height - y - font.GetAscent(fontSize)
-              );
-          }
-          else
-          {
-            double rad = rotation * Math.PI / 180.0;
-            double cos = Math.Cos(rad);
-            double sin = Math.Sin(rad);
+            string textLine = textLines[index];
+            double width = font.GetKernedWidth(textLine, fontSize) * state.Scale;
+            if(width > maxLineWidth)
+            {maxLineWidth = width;}
 
-            SetTextMatrix(
-              cos,
-              sin,
-              -sin,
-              cos,
-              x,
-              scanner.ContentContext.Box.Height - y - font.GetAscent(fontSize)
-              );
-          }
-
-          state = scanner.State;
-          frame = new Quad(
-            state.TextToDeviceSpace(new PointF(0, (float)descent), true),
-            state.TextToDeviceSpace(new PointF((float)width, (float)descent), true),
-            state.TextToDeviceSpace(new PointF((float)width, (float)(height + descent)), true),
-            state.TextToDeviceSpace(new PointF(0, (float)(height + descent)), true)
-            );
-
-          // Add the text!
-          Add(new objects::ShowSimpleText(font.Encode(value)));
-        }
-        finally
-        {End();} // Ends the text object.
-      }
-      else
-      {
-        BeginLocalState();
-        try
-        {
-          // Coordinates transformation.
-          double cos, sin;
-          if(rotation == 0)
-          {
-            cos = 1;
-            sin = 0;
-          }
-          else
-          {
-            double rad = rotation * Math.PI / 180.0;
-            cos = Math.Cos(rad);
-            sin = Math.Sin(rad);
-          }
-          // Apply the transformation!
-          ApplyMatrix(
-            cos,
-            sin,
-            -sin,
-            cos,
-            x,
-            scanner.ContentContext.Box.Height - y
-            );
-
-          // Begin the text object!
-          BeginText();
-          try
-          {
-            // Text coordinates adjustment.
+            // Horizontal alignment.
+            double x;
             switch(xAlignment)
             {
               case XAlignmentEnum.Left:
@@ -1026,39 +1017,48 @@ namespace org.pdfclown.documents.contents.composition
               case XAlignmentEnum.Justify:
                 x = -width / 2;
                 break;
+              default:
+                throw new NotImplementedException();
             }
-            switch(yAlignment)
+            if(x < minX)
+            {minX = x;}
+            TranslateText(x, y - lineHeight * index);
+
+            if(textLine.Length > 0)
             {
-              case YAlignmentEnum.Top:
-                y = -font.GetAscent(fontSize);
-                break;
-              case YAlignmentEnum.Bottom:
-                y = height - font.GetAscent(fontSize);
-                break;
-              case YAlignmentEnum.Middle:
-                y = height / 2 - font.GetAscent(fontSize);
-                break;
+              if(wordSpaceAdjust == 0 || textLine.IndexOf(' ') == -1) // Simple text.
+              {Add(new objects::ShowSimpleText(font.Encode(textLine)));}
+              else // Adjusted text.
+              {
+                var textParams = new List<Object>();
+                for(int spaceIndex = 0, lastSpaceIndex = -1; spaceIndex > -1; lastSpaceIndex = spaceIndex)
+                {
+                  spaceIndex = textLine.IndexOf(' ', lastSpaceIndex + 1);
+                  // Word space adjustment.
+                  if(lastSpaceIndex > -1)
+                  {textParams.Add(wordSpaceAdjust);}
+                  // Word.
+                  textParams.Add(font.Encode(textLine.Substring(lastSpaceIndex + 1, (spaceIndex > -1 ? spaceIndex + 1 : textLine.Length) - (lastSpaceIndex + 1))));
+                }
+                Add(new objects::ShowAdjustedText(textParams));
+              }
             }
-            // Apply the text coordinates adjustment!
-            TranslateText(x,y);
-
-            state = scanner.State;
-            frame = new Quad(
-              state.TextToDeviceSpace(new PointF(0, (float)descent), true),
-              state.TextToDeviceSpace(new PointF((float)width, (float)descent), true),
-              state.TextToDeviceSpace(new PointF((float)width, (float)(height + descent)), true),
-              state.TextToDeviceSpace(new PointF(0, (float)(height + descent)), true)
-              );
-
-            // Add the text!
-            Add(new objects::ShowSimpleText(font.Encode(value)));
           }
-          finally
-          {End();} // Ends the text object.
         }
         finally
-        {End();} // Ends the local state.
+        {End();} // Ends the text object.
+
+        Matrix textToDeviceMatrix = state.GetTextToDeviceMatrix(true);
+        frame = new Quad(
+          textToDeviceMatrix.Transform(new PointF((float)minX, (float)(y + ascent))),
+          textToDeviceMatrix.Transform(new PointF((float)(minX + maxLineWidth), (float)(y + ascent))),
+          textToDeviceMatrix.Transform(new PointF((float)(minX + maxLineWidth), (float)(y + ascent - textHeight))),
+          textToDeviceMatrix.Transform(new PointF((float)minX, (float)(y + ascent - textHeight)))
+          );
       }
+      finally
+      {End();} // Ends the local state.
+
       return frame;
     }
 
@@ -1072,6 +1072,7 @@ namespace org.pdfclown.documents.contents.composition
       <param name="rotation">Rotational counterclockwise angle.</param>
       <param name="action">Action to apply when the link is activated.</param>
       <returns>Link.</returns>
+      <exception cref="EncodeException"/>
     */
     public Link ShowText(
       string value,
@@ -1094,12 +1095,14 @@ namespace org.pdfclown.documents.contents.composition
         rotation
         ).GetBounds();
 
-      return new Link(
+      var link = new Link(
         (Page)contentContext,
         linkBox,
         null,
         action
-        );
+        )
+      {Layer = GetLayer()};
+      return link;
     }
 
     /**
@@ -1268,7 +1271,7 @@ namespace org.pdfclown.documents.contents.composition
       {
         Translate(
           location.X,
-          scanner.ContentContext.Box.Height - location.Y
+          scanner.ContextSize.Height - location.Y
           );
         if(rotation != 0)
         {Rotate(rotation);}
@@ -1327,7 +1330,7 @@ namespace org.pdfclown.documents.contents.composition
       Add(
         new objects::BeginSubpath(
           startPoint.X,
-          scanner.ContentContext.Box.Height - startPoint.Y
+          scanner.ContextSize.Height - startPoint.Y
           )
         );
     }
@@ -1412,7 +1415,7 @@ namespace org.pdfclown.documents.contents.composition
         (float)(location.Y + radiusY)
         );
 
-      double radians1 = (Math.PI / 180) * startAngle;
+      double radians1 = MathUtils.ToRadians(startAngle);
       PointF point1 = new PointF(
         (float)(center.X + Math.Cos(radians1) * radiusX),
         (float)(center.Y - Math.Sin(radians1) * radiusY)
@@ -1421,7 +1424,7 @@ namespace org.pdfclown.documents.contents.composition
       if(beginPath)
       {StartPath(point1);}
 
-      double endRadians = (Math.PI / 180) * endAngle;
+      double endRadians = MathUtils.ToRadians(endAngle);
       double quadrantRadians = Math.PI / 2;
       double radians2 = Math.Min(
         radians1 + quadrantRadians - radians1 % quadrantRadians,
@@ -1493,6 +1496,24 @@ namespace org.pdfclown.documents.contents.composition
       }
     }
 
+    //TODO: temporary (consolidate stack tracing of marked content blocks!)
+    private LayerEntity GetLayer(
+      )
+    {
+      var parentLevel = scanner.ParentLevel;
+      while(parentLevel != null)
+      {
+        if(parentLevel.Current is objects::MarkedContent)
+        {
+          var marker = (objects::ContentMarker)((objects::MarkedContent)parentLevel.Current).Header;
+          if(PdfName.OC.Equals(marker.Tag))
+            return (LayerEntity)marker.GetProperties(scanner.ContentContext);
+        }
+        parentLevel = parentLevel.ParentLevel;
+      }
+      return null;
+    }
+
     private PdfName GetResourceName<T>(
       T value
       ) where T : PdfObjectWrapper
@@ -1532,7 +1553,7 @@ namespace org.pdfclown.documents.contents.composition
       double angle
       )
     {
-      double rad = angle * Math.PI / 180;
+      double rad = MathUtils.ToRadians(angle);
       double cos = Math.Cos(rad);
       double sin = Math.Sin(rad);
 

@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -153,22 +153,18 @@ namespace org.pdfclown.documents.contents.fonts
     #endregion
 
     #region protected
-    protected override IDictionary<ByteArray,int> GetNativeEncoding(
+    protected override IDictionary<ByteArray,int> GetBaseEncoding(
+      PdfName encodingName
       )
     {
-      if(symbolic) // Symbolic font.
+      if(encodingName == null && Symbolic)
       {
-        Dictionary<ByteArray,int> codes = new Dictionary<ByteArray,int>();
-        foreach(KeyValuePair<int,int> glyphIndexEntry in glyphIndexes)
-        {
-          codes[
-            new ByteArray(new byte[]{ConvertUtils.IntToByteArray(glyphIndexEntry.Value)[3]})
-            ] = glyphIndexEntry.Key;
-        }
-        return codes;
+        /*
+          NOTE: Symbolic standard fonts use custom encodings.
+        */
+        encodingName = (PdfName)BaseDataObject[PdfName.BaseFont];
       }
-      else // Nonsymbolic font.
-        return Encoding.Get(PdfName.StandardEncoding).GetCodes();
+      return base.GetBaseEncoding(encodingName);
     }
 
     protected override void OnLoad(
@@ -215,25 +211,20 @@ namespace org.pdfclown.documents.contents.fonts
       string fontName
       )
     {
-      Stream fontMetricsStream = null;
       try
       {
-        fontMetricsStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("fonts.afm." + fontName);
-
-        AfmParser parser = new AfmParser(new bytes::Stream(fontMetricsStream));
-        metrics = parser.Metrics;
-        symbolic = metrics.IsCustomEncoding;
-        glyphIndexes = parser.GlyphIndexes;
-        glyphKernings = parser.GlyphKernings;
-        glyphWidths = parser.GlyphWidths;
+        using(var fontMetricsStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("fonts.afm." + fontName))
+        {
+          AfmParser parser = new AfmParser(new bytes::Stream(fontMetricsStream));
+          metrics = parser.Metrics;
+          symbolic = metrics.IsCustomEncoding;
+          glyphIndexes = parser.GlyphIndexes;
+          glyphKernings = parser.GlyphKernings;
+          glyphWidths = parser.GlyphWidths;
+        }
       }
       catch(Exception e)
-      {throw new Exception("Failed to load '" + fontName + "'.",e);}
-      finally
-      {
-        if(fontMetricsStream != null)
-        {fontMetricsStream.Close();}
-      }
+      {throw new Exception(String.Format("Failed to load '{0}'", fontName), e);}
     }
     #endregion
     #endregion

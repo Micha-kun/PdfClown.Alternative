@@ -1,8 +1,9 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
+    * Andreas Pinter (bug reporter [FIX:53], https://sourceforge.net/u/drunal/)
 
   This file should be part of the source code distribution of "PDF Clown library" (the
   Program): see the accompanying README files for more info.
@@ -29,6 +30,7 @@ using org.pdfclown.documents.contents.composition;
 using org.pdfclown.documents.contents.objects;
 using xObjects = org.pdfclown.documents.contents.xObjects;
 using org.pdfclown.documents.interaction.navigation.page;
+using org.pdfclown.documents.interchange.metadata;
 using org.pdfclown.files;
 using org.pdfclown.objects;
 
@@ -222,7 +224,7 @@ namespace org.pdfclown.documents
       get
       {return new PageActions(BaseDataObject.Get<PdfDictionary>(PdfName.AA));}
       set
-      {BaseDataObject[PdfName.AA] = value.BaseObject;}
+      {BaseDataObject[PdfName.AA] = PdfObjectWrapper.GetBaseObject(value);}
     }
 
     /**
@@ -233,7 +235,7 @@ namespace org.pdfclown.documents
       get
       {return new PageAnnotations(BaseDataObject.Get<PdfArray>(PdfName.Annots), this);}
       set
-      {BaseDataObject[PdfName.Annots] = value.BaseObject;}
+      {BaseDataObject[PdfName.Annots] = PdfObjectWrapper.GetBaseObject(value);}
     }
 
     /**
@@ -242,7 +244,7 @@ namespace org.pdfclown.documents
       <seealso cref="CropBox"/>
     */
     [PDF(VersionEnum.PDF13)]
-    public drawing::RectangleF ArtBox
+    public drawing::RectangleF? ArtBox
     {
       get
       {
@@ -253,7 +255,7 @@ namespace org.pdfclown.documents
         return artBoxObject != null ? Rectangle.Wrap(artBoxObject).ToRectangleF() : CropBox;
       }
       set
-      {BaseDataObject[PdfName.ArtBox] = new Rectangle(value).BaseDataObject;}
+      {BaseDataObject[PdfName.ArtBox] = (value.HasValue ? new Rectangle(value.Value).BaseDataObject : null);}
     }
 
     /**
@@ -276,7 +278,7 @@ namespace org.pdfclown.documents
       <seealso cref="CropBox"/>
     */
     [PDF(VersionEnum.PDF13)]
-    public drawing::RectangleF BleedBox
+    public drawing::RectangleF? BleedBox
     {
       get
       {
@@ -287,7 +289,7 @@ namespace org.pdfclown.documents
         return bleedBoxObject != null ? Rectangle.Wrap(bleedBoxObject).ToRectangleF() : CropBox;
       }
       set
-      {BaseDataObject[PdfName.BleedBox] = new Rectangle(value).BaseDataObject;}
+      {BaseDataObject[PdfName.BleedBox] = (value.HasValue ? new Rectangle(value.Value).BaseDataObject : null);}
     }
 
     /**
@@ -301,7 +303,7 @@ namespace org.pdfclown.documents
       </remarks>
       <seealso cref="Box"/>
     */
-    public drawing::RectangleF CropBox
+    public drawing::RectangleF? CropBox
     {
       get
       {
@@ -312,7 +314,7 @@ namespace org.pdfclown.documents
         return cropBoxObject != null ? Rectangle.Wrap(cropBoxObject).ToRectangleF() : Box;
       }
       set
-      {BaseDataObject[PdfName.CropBox] = new Rectangle(value).BaseDataObject;}
+      {BaseDataObject[PdfName.CropBox] = (value.HasValue ? new Rectangle(value.Value).BaseDataObject : null);}
     }
 
     /**
@@ -334,11 +336,11 @@ namespace org.pdfclown.documents
         return durationObject == null ? 0 : durationObject.RawValue;
       }
       set
-      {BaseDataObject[PdfName.Dur] = (value == 0 ? null : PdfReal.Get(value));}
+      {BaseDataObject[PdfName.Dur] = (value > 0 ? PdfReal.Get(value) : null);}
     }
 
     /**
-      <summary>Gets the index of the page.</summary>
+      <summary>Gets the index of this page.</summary>
     */
     public int Index
     {
@@ -392,6 +394,15 @@ namespace org.pdfclown.documents
     }
 
     /**
+      <summary>Gets the page number.</summary>
+    */
+    public int Number
+    {
+      get
+      {return Index + 1;}
+    }
+
+    /**
       <summary>Gets/Sets the page size.</summary>
     */
     public drawing::SizeF Size
@@ -432,7 +443,7 @@ namespace org.pdfclown.documents
       get
       {return Transition.Wrap(BaseDataObject[PdfName.Trans]);}
       set
-      {BaseDataObject[PdfName.Trans] = value.BaseObject;}
+      {BaseDataObject[PdfName.Trans] = PdfObjectWrapper.GetBaseObject(value);}
     }
 
     /**
@@ -445,7 +456,7 @@ namespace org.pdfclown.documents
       <seealso cref="CropBox"/>
     */
     [PDF(VersionEnum.PDF13)]
-    public drawing::RectangleF TrimBox
+    public drawing::RectangleF? TrimBox
     {
       get
       {
@@ -456,7 +467,7 @@ namespace org.pdfclown.documents
         return trimBoxObject != null ? Rectangle.Wrap(trimBoxObject).ToRectangleF() : CropBox;
       }
       set
-      {BaseDataObject[PdfName.TrimBox] = new Rectangle(value).BaseDataObject;}
+      {BaseDataObject[PdfName.TrimBox] = (value.HasValue ? new Rectangle(value.Value).BaseDataObject : null);}
     }
 
     #region IContentContext
@@ -465,6 +476,7 @@ namespace org.pdfclown.documents
       get
       {return Rectangle.Wrap(GetInheritableAttribute(PdfName.MediaBox)).ToRectangleF();}
       set
+      /* NOTE: Mandatory. */
       {BaseDataObject[PdfName.MediaBox] = new Rectangle(value).BaseDataObject;}
     }
 
@@ -500,10 +512,43 @@ namespace org.pdfclown.documents
     public RotationEnum Rotation
     {
       get
-      {return RotationEnumExtension.Get((PdfInteger)GetInheritableAttribute(PdfName.Rotate));}
+      {return RotationEnumExtension.Get((IPdfNumber)GetInheritableAttribute(PdfName.Rotate));}
       set
       {BaseDataObject[PdfName.Rotate] = PdfInteger.Get((int)value);}
     }
+
+    #region IAppDataHolder
+    public AppDataCollection AppData
+    {
+      get
+      {return AppDataCollection.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.PieceInfo), this);}
+    }
+
+    public AppData GetAppData(
+      PdfName appName
+      )
+    {return AppData.Ensure(appName);}
+
+    public DateTime? ModificationDate
+    {
+      get
+      {return (DateTime)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.LastModified]);}
+    }
+
+    public void Touch(
+      PdfName appName
+      )
+    {Touch(appName, DateTime.Now);}
+
+    public void Touch(
+      PdfName appName,
+      DateTime modificationDate
+      )
+    {
+      GetAppData(appName).ModificationDate = modificationDate;
+      BaseDataObject[PdfName.LastModified] = new PdfDate(modificationDate);
+    }
+    #endregion
 
     #region IContentEntity
     public ContentObject ToInlineObject(
@@ -518,9 +563,10 @@ namespace org.pdfclown.documents
       xObjects::FormXObject form;
       {
         form = new xObjects::FormXObject(context, Box);
-        form.Resources = (Resources)(context.Equals(Document)
-          ? Resources // Same document: reuses the existing resources.
-          : Resources.Clone(context) // Alien document: clones the resources.
+        form.Resources = (Resources)(
+          context == Document  // [FIX:53] Ambiguous context identity.
+            ? Resources // Same document: reuses the existing resources.
+            : Resources.Clone(context) // Alien document: clones the resources.
           );
 
         // Body (contents).

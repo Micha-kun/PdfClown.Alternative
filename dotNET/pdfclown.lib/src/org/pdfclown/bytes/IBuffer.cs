@@ -1,5 +1,5 @@
 /*
-  Copyright 2006-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2006-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -31,11 +31,7 @@ using System;
 namespace org.pdfclown.bytes
 {
   /**
-    <summary>
-      <para>Buffer.</para>
-      <para>Its pivotal concept is the array index.</para>
-    </summary>
-    <returns>This buffer.</returns>
+    <summary>Buffer interface.</summary>
   */
   public interface IBuffer
     : IInputStream,

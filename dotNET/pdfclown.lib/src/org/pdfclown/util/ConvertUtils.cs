@@ -1,5 +1,5 @@
 /*
-  Copyright 2009-2010 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2009-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -26,6 +26,7 @@
 using org.pdfclown.util.io;
 
 using System;
+using System.Globalization;
 using System.Text;
 
 namespace org.pdfclown.util
@@ -40,7 +41,7 @@ namespace org.pdfclown.util
   {
     #region static
     #region fields
-    private static readonly char[] HexDigits = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
+    private static readonly char[] HexDigits = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
     #endregion
 
     #region interface
@@ -51,12 +52,7 @@ namespace org.pdfclown.util
     {
       int dataLength = data.Length;
       char[] result = new char[dataLength * 2];
-      for(
-        int dataIndex = 0,
-          resultIndex = 0;
-        dataIndex < dataLength;
-        dataIndex++
-        )
+      for(int dataIndex = 0, resultIndex = 0; dataIndex < dataLength; dataIndex++)
       {
         result[resultIndex++] = HexDigits[(0xF0 & data[dataIndex]) >> 4];
         result[resultIndex++] = HexDigits[0x0F & data[dataIndex]];
@@ -85,12 +81,7 @@ namespace org.pdfclown.util
     {
       int value = 0;
       length = (int)Math.Min(length,data.Length-index);
-      for(
-        int i = index,
-          endIndex = index+length;
-        i < endIndex;
-        i++
-        )
+      for(int i = index, endIndex = index+length; i < endIndex; i++)
       {value |= (data[i] & 0xff) << 8 * (byteOrder == ByteOrderEnum.LittleEndian ? i-index : endIndex-i-1);}
       return value;
     }
@@ -142,6 +133,26 @@ namespace org.pdfclown.util
       {result[index] = (byte)(data >> 8 * (byteOrder == ByteOrderEnum.LittleEndian ? index : length-index-1));}
       return result;
     }
+
+    public static int ParseAsIntInvariant(
+      string value
+      )
+    {return (int)ParseFloatInvariant(value);}
+
+    public static double ParseDoubleInvariant(
+      string value
+      )
+    {return Double.Parse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo);}
+
+    public static float ParseFloatInvariant(
+      string value
+      )
+    {return Single.Parse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo);}
+
+    public static int ParseIntInvariant(
+      string value
+      )
+    {return Int32.Parse(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);}
 
     public static float[] ToFloatArray(
       double[] array

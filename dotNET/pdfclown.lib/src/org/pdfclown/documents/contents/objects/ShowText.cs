@@ -1,5 +1,5 @@
 /*
-  Copyright 2007-2011 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2007-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -59,20 +59,20 @@ namespace org.pdfclown.documents.contents.objects
     #region dynamic
     #region constructors
     protected ShowText(
-      string operator_
-      ) : base(operator_)
+      string @operator
+      ) : base(@operator)
     {}
 
     protected ShowText(
-      string operator_,
+      string @operator,
       params PdfDirectObject[] operands
-      ) : base(operator_, operands)
+      ) : base(@operator, operands)
     {}
 
     protected ShowText(
-      string operator_,
+      string @operator,
       IList<PdfDirectObject> operands
-      ) : base(operator_, operands)
+      ) : base(@operator, operands)
     {}
     #endregion
 
@@ -102,14 +102,13 @@ namespace org.pdfclown.documents.contents.objects
         TODO: support to vertical writing mode.
       */
 
-      IContentContext context = state.Scanner.ContentContext;
-      double contextHeight = context.Box.Height;
+      double contextHeight = state.Scanner.ContextSize.Height;
       Font font = state.Font;
       double fontSize = state.FontSize;
-      double scale = state.Scale / 100;
-      double scaledFactor = Font.GetScalingFactor(fontSize) * scale;
-      double wordSpace = state.WordSpace * scale;
-      double charSpace = state.CharSpace * scale;
+      double scaledFactor = Font.GetScalingFactor(fontSize) * state.Scale;
+      bool wordSpaceSupported = !(font is CompositeFont);
+      double wordSpace = wordSpaceSupported ? state.WordSpace * state.Scale : 0;
+      double charSpace = state.CharSpace * state.Scale;
       Matrix ctm = state.Ctm.Clone();
       Matrix tm = state.Tm;
       if(this is ShowTextToNextLine)
@@ -120,17 +119,18 @@ namespace org.pdfclown.documents.contents.objects
         {
           if(textScanner == null)
           {state.WordSpace = newWordSpace.Value;}
-          wordSpace = newWordSpace.Value * scale;
+          if(wordSpaceSupported)
+          {wordSpace = newWordSpace.Value * state.Scale;}
         }
         double? newCharSpace = showTextToNextLine.CharSpace;
         if(newCharSpace != null)
         {
           if(textScanner == null)
           {state.CharSpace = newCharSpace.Value;}
-          charSpace = newCharSpace.Value * scale;
+          charSpace = newCharSpace.Value * state.Scale;
         }
         tm = state.Tlm.Clone();
-        tm.Translate(0, (float)state.Lead);
+        tm.Multiply(new Matrix(1, 0, 0, 1, 0, (float)-state.Lead));
       }
       else
       {tm = state.Tm.Clone();}

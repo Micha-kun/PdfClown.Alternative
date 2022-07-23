@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2012 Stefano Chizzolini. http://www.pdfclown.org
+  Copyright 2011-2015 Stefano Chizzolini. http://www.pdfclown.org
 
   Contributors:
     * Stefano Chizzolini (original code developer, http://www.stefanochizzolini.it)
@@ -26,6 +26,7 @@
 using org.pdfclown.objects;
 
 using System;
+using System.Collections.Generic;
 
 namespace org.pdfclown.documents.contents.layers
 {
@@ -46,19 +47,20 @@ namespace org.pdfclown.documents.contents.layers
     }
 
     /**
-      <summary>Gets the layer structure.</summary>
+      <summary>Gets/Sets the intended uses of this configuration.</summary>
+      <remarks>
+        <para>If one or more of a <see cref="Layer.Intents">layer's intents</see> are contained in
+        this configuration's intents, the layer is used in determining visibility; otherwise, the
+        layer has no effect on visibility.</para>
+        <para>If this configuration's intents are empty, no layers are used in determining
+        visibility; therefore, all content is considered visible.</para>
+      </remarks>
+      <returns>Intent collection (it comprises <see cref="IntentEnum"/> names but, for compatibility
+      with future versions, unrecognized names are allowed). To apply any subsequent change, it has
+      to be assigned back.</returns>
+      <seealso cref="IntentEnum"/>
     */
-    Layers Layers
-    {
-      get;
-      set;
-    }
-
-    /**
-      <summary>Gets/Sets the list mode specifying which layers should be displayed to the user.
-      </summary>
-    */
-    ListModeEnum ListMode
+    ISet<PdfName> Intents
     {
       get;
       set;
@@ -68,7 +70,7 @@ namespace org.pdfclown.documents.contents.layers
       <summary>Gets the groups of layers whose states are intended to follow a radio button paradigm
       (that is exclusive visibility within the same group).</summary>
     */
-    Array<LayerGroup> OptionGroups
+    Array<OptionGroup> OptionGroups
     {
       get;
     }
@@ -77,6 +79,24 @@ namespace org.pdfclown.documents.contents.layers
       <summary>Gets/Sets the configuration name.</summary>
     */
     string Title
+    {
+      get;
+      set;
+    }
+
+    /**
+      <summary>Gets the layer structure displayed to the user.</summary>
+    */
+    UILayers UILayers
+    {
+      get;
+    }
+
+    /**
+      <summary>Gets/Sets the list mode specifying which layers should be displayed to the user.
+      </summary>
+    */
+    UIModeEnum UIMode
     {
       get;
       set;

@@ -26,7 +26,7 @@ namespace org.pdfclown.samples.cli
     {
       // 1. Opening the PDF file...
       string filePath = PromptFileChoice("Please select a PDF file");
-      using(File file = new File(filePath))
+      using(var file = new File(filePath))
       {
         Document document = file.Document;
   
@@ -103,7 +103,7 @@ namespace org.pdfclown.samples.cli
           {
             RectangleF box = objectWrapper.Box.Value; // Image position (location and size) on the page.
             Console.WriteLine(
-              " on page " + (page.Index + 1) + " (" + page.BaseObject + ")" // Page index and indirect reference.
+              " on page " + page.Number + " (" + page.BaseObject + ")" // Page index and indirect reference.
               );
             Console.WriteLine("  Coordinates:");
             Console.WriteLine("     x: " + Math.Round(box.X));
