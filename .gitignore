@@ -376,3 +376,6 @@ FodyWeavers.xsd
 
 # CodeRush
 .cr/
+
+# Build files
+dotNET/*/build/package/
