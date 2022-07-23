@@ -66,12 +66,10 @@ namespace org.pdfclown
 
     internal static class VersionEnumExtension
     {
-        public static Version GetVersion(
-          this VersionEnum value
-          )
+        public static Version GetVersion(this VersionEnum value)
         {
             var versionSuffix = value.ToString().Substring(value.ToString().Length - 2);
-            return Version.Get(versionSuffix[0] + "." + versionSuffix[1]);
+            return Version.Get($"{versionSuffix[0]}.{versionSuffix[1]}");
         }
     }
 }

@@ -24,105 +24,64 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-
-using System.Text.RegularExpressions;
-using org.pdfclown.objects;
-using org.pdfclown.util.metadata;
-
 namespace org.pdfclown
 {
+    using System;
+    using System.Collections.Generic;
+
+    using System.Text.RegularExpressions;
+    using org.pdfclown.objects;
+    using org.pdfclown.util.metadata;
+
     /**
       <summary>Generic PDF version number [PDF:1.6:H.1].</summary>
       <seealso cref="VersionEnum"/>
     */
-    public sealed class Version
-      : IVersion
+    public sealed class Version : IVersion
     {
-        #region static
-        #region fields
         private static readonly Regex versionPattern = new Regex("^(\\d+)\\.(\\d+)$");
         private static readonly IDictionary<string, Version> versions = new Dictionary<string, Version>();
-        #endregion
 
-        #region interface
-        #region public
-        public static Version Get(
-          PdfName version
-          )
-        { return Get(version.RawValue); }
-
-        public static Version Get(
-          string version
-          )
-        {
-            if (!versions.ContainsKey(version))
-            {
-                Match versionMatch = versionPattern.Match(version);
-                if (!versionMatch.Success)
-                    throw new Exception("Invalid PDF version format: '" + versionPattern + "' pattern expected.");
-
-                Version versionObject = new Version(Int32.Parse(versionMatch.Groups[1].Value), Int32.Parse(versionMatch.Groups[2].Value));
-                versions[version] = versionObject;
-            }
-            return versions[version];
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
         private readonly int major;
         private readonly int minor;
-        #endregion
 
-        #region constructors
-        private Version(
-          int major,
-          int minor
-          )
+        private Version(int major, int minor)
         {
             this.major = major;
             this.minor = minor;
         }
-        #endregion
 
-        #region interface
-        #region public
-        public int Major
+        public int CompareTo(IVersion value) { return VersionUtils.CompareTo(this, value); }
+
+        public static Version Get(
+            PdfName version
+)
+        { return Get(version.RawValue); }
+
+        public static Version Get(string version)
         {
-            get
-            { return major; }
+            if (!versions.ContainsKey(version))
+            {
+                var versionMatch = versionPattern.Match(version);
+                if (!versionMatch.Success)
+                {
+                    throw new Exception($"Invalid PDF version format: '{versionPattern}' pattern expected.");
+                }
+
+                var versionObject = new Version(
+                    int.Parse(versionMatch.Groups[1].Value),
+                    int.Parse(versionMatch.Groups[2].Value));
+                versions[version] = versionObject;
+            }
+            return versions[version];
         }
 
-        public int Minor
-        {
-            get
-            { return minor; }
-        }
+        public override string ToString() { return VersionUtils.ToString(this); }
 
-        public override string ToString(
-          )
-        { return VersionUtils.ToString(this); }
+        public int Major => this.major;
 
-        #region IVersion
-        public IList<int> Numbers
-        {
-            get
-            { return new List<int> { major, minor }; }
-        }
+        public int Minor => this.minor;
 
-        #region IComparable
-        public int CompareTo(
-          IVersion value
-          )
-        { return VersionUtils.CompareTo(this, value); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        public IList<int> Numbers => new List<int> { this.major, this.minor };
     }
 }

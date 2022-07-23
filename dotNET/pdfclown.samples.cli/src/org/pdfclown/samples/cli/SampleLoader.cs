@@ -1,90 +1,51 @@
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
-using System.Reflection;
-
 namespace org.pdfclown.samples.cli
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Configuration;
+    using System.IO;
+    using System.Reflection;
+
     /**
       <summary>Command-line sample loader.</summary>
     */
     public static class SampleLoader
     {
-        #region types
-        private class TypeComparer
-          : IComparer<Type>
-        {
-            public int Compare(
-              Type type1,
-              Type type2
-              )
-            { return type1.Name.CompareTo(type2.Name); }
-        }
-        #endregion
+        private static readonly string ClassName = typeof(SampleLoader).FullName;
 
-        #region static
-        #region fields
-        private static readonly string ClassName = (typeof(SampleLoader)).FullName;
-
-        private static readonly string Properties_InputPath = ClassName + ".inputPath";
-        private static readonly string Properties_OutputPath = ClassName + ".outputPath";
+        private static readonly string Properties_InputPath = $"{ClassName}.inputPath";
+        private static readonly string Properties_OutputPath = $"{ClassName}.outputPath";
 
         private static readonly string QuitChoiceSymbol = "Q";
-        #endregion
 
-        #region interface
-        #region public
-        public static void Main(
-          string[] args
-          )
-        {
-            Console.WriteLine("\nSampleLoader running...");
-
-            {
-                Assembly pdfClownAssembly = Assembly.GetAssembly(typeof(Engine));
-                Console.WriteLine("\n" + ((AssemblyTitleAttribute)pdfClownAssembly.GetCustomAttributes(typeof(AssemblyTitleAttribute), false)[0]).Title + " version " + pdfClownAssembly.GetName().Version);
-            }
-
-            Run(
-              ConfigurationManager.AppSettings.Get(Properties_InputPath),
-              ConfigurationManager.AppSettings.Get(Properties_OutputPath)
-              );
-
-            Console.WriteLine("\nSampleLoader finished.\n");
-        }
-        #endregion
-
-        #region private
-        private static void Run(
-          string inputPath,
-          string outputPath
-          )
+        private static void Run(string inputPath, string outputPath)
         {
             if (!Directory.Exists(outputPath))
-            { Directory.CreateDirectory(outputPath); }
+            {
+                _ = Directory.CreateDirectory(outputPath);
+            }
 
             while (true)
             {
                 // Get the current assembly!
-                Assembly assembly = Assembly.GetExecutingAssembly();
+                var assembly = Assembly.GetExecutingAssembly();
                 // Get all the types inside the current assembly!
-                List<Type> types = new List<Type>(assembly.GetTypes());
+                var types = new List<Type>(assembly.GetTypes());
                 types.Sort(new TypeComparer());
 
                 Console.WriteLine("\nAvailable samples:");
                 // Instantiate the list of available samples!
-                List<Type> sampleTypes = new List<Type>();
+                var sampleTypes = new List<Type>();
                 // Picking available samples...
-                foreach (Type type in types)
+                foreach (var type in types)
                 {
                     if (type.IsSubclassOf(typeof(Sample)))
                     {
                         sampleTypes.Add(type);
-                        Console.WriteLine("[{0}] {1}", sampleTypes.IndexOf(type), type.Name);
+                        Console.WriteLine($"[{sampleTypes.IndexOf(type)}] {type.Name}");
                     }
                 }
-                Console.WriteLine("[" + QuitChoiceSymbol + "] (Quit)");
+                Console.WriteLine($"[{QuitChoiceSymbol}] (Quit)");
 
                 // Getting the user's choice...
                 Type sampleType = null;
@@ -93,20 +54,23 @@ namespace org.pdfclown.samples.cli
                     Console.Write("Please select a sample: ");
                     try
                     {
-                        string choice = Console.ReadLine();
+                        var choice = Console.ReadLine();
                         if (choice.ToUpper().Equals(QuitChoiceSymbol)) // Quit.
+                        {
                             return;
+                        }
 
-                        sampleType = sampleTypes[Int32.Parse(choice)];
+                        sampleType = sampleTypes[int.Parse(choice)];
                     }
                     catch
-                    {/* NOOP */}
+                    {/* NOOP */
+                    }
                 } while (sampleType == null);
 
-                Console.WriteLine("\n{0} running...", sampleType.Name);
+                Console.WriteLine($"\n{sampleType.Name} running...");
 
                 // Instantiate the sample!
-                Sample sample = (Sample)Activator.CreateInstance(sampleType);
+                var sample = (Sample)Activator.CreateInstance(sampleType);
                 sample.Initialize(inputPath, outputPath);
 
                 // Run the sample!
@@ -114,7 +78,9 @@ namespace org.pdfclown.samples.cli
                 {
                     sample.Run();
                     if (!sample.IsQuit())
-                    { Utils.Prompt("Sample finished."); }
+                    {
+                        Utils.Prompt("Sample finished.");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -123,8 +89,26 @@ namespace org.pdfclown.samples.cli
                 }
             }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public static void Main(
+            string[] args
+)
+        {
+            Console.WriteLine("\nSampleLoader running...");
+            var pdfClownAssembly = Assembly.GetAssembly(typeof(Engine));
+            Console.WriteLine(
+                $"\n{((AssemblyTitleAttribute)pdfClownAssembly.GetCustomAttributes(typeof(AssemblyTitleAttribute), false)[0]).Title} version {pdfClownAssembly.GetName().Version}");
+
+            Run(
+                ConfigurationManager.AppSettings.Get(Properties_InputPath),
+                ConfigurationManager.AppSettings.Get(Properties_OutputPath));
+
+            Console.WriteLine("\nSampleLoader finished.\n");
+        }
+
+        private class TypeComparer : IComparer<Type>
+        {
+            public int Compare(Type type1, Type type2) { return type1.Name.CompareTo(type2.Name); }
+        }
     }
 }

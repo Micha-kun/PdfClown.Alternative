@@ -23,31 +23,23 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown
 {
+    using System;
+
     /**
       <summary>Indicates the PDF compatibility level of the annotated element.</summary>
     */
     [AttributeUsage(AttributeTargets.All)]
-    public class PDF
-      : Attribute
+    public class PDF : Attribute
     {
-        private VersionEnum value;
+        private readonly VersionEnum value;
 
-        public PDF(
-          VersionEnum value
-          )
-        { this.value = value; }
+        public PDF(VersionEnum value) { this.value = value; }
 
         /**
           <summary>Gets the compatible version (minimum PDF version supporting the annotated element).</summary>
         */
-        public VersionEnum Value
-        {
-            get
-            { return value; }
-        }
+        public VersionEnum Value => this.value;
     }
 }
