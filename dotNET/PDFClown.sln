@@ -1,29 +1,47 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pdfclown.lib", "pdfclown.lib\pdfclown.lib.csproj", "{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "pdfclown.lib", "pdfclown.lib\pdfclown.lib.csproj", "{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pdfclown.samples.cli", "pdfclown.samples.cli\pdfclown.samples.cli.csproj", "{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "pdfclown.samples.cli", "pdfclown.samples.cli\pdfclown.samples.cli.csproj", "{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Debug|x86.ActiveCfg = Debug|x86
-		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Debug|x86.Build.0 = Debug|x86
-		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Release|x86.ActiveCfg = Release|x86
-		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Release|x86.Build.0 = Release|x86
-		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Debug|x86.ActiveCfg = Debug|x86
-		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Debug|x86.Build.0 = Debug|x86
+		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Debug|x64.ActiveCfg = Debug|x64
+		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Debug|x64.Build.0 = Debug|x64
+		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Debug|x86.Build.0 = Debug|Any CPU
+		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Release|x64.ActiveCfg = Release|x64
+		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Release|x64.Build.0 = Release|x64
 		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Release|x86.ActiveCfg = Release|x86
 		{DBED0809-EE4C-45B0-92FA-E4789ECC2AEC}.Release|x86.Build.0 = Release|x86
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Debug|x64.ActiveCfg = Debug|x64
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Debug|x64.Build.0 = Debug|x64
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Debug|x86.Build.0 = Debug|Any CPU
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Release|x64.ActiveCfg = Release|x64
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Release|x64.Build.0 = Release|x64
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Release|x86.ActiveCfg = Release|x86
+		{BDBDC0A1-6937-4BB6-964D-DDC62CE2832F}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9BE7B74E-85E7-4665-BFAE-BDAEC204C146}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = pdfclown.samples.cli\pdfclown.samples.cli.csproj
 		Policies = $0
-		$0.TextStylePolicy = $1
+		$0.TextStylePolicy = $6
 		$1.inheritsSet = null
 		$1.scope = text/x-csharp
 		$0.CSharpFormattingPolicy = $2
@@ -55,7 +73,6 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		$0.TextStylePolicy = $3
 		$3.FileWidth = 100
 		$3.TabWidth = 2
 		$3.RemoveTrailingWhitespace = True
@@ -69,7 +86,6 @@ Global
 		$0.DotNetNamingPolicy = $5
 		$5.DirectoryNamespaceAssociation = Hierarchical
 		$5.ResourceNamePolicy = FileFormatDefault
-		$0.TextStylePolicy = $6
 		$6.inheritsSet = null
 		$6.scope = application/x-font-afm
 	EndGlobalSection
