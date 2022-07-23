@@ -30,6 +30,7 @@ namespace org.pdfclown.files
     using System;
     using System.IO;
     using System.Reflection;
+    using org.pdfclown;
     using org.pdfclown.bytes;
 
     using org.pdfclown.documents;
@@ -54,7 +55,7 @@ namespace org.pdfclown.files
         private string path;
         private Reader reader;
         private readonly PdfDictionary trailer;
-        private readonly Version version;
+        private readonly pdfclown.Version version;
 
         public File(
   )
@@ -337,7 +338,7 @@ namespace org.pdfclown.files
           use the <see cref="org.pdfclown.documents.Document.Version">Document.Version</see> method.
           </remarks>
         */
-        public Version Version => this.version;
+        public pdfclown.Version Version => this.version;
 
         private sealed class ImplicitContainer
   : PdfIndirectObject
