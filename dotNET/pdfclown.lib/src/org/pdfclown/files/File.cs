@@ -25,43 +25,28 @@
 */
 
 
-using System;
-using System.IO;
-using System.Reflection;
-using org.pdfclown.bytes;
-
-using org.pdfclown.documents;
-using org.pdfclown.objects;
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.files
 {
+    using System;
+    using System.IO;
+    using System.Reflection;
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.documents;
+    using org.pdfclown.objects;
+    using org.pdfclown.tokens;
+
     /**
       <summary>PDF file representation.</summary>
     */
     public sealed class File
       : IDisposable
     {
-        #region types
-        private sealed class ImplicitContainer
-          : PdfIndirectObject
-        {
-            public ImplicitContainer(
-              File file,
-              PdfDataObject dataObject
-              ) : base(file, dataObject, new XRefEntry(int.MinValue, int.MinValue))
-            { }
-        }
-        #endregion
 
-        #region static
-        #region fields
-        private static Random hashCodeGenerator = new Random();
-        #endregion
-        #endregion
+        private static readonly Random hashCodeGenerator = new Random();
 
-        #region dynamic
-        #region fields
+        private Cloner cloner;
+
         private FileConfiguration configuration;
         private readonly Document document;
         private readonly int hashCode = hashCodeGenerator.Next();
@@ -71,19 +56,15 @@ namespace org.pdfclown.files
         private readonly PdfDictionary trailer;
         private readonly Version version;
 
-        private Cloner cloner;
-        #endregion
-
-        #region constructors
         public File(
-          )
+  )
         {
-            Initialize();
+            this.Initialize();
 
-            version = VersionEnum.PDF14.GetVersion();
-            trailer = PrepareTrailer(new PdfDictionary());
-            indirectObjects = new IndirectObjects(this, null);
-            document = new Document(this);
+            this.version = VersionEnum.PDF14.GetVersion();
+            this.trailer = this.PrepareTrailer(new PdfDictionary());
+            this.indirectObjects = new IndirectObjects(this, null);
+            this.document = new Document(this);
         }
 
         public File(
@@ -113,113 +94,80 @@ namespace org.pdfclown.files
           IInputStream stream
           )
         {
-            Initialize();
+            this.Initialize();
 
-            reader = new Reader(stream, this);
+            this.reader = new Reader(stream, this);
             try // [FIX:45] File constructor didn't dispose reader on error.
             {
-                Reader.FileInfo info = reader.ReadInfo();
-                version = info.Version;
-                trailer = PrepareTrailer(info.Trailer);
-                if (trailer.ContainsKey(PdfName.Encrypt)) // Encrypted file.
+                var info = this.reader.ReadInfo();
+                this.version = info.Version;
+                this.trailer = this.PrepareTrailer(info.Trailer);
+                if (this.trailer.ContainsKey(PdfName.Encrypt)) // Encrypted file.
+                {
                     throw new NotImplementedException("Encrypted files are currently not supported.");
+                }
 
-                indirectObjects = new IndirectObjects(this, info.XrefEntries);
-                document = new Document(trailer[PdfName.Root]);
-                Configuration.XRefMode = (PdfName.XRef.Equals(trailer[PdfName.Type])
+                this.indirectObjects = new IndirectObjects(this, info.XrefEntries);
+                this.document = new Document(this.trailer[PdfName.Root]);
+                this.Configuration.XRefMode = PdfName.XRef.Equals(this.trailer[PdfName.Type])
                   ? XRefModeEnum.Compressed
-                  : XRefModeEnum.Plain);
+                  : XRefModeEnum.Plain;
             }
             catch (Exception)
             {
-                reader.Dispose();
+                this.reader.Dispose();
                 throw;
             }
         }
 
         ~File(
           )
-        { Dispose(false); }
-        #endregion
+        { this.Dispose(false); }
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the default cloner.</summary>
-        */
-        public Cloner Cloner
+        private void Dispose(
+  bool disposing
+  )
         {
-            get
+            if (disposing)
             {
-                if (cloner == null)
-                { cloner = new Cloner(this); }
+                if (this.reader != null)
+                {
+                    this.reader.Dispose();
+                    this.reader = null;
 
-                return cloner;
+                    /*
+                      NOTE: If the temporary file exists (see Save() method), it must overwrite the document file.
+                    */
+                    if (System.IO.File.Exists(this.TempPath))
+                    {
+                        System.IO.File.Delete(this.path);
+                        System.IO.File.Move(this.TempPath, this.path);
+                    }
+                }
             }
-            set
-            { cloner = value; }
         }
 
-        /**
-          <summary>Gets the file configuration.</summary>
-        */
-        public FileConfiguration Configuration
-        {
-            get
-            { return configuration; }
-        }
+        private void Initialize(
+          )
+        { this.configuration = new FileConfiguration(this); }
 
-        /**
-          <summary>Gets the high-level representation of the file content.</summary>
-        */
-        public Document Document
+        private PdfDictionary PrepareTrailer(
+          PdfDictionary trailer
+          )
+        { return (PdfDictionary)new ImplicitContainer(this, trailer).DataObject; }
+
+        private string TempPath => (this.path == null) ? null : ($"{this.path}.tmp");
+
+        public void Dispose(
+  )
         {
-            get
-            { return document; }
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public override int GetHashCode(
           )
-        { return hashCode; }
-
-        /**
-          <summary>Gets the identifier of this file.</summary>
-        */
-        public FileIdentifier ID
-        {
-            get
-            { return FileIdentifier.Wrap(Trailer[PdfName.ID]); }
-        }
-
-        /**
-          <summary>Gets the indirect objects collection.</summary>
-        */
-        public IndirectObjects IndirectObjects
-        {
-            get
-            { return indirectObjects; }
-        }
-
-        /**
-          <summary>Gets/Sets the file path.</summary>
-        */
-        public string Path
-        {
-            get
-            { return path; }
-            set
-            { path = value; }
-        }
-
-        /**
-          <summary>Gets the data reader backing this file.</summary>
-          <returns><code>null</code> in case of newly-created file.</returns>
-        */
-        public Reader Reader
-        {
-            get
-            { return reader; }
-        }
+        { return this.hashCode; }
 
         /**
           <summary>Registers an <b>internal data object</b>.</summary>
@@ -227,7 +175,7 @@ namespace org.pdfclown.files
         public PdfReference Register(
           PdfDataObject obj
           )
-        { return indirectObjects.Add(obj).Reference; }
+        { return this.indirectObjects.Add(obj).Reference; }
 
         /**
           <summary>Serializes the file to the current file-system path using the <see
@@ -235,7 +183,7 @@ namespace org.pdfclown.files
         */
         public void Save(
           )
-        { Save(SerializationModeEnum.Standard); }
+        { this.Save(SerializationModeEnum.Standard); }
 
         /**
           <summary>Serializes the file to the current file-system path.</summary>
@@ -245,15 +193,17 @@ namespace org.pdfclown.files
           SerializationModeEnum mode
           )
         {
-            if (!System.IO.File.Exists(path))
+            if (!System.IO.File.Exists(this.path))
+            {
                 throw new FileNotFoundException("No valid source path available.");
+            }
 
             /*
               NOTE: The document file cannot be directly overwritten as it's locked for reading by the
               open stream; its update is therefore delayed to its disposal, when the temporary file will
               overwrite it (see Dispose() method).
             */
-            Save(TempPath, mode);
+            this.Save(this.TempPath, mode);
         }
 
         /**
@@ -267,7 +217,7 @@ namespace org.pdfclown.files
           )
         {
             using (var outputStream = new System.IO.FileStream(path, FileMode.Create, FileAccess.Write))
-            { Save(new bytes.Stream(outputStream), mode); }
+            { this.Save(new bytes.Stream(outputStream), mode); }
         }
 
         /**
@@ -280,7 +230,7 @@ namespace org.pdfclown.files
           System.IO.Stream stream,
           SerializationModeEnum mode
           )
-        { Save(new bytes.Stream(stream), mode); }
+        { this.Save(new bytes.Stream(stream), mode); }
 
         /**
           <summary>Serializes the file to the specified stream.</summary>
@@ -293,15 +243,15 @@ namespace org.pdfclown.files
           SerializationModeEnum mode
           )
         {
-            var information = Document.Information;
-            if (Reader == null)
+            var information = this.Document.Information;
+            if (this.Reader == null)
             {
                 information.CreationDate = DateTime.Now;
                 try
                 {
-                    string assemblyTitle = ((AssemblyTitleAttribute)Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyTitleAttribute))).Title;
-                    string assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                    information.Producer = assemblyTitle + " " + assemblyVersion;
+                    var assemblyTitle = ((AssemblyTitleAttribute)Attribute.GetCustomAttribute(Assembly.GetExecutingAssembly(), typeof(AssemblyTitleAttribute))).Title;
+                    var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                    information.Producer = $"{assemblyTitle} {assemblyVersion}";
                 }
                 catch
                 {/* NOOP */}
@@ -309,17 +259,8 @@ namespace org.pdfclown.files
             else
             { information.ModificationDate = DateTime.Now; }
 
-            Writer writer = Writer.Get(this, stream);
+            var writer = Writer.Get(this, stream);
             writer.Write(mode);
-        }
-
-        /**
-          <summary>Gets the file trailer.</summary>
-        */
-        public PdfDictionary Trailer
-        {
-            get
-            { return trailer; }
         }
 
         /**
@@ -328,16 +269,67 @@ namespace org.pdfclown.files
         public void Unregister(
           PdfReference reference
           )
-        { indirectObjects.RemoveAt(reference.ObjectNumber); }
+        { this.indirectObjects.RemoveAt(reference.ObjectNumber); }
+
+        /**
+<summary>Gets/Sets the default cloner.</summary>
+*/
+        public Cloner Cloner
+        {
+            get
+            {
+                if (this.cloner == null)
+                { this.cloner = new Cloner(this); }
+
+                return this.cloner;
+            }
+            set => this.cloner = value;
+        }
+
+        /**
+          <summary>Gets the file configuration.</summary>
+        */
+        public FileConfiguration Configuration => this.configuration;
+
+        /**
+          <summary>Gets the high-level representation of the file content.</summary>
+        */
+        public Document Document => this.document;
+
+        /**
+          <summary>Gets the identifier of this file.</summary>
+        */
+        public FileIdentifier ID => FileIdentifier.Wrap(this.Trailer[PdfName.ID]);
+
+        /**
+          <summary>Gets the indirect objects collection.</summary>
+        */
+        public IndirectObjects IndirectObjects => this.indirectObjects;
+
+        /**
+          <summary>Gets/Sets the file path.</summary>
+        */
+        public string Path
+        {
+            get => this.path;
+            set => this.path = value;
+        }
+
+        /**
+          <summary>Gets the data reader backing this file.</summary>
+          <returns><code>null</code> in case of newly-created file.</returns>
+        */
+        public Reader Reader => this.reader;
+
+        /**
+          <summary>Gets the file trailer.</summary>
+        */
+        public PdfDictionary Trailer => this.trailer;
 
         /**
           <summary>Gets whether the initial state of this file has been modified.</summary>
         */
-        public bool Updated
-        {
-            get
-            { return indirectObjects.ModifiedObjects.Count > 0; }
-        }
+        public bool Updated => this.indirectObjects.ModifiedObjects.Count > 0;
 
         /**
           <summary>Gets the file header version [PDF:1.6:3.4.1].</summary>
@@ -345,62 +337,16 @@ namespace org.pdfclown.files
           use the <see cref="org.pdfclown.documents.Document.Version">Document.Version</see> method.
           </remarks>
         */
-        public Version Version
+        public Version Version => this.version;
+
+        private sealed class ImplicitContainer
+  : PdfIndirectObject
         {
-            get
-            { return version; }
+            public ImplicitContainer(
+              File file,
+              PdfDataObject dataObject
+              ) : base(file, dataObject, new XRefEntry(int.MinValue, int.MinValue))
+            { }
         }
-
-        #region IDisposable
-        public void Dispose(
-          )
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        #endregion
-        #endregion
-
-        #region private
-        private void Dispose(
-          bool disposing
-          )
-        {
-            if (disposing)
-            {
-                if (reader != null)
-                {
-                    reader.Dispose();
-                    reader = null;
-
-                    /*
-                      NOTE: If the temporary file exists (see Save() method), it must overwrite the document file.
-                    */
-                    if (System.IO.File.Exists(TempPath))
-                    {
-                        System.IO.File.Delete(path);
-                        System.IO.File.Move(TempPath, path);
-                    }
-                }
-            }
-        }
-
-        private void Initialize(
-          )
-        { configuration = new FileConfiguration(this); }
-
-        private PdfDictionary PrepareTrailer(
-          PdfDictionary trailer
-          )
-        { return (PdfDictionary)new ImplicitContainer(this, trailer).DataObject; }
-
-        private string TempPath
-        {
-            get
-            { return (path == null ? null : path + ".tmp"); }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }
