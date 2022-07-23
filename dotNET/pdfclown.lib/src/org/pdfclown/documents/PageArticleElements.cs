@@ -23,32 +23,30 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.navigation.page;
-using org.pdfclown.files;
-using org.pdfclown.objects;
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using org.pdfclown.documents.interaction.navigation.page;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents
 {
-  /**
-    <summary>Page article beads [PDF:1.7:3.6.2].</summary>
-    <remarks>The beads are listed in natural reading order.</remarks>
-  */
-  [PDF(VersionEnum.PDF11)]
-  public sealed class PageArticleElements
-    : PageElements<ArticleElement>
-  {
-    #region dynamic
-    #region constructors
-    internal PageArticleElements(
-      PdfDirectObject baseObject,
-      Page page
-      ) : base(baseObject, page)
-    {}
-    #endregion
-    #endregion
-  }
+    /**
+      <summary>Page article beads [PDF:1.7:3.6.2].</summary>
+      <remarks>The beads are listed in natural reading order.</remarks>
+    */
+    [PDF(VersionEnum.PDF11)]
+    public sealed class PageArticleElements
+      : PageElements<ArticleElement>
+    {
+        #region dynamic
+        #region constructors
+        internal PageArticleElements(
+          PdfDirectObject baseObject,
+          Page page
+          ) : base(baseObject, page)
+        { }
+        #endregion
+        #endregion
+    }
 }

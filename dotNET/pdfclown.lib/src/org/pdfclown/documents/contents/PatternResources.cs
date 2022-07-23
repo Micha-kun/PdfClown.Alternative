@@ -23,44 +23,41 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using org.pdfclown.documents.contents.colorSpaces;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents
 {
-  /**
-    <summary>Pattern resources collection [PDF:1.6:3.7.2].</summary>
-  */
-  [PDF(VersionEnum.PDF12)]
-  public sealed class PatternResources
-    : ResourceItems<Pattern>
-  {
-    #region dynamic
-    #region constructors
-    public PatternResources(
-      Document context
-      ) : base(context)
-    {}
+    /**
+      <summary>Pattern resources collection [PDF:1.6:3.7.2].</summary>
+    */
+    [PDF(VersionEnum.PDF12)]
+    public sealed class PatternResources
+      : ResourceItems<Pattern>
+    {
+        #region dynamic
+        #region constructors
+        public PatternResources(
+          Document context
+          ) : base(context)
+        { }
 
-    internal PatternResources(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal PatternResources(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #region protected
-    protected override Pattern Wrap(
-      PdfDirectObject baseObject
-      )
-    {return Pattern.Wrap(baseObject);}
-    #endregion
-    #endregion
-    #endregion
-  }
+        #region interface
+        #region protected
+        protected override Pattern Wrap(
+          PdfDirectObject baseObject
+          )
+        { return Pattern.Wrap(baseObject); }
+        #endregion
+        #endregion
+        #endregion
+    }
 }

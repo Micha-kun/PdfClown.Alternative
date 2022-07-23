@@ -23,42 +23,39 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.navigation.page;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-using org.pdfclown.util.collections.generic;
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using org.pdfclown.documents.interaction.navigation.page;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents
 {
-  /**
-    <summary>Article threads [PDF:1.7:3.6.1].</summary>
-  */
-  [PDF(VersionEnum.PDF11)]
-  public sealed class Articles
-    : Array<Article>
-  {
-    #region static
-    #region interface
-    #region public
-    public static Articles Wrap(
-      PdfDirectObject baseObject
-      )
-    {return baseObject != null ? new Articles(baseObject) : null;}
-    #endregion
-    #endregion
-    #endregion
+    /**
+      <summary>Article threads [PDF:1.7:3.6.1].</summary>
+    */
+    [PDF(VersionEnum.PDF11)]
+    public sealed class Articles
+      : Array<Article>
+    {
+        #region static
+        #region interface
+        #region public
+        public static Articles Wrap(
+          PdfDirectObject baseObject
+          )
+        { return baseObject != null ? new Articles(baseObject) : null; }
+        #endregion
+        #endregion
+        #endregion
 
-    #region dynamic
-    #region constructors
-    internal Articles(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-    #endregion
-  }
+        #region dynamic
+        #region constructors
+        internal Articles(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+        #endregion
+    }
 }

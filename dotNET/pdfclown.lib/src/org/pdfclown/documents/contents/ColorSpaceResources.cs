@@ -23,45 +23,41 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using org.pdfclown.documents.contents.colorSpaces;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents
 {
-  /**
-    <summary>Color spaces collection [PDF:1.6:3.7.2].</summary>
-  */
-  [PDF(VersionEnum.PDF10)]
-  public sealed class ColorSpaceResources
-    : ResourceItems<ColorSpace>
-  {
-    #region dynamic
-    #region constructors
-    public ColorSpaceResources(
-      Document context
-      ) : base(context)
-    {}
+    /**
+      <summary>Color spaces collection [PDF:1.6:3.7.2].</summary>
+    */
+    [PDF(VersionEnum.PDF10)]
+    public sealed class ColorSpaceResources
+      : ResourceItems<ColorSpace>
+    {
+        #region dynamic
+        #region constructors
+        public ColorSpaceResources(
+          Document context
+          ) : base(context)
+        { }
 
-    internal ColorSpaceResources(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal ColorSpaceResources(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #region protected
-    protected override ColorSpace Wrap(
-      PdfDirectObject baseObject
-      )
-    {return ColorSpace.Wrap(baseObject);}
-    #endregion
-    #endregion
-    #endregion
-  }
+        #region interface
+        #region protected
+        protected override ColorSpace Wrap(
+          PdfDirectObject baseObject
+          )
+        { return ColorSpace.Wrap(baseObject); }
+        #endregion
+        #endregion
+        #endregion
+    }
 }

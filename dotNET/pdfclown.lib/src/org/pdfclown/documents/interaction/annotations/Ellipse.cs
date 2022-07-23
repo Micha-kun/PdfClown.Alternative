@@ -23,40 +23,38 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using org.pdfclown.documents;
-using org.pdfclown.objects;
-
 using System;
+
 using System.Drawing;
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.interaction.annotations
 {
-  /**
-    <summary>Circle annotation [PDF:1.6:8.4.5].</summary>
-    <remarks>It represents an ellipse to display on a page.</remarks>
-  */
-  [PDF(VersionEnum.PDF13)]
-  public sealed class Ellipse
-    : Shape
-  {
-    #region dynamic
-    #region constructors
-    public Ellipse(
-      Page page,
-      RectangleF box,
-      string text
-      ) : base(page, box, text, PdfName.Circle)
-    {}
+    /**
+      <summary>Circle annotation [PDF:1.6:8.4.5].</summary>
+      <remarks>It represents an ellipse to display on a page.</remarks>
+    */
+    [PDF(VersionEnum.PDF13)]
+    public sealed class Ellipse
+      : Shape
+    {
+        #region dynamic
+        #region constructors
+        public Ellipse(
+          Page page,
+          RectangleF box,
+          string text
+          ) : base(page, box, text, PdfName.Circle)
+        { }
 
-    internal Ellipse(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal Ellipse(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #endregion
-    #endregion
-  }
+        #region interface
+        #endregion
+        #endregion
+    }
 }

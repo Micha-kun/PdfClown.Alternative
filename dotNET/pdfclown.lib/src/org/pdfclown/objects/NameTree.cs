@@ -23,45 +23,43 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.files;
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
+
+using org.pdfclown.documents;
 
 namespace org.pdfclown.objects
 {
-  /**
-    <summary>Name tree [PDF:1.7:3.8.5].</summary>
-  */
-  [PDF(VersionEnum.PDF10)]
-  public abstract class NameTree<TValue>
-    : Tree<PdfString, TValue>
-    where TValue : PdfObjectWrapper
-  {
-    #region dynamic
-    #region constructors
-    protected NameTree(
-      Document context
-      ) : base(context)
-    {}
-
-    protected NameTree(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-
-    #region interface
-    #region protected
-    protected override PdfName PairsKey
+    /**
+      <summary>Name tree [PDF:1.7:3.8.5].</summary>
+    */
+    [PDF(VersionEnum.PDF10)]
+    public abstract class NameTree<TValue>
+      : Tree<PdfString, TValue>
+      where TValue : PdfObjectWrapper
     {
-      get
-      {return PdfName.Names;}
+        #region dynamic
+        #region constructors
+        protected NameTree(
+          Document context
+          ) : base(context)
+        { }
+
+        protected NameTree(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+
+        #region interface
+        #region protected
+        protected override PdfName PairsKey
+        {
+            get
+            { return PdfName.Names; }
+        }
+        #endregion
+        #endregion
+        #endregion
     }
-    #endregion
-    #endregion
-    #endregion
-  }
 }

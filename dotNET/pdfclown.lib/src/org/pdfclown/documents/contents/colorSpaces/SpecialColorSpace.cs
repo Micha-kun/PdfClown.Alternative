@@ -23,27 +23,26 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
 using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents.colorSpaces
 {
-  /**
-    <summary>Special color space [PDF:1.6:4.5.5].</summary>
-  */
-  [PDF(VersionEnum.PDF11)]
-  public abstract class SpecialColorSpace
-    : ColorSpace
-  {
-    #region dynamic
-    #region constructors
-    //TODO:IMPL new element constructor!
+    /**
+      <summary>Special color space [PDF:1.6:4.5.5].</summary>
+    */
+    [PDF(VersionEnum.PDF11)]
+    public abstract class SpecialColorSpace
+      : ColorSpace
+    {
+        #region dynamic
+        #region constructors
+        //TODO:IMPL new element constructor!
 
-    protected SpecialColorSpace(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-    #endregion
-  }
+        protected SpecialColorSpace(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+        #endregion
+    }
 }

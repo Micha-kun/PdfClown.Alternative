@@ -23,44 +23,40 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 using System;
-using System.Collections;
-using System.Collections.Generic;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents
 {
-  /**
-    <summary>Property list resources collection [PDF:1.6:3.7.2].</summary>
-  */
-  [PDF(VersionEnum.PDF12)]
-  public sealed class PropertyListResources
-    : ResourceItems<PropertyList>
-  {
-    #region dynamic
-    #region constructors
-    public PropertyListResources(
-      Document context
-      ) : base(context)
-    {}
+    /**
+      <summary>Property list resources collection [PDF:1.6:3.7.2].</summary>
+    */
+    [PDF(VersionEnum.PDF12)]
+    public sealed class PropertyListResources
+      : ResourceItems<PropertyList>
+    {
+        #region dynamic
+        #region constructors
+        public PropertyListResources(
+          Document context
+          ) : base(context)
+        { }
 
-    internal PropertyListResources(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal PropertyListResources(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #region protected
-    protected override PropertyList Wrap(
-      PdfDirectObject baseObject
-      )
-    {return PropertyList.Wrap(baseObject);}
-    #endregion
-    #endregion
-    #endregion
-  }
+        #region interface
+        #region protected
+        protected override PropertyList Wrap(
+          PdfDirectObject baseObject
+          )
+        { return PropertyList.Wrap(baseObject); }
+        #endregion
+        #endregion
+        #endregion
+    }
 }

@@ -23,44 +23,40 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 using System;
-using System.Collections;
-using System.Collections.Generic;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents
 {
-  /**
-    <summary>Graphics state parameter resources collection [PDF:1.6:3.7.2].</summary>
-  */
-  [PDF(VersionEnum.PDF12)]
-  public sealed class ExtGStateResources
-    : ResourceItems<ExtGState>
-  {
-    #region dynamic
-    #region constructors
-    public ExtGStateResources(
-      Document context
-      ) : base(context)
-    {}
+    /**
+      <summary>Graphics state parameter resources collection [PDF:1.6:3.7.2].</summary>
+    */
+    [PDF(VersionEnum.PDF12)]
+    public sealed class ExtGStateResources
+      : ResourceItems<ExtGState>
+    {
+        #region dynamic
+        #region constructors
+        public ExtGStateResources(
+          Document context
+          ) : base(context)
+        { }
 
-    internal ExtGStateResources(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal ExtGStateResources(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #region protected
-    protected override ExtGState Wrap(
-      PdfDirectObject baseObject
-      )
-    {return ExtGState.Wrap(baseObject);}
-    #endregion
-    #endregion
-    #endregion
-  }
+        #region interface
+        #region protected
+        protected override ExtGState Wrap(
+          PdfDirectObject baseObject
+          )
+        { return ExtGState.Wrap(baseObject); }
+        #endregion
+        #endregion
+        #endregion
+    }
 }

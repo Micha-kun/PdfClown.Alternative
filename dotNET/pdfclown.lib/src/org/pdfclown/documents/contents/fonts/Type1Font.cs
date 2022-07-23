@@ -23,50 +23,41 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using org.pdfclown.documents;
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Reflection;
-using text = System.Text;
-using System.Text.RegularExpressions;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents.fonts
 {
-  /**
-    <summary>Type 1 font [PDF:1.6:5.5.1;AFM:4.1].</summary>
-  */
-  /*
-    NOTE: Type 1 fonts encompass several formats:
-    * AFM+PFB;
-    * CFF;
-    * OpenFont/CFF (in case "CFF" table's Top DICT has no CIDFont operators).
-  */
-  [PDF(VersionEnum.PDF10)]
-  public class Type1Font
-    : SimpleFont
-  {
-    #region dynamic
-    #region fields
-    protected AfmParser.FontMetrics metrics;
-    #endregion
+    /**
+      <summary>Type 1 font [PDF:1.6:5.5.1;AFM:4.1].</summary>
+    */
+    /*
+      NOTE: Type 1 fonts encompass several formats:
+      * AFM+PFB;
+      * CFF;
+      * OpenFont/CFF (in case "CFF" table's Top DICT has no CIDFont operators).
+    */
+    [PDF(VersionEnum.PDF10)]
+    public class Type1Font
+      : SimpleFont
+    {
+        #region dynamic
+        #region fields
+        protected AfmParser.FontMetrics metrics;
+        #endregion
 
-    #region constructors
-    internal Type1Font(
-      Document context
-      ) : base(context)
-    {}
+        #region constructors
+        internal Type1Font(
+          Document context
+          ) : base(context)
+        { }
 
-    internal Type1Font(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-    #endregion
-  }
+        internal Type1Font(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+        #endregion
+    }
 }

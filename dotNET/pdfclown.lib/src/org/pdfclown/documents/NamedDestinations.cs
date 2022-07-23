@@ -23,57 +23,55 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.interaction.navigation.document;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 using System;
+using org.pdfclown.documents.interaction.navigation.document;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents
 {
-  /**
-    <summary>Named destinations [PDF:1.6:3.6.3].</summary>
-  */
-  [PDF(VersionEnum.PDF12)]
-  public sealed class NamedDestinations
-    : NameTree<Destination>
-  {
-    #region dynamic
-    #region constructors
-    public NamedDestinations(
-      Document context
-      ) : base(context)
-    {}
-
-    internal NamedDestinations(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-
-    #region interface
-    #region protected
-    protected override Destination WrapValue(
-      PdfDirectObject baseObject
-      )
+    /**
+      <summary>Named destinations [PDF:1.6:3.6.3].</summary>
+    */
+    [PDF(VersionEnum.PDF12)]
+    public sealed class NamedDestinations
+      : NameTree<Destination>
     {
-      /*
-        NOTE: A named destination may be either an array defining the destination,
-        or a dictionary with a D entry whose value is such an array [PDF:1.6:8.2.1].
-      */
-      PdfDirectObject destinationObject;
-      {
-        PdfDataObject baseDataObject = PdfObject.Resolve(baseObject);
-        if(baseDataObject is PdfDictionary)
-        {destinationObject = ((PdfDictionary)baseDataObject)[PdfName.D];}
-        else
-        {destinationObject = baseObject;}
-      }
-      return Destination.Wrap(destinationObject);
+        #region dynamic
+        #region constructors
+        public NamedDestinations(
+          Document context
+          ) : base(context)
+        { }
+
+        internal NamedDestinations(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+
+        #region interface
+        #region protected
+        protected override Destination WrapValue(
+          PdfDirectObject baseObject
+          )
+        {
+            /*
+              NOTE: A named destination may be either an array defining the destination,
+              or a dictionary with a D entry whose value is such an array [PDF:1.6:8.2.1].
+            */
+            PdfDirectObject destinationObject;
+            {
+                PdfDataObject baseDataObject = PdfObject.Resolve(baseObject);
+                if (baseDataObject is PdfDictionary)
+                { destinationObject = ((PdfDictionary)baseDataObject)[PdfName.D]; }
+                else
+                { destinationObject = baseObject; }
+            }
+            return Destination.Wrap(destinationObject);
+        }
+        #endregion
+        #endregion
+        #endregion
     }
-    #endregion
-    #endregion
-    #endregion
-  }
 }

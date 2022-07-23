@@ -23,32 +23,29 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-using org.pdfclown.util.collections.generic;
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using org.pdfclown.documents.interaction.annotations;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents
 {
-  /**
-    <summary>Page annotations [PDF:1.6:3.6.2].</summary>
-  */
-  [PDF(VersionEnum.PDF10)]
-  public sealed class PageAnnotations
-    : PageElements<Annotation>
-  {
-    #region dynamic
-    #region constructors
-    internal PageAnnotations(
-      PdfDirectObject baseObject,
-      Page page
-      ) : base(baseObject, page)
-    {}
-    #endregion
-    #endregion
-  }
+    /**
+      <summary>Page annotations [PDF:1.6:3.6.2].</summary>
+    */
+    [PDF(VersionEnum.PDF10)]
+    public sealed class PageAnnotations
+      : PageElements<Annotation>
+    {
+        #region dynamic
+        #region constructors
+        internal PageAnnotations(
+          PdfDirectObject baseObject,
+          Page page
+          ) : base(baseObject, page)
+        { }
+        #endregion
+        #endregion
+    }
 }

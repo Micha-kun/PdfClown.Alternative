@@ -23,120 +23,119 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using org.pdfclown.objects;
-
 using System.Collections.Generic;
+
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents.objects
 {
-  /**
-    <summary>'Modify the current transformation matrix (CTM) by concatenating the specified matrix'
-    operation [PDF:1.6:4.3.3].</summary>
-  */
-  [PDF(VersionEnum.PDF10)]
-  public sealed class ModifyCTM
-    : Operation
-  {
-    #region static
-    #region fields
-    public static readonly string OperatorKeyword = "cm";
-    #endregion
-
-    #region interface
-    #region public
-    public static ModifyCTM GetResetCTM(
-      ContentScanner.GraphicsState state
-      )
+    /**
+      <summary>'Modify the current transformation matrix (CTM) by concatenating the specified matrix'
+      operation [PDF:1.6:4.3.3].</summary>
+    */
+    [PDF(VersionEnum.PDF10)]
+    public sealed class ModifyCTM
+      : Operation
     {
-      Matrix inverseCtm = state.Ctm.Clone();
-      inverseCtm.Invert();
-      return new ModifyCTM(
-        inverseCtm
-// TODO: inverseCtm is a simplification which assumes an identity initial ctm!
-//        SquareMatrix.get(state.Ctm).solve(
-//          SquareMatrix.get(state.GetInitialCtm())
-//          ).toTransform()
-        );
-    }
-    #endregion
-    #endregion
-    #endregion
+        #region static
+        #region fields
+        public static readonly string OperatorKeyword = "cm";
+        #endregion
 
-    #region dynamic
-    #region constructors
-    public ModifyCTM(
-      Matrix value
-      ) : this(
-        value.Elements[0],
-        value.Elements[1],
-        value.Elements[2],
-        value.Elements[3],
-        value.Elements[4],
-        value.Elements[5]
-        )
-    {}
+        #region interface
+        #region public
+        public static ModifyCTM GetResetCTM(
+          ContentScanner.GraphicsState state
+          )
+        {
+            Matrix inverseCtm = state.Ctm.Clone();
+            inverseCtm.Invert();
+            return new ModifyCTM(
+              inverseCtm
+              // TODO: inverseCtm is a simplification which assumes an identity initial ctm!
+              //        SquareMatrix.get(state.Ctm).solve(
+              //          SquareMatrix.get(state.GetInitialCtm())
+              //          ).toTransform()
+              );
+        }
+        #endregion
+        #endregion
+        #endregion
 
-    public ModifyCTM(
-      double a,
-      double b,
-      double c,
-      double d,
-      double e,
-      double f
-      ) : base(
-        OperatorKeyword,
-        new List<PdfDirectObject>(
-          new PdfDirectObject[]
-          {
+        #region dynamic
+        #region constructors
+        public ModifyCTM(
+          Matrix value
+          ) : this(
+            value.Elements[0],
+            value.Elements[1],
+            value.Elements[2],
+            value.Elements[3],
+            value.Elements[4],
+            value.Elements[5]
+            )
+        { }
+
+        public ModifyCTM(
+          double a,
+          double b,
+          double c,
+          double d,
+          double e,
+          double f
+          ) : base(
+            OperatorKeyword,
+            new List<PdfDirectObject>(
+              new PdfDirectObject[]
+              {
             PdfReal.Get(a),
             PdfReal.Get(b),
             PdfReal.Get(c),
             PdfReal.Get(d),
             PdfReal.Get(e),
             PdfReal.Get(f)
-          }
+              }
+              )
+            )
+        { }
+
+        public ModifyCTM(
+          IList<PdfDirectObject> operands
+          ) : base(OperatorKeyword, operands)
+        { }
+        #endregion
+
+        #region interface
+        #region public
+        public override void Scan(
+          ContentScanner.GraphicsState state
           )
-        )
-    {}
+        {
+            state.Ctm.Multiply(Value);
 
-    public ModifyCTM(
-      IList<PdfDirectObject> operands
-      ) : base(OperatorKeyword, operands)
-    {}
-    #endregion
+            Graphics context = state.Scanner.RenderContext;
+            if (context != null)
+            { context.Transform = state.Ctm; }
+        }
 
-    #region interface
-    #region public
-    public override void Scan(
-      ContentScanner.GraphicsState state
-      )
-    {
-      state.Ctm.Multiply(Value);
-
-      Graphics context = state.Scanner.RenderContext;
-      if(context != null)
-      {context.Transform = state.Ctm;}
+        public Matrix Value
+        {
+            get
+            {
+                return new Matrix(
+                  ((IPdfNumber)operands[0]).FloatValue, // a.
+                  ((IPdfNumber)operands[1]).FloatValue, // b.
+                  ((IPdfNumber)operands[2]).FloatValue, // c.
+                  ((IPdfNumber)operands[3]).FloatValue, // d.
+                  ((IPdfNumber)operands[4]).FloatValue, // e.
+                  ((IPdfNumber)operands[5]).FloatValue // f.
+                  );
+            }
+        }
+        #endregion
+        #endregion
+        #endregion
     }
-
-    public Matrix Value
-    {
-      get
-      {
-        return new Matrix(
-          ((IPdfNumber)operands[0]).FloatValue, // a.
-          ((IPdfNumber)operands[1]).FloatValue, // b.
-          ((IPdfNumber)operands[2]).FloatValue, // c.
-          ((IPdfNumber)operands[3]).FloatValue, // d.
-          ((IPdfNumber)operands[4]).FloatValue, // e.
-          ((IPdfNumber)operands[5]).FloatValue // f.
-          );
-      }
-    }
-    #endregion
-    #endregion
-    #endregion
-  }
 }

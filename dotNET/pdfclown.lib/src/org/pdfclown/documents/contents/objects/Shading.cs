@@ -23,63 +23,60 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using colorSpaces = org.pdfclown.documents.contents.colorSpaces;
 using org.pdfclown.objects;
-
-using System.Collections.Generic;
+using colorSpaces = org.pdfclown.documents.contents.colorSpaces;
 
 namespace org.pdfclown.documents.contents.objects
 {
-  /**
-    <summary>Shading object [PDF:1.6:4.6.3].</summary>
-  */
-  [PDF(VersionEnum.PDF13)]
-  public sealed class Shading
-    : GraphicsObject,
-      IResourceReference<colorSpaces::Shading>
-  {
-    #region static
-    #region fields
-    public static readonly string BeginOperatorKeyword = PaintShading.OperatorKeyword;
-    public static readonly string EndOperatorKeyword = BeginOperatorKeyword;
-    #endregion
-    #endregion
-
-    #region dynamic
-    #region constructors
-    public Shading(
-      PaintShading operation
-      ) : base(operation)
-    {}
-    #endregion
-
-    #region interface
-    #region public
-    #region IResourceReference
-    public colorSpaces::Shading GetResource(
-      IContentContext context
-      )
-    {return Operation.GetResource(context);}
-
-    public PdfName Name
+    /**
+      <summary>Shading object [PDF:1.6:4.6.3].</summary>
+    */
+    [PDF(VersionEnum.PDF13)]
+    public sealed class Shading
+      : GraphicsObject,
+        IResourceReference<colorSpaces::Shading>
     {
-      get
-      {return Operation.Name;}
-      set
-      {Operation.Name = value;}
-    }
-    #endregion
-    #endregion
+        #region static
+        #region fields
+        public static readonly string BeginOperatorKeyword = PaintShading.OperatorKeyword;
+        public static readonly string EndOperatorKeyword = BeginOperatorKeyword;
+        #endregion
+        #endregion
 
-    #region private
-    private PaintShading Operation
-    {
-      get
-      {return (PaintShading)Objects[0];}
+        #region dynamic
+        #region constructors
+        public Shading(
+          PaintShading operation
+          ) : base(operation)
+        { }
+        #endregion
+
+        #region interface
+        #region public
+        #region IResourceReference
+        public colorSpaces::Shading GetResource(
+          IContentContext context
+          )
+        { return Operation.GetResource(context); }
+
+        public PdfName Name
+        {
+            get
+            { return Operation.Name; }
+            set
+            { Operation.Name = value; }
+        }
+        #endregion
+        #endregion
+
+        #region private
+        private PaintShading Operation
+        {
+            get
+            { return (PaintShading)Objects[0]; }
+        }
+        #endregion
+        #endregion
+        #endregion
     }
-    #endregion
-    #endregion
-    #endregion
-  }
 }

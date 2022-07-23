@@ -23,48 +23,43 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.documents.interaction;
-using actions = org.pdfclown.documents.interaction.actions;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 using System;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.multimedia
 {
-  /**
-    <summary>Media clip section [PDF:1.7:9.1.3].</summary>
-  */
-  [PDF(VersionEnum.PDF15)]
-  public sealed class MediaClipSection
-    : MediaClip
-  {
-    #region dynamic
-    #region constructors
-    public MediaClipSection(
-      Document context
-      ) : base(context, PdfName.MCS)
-    {}
-
-    internal MediaClipSection(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-
-    #region interface
-    #region public
-    public override PdfObjectWrapper Data
+    /**
+      <summary>Media clip section [PDF:1.7:9.1.3].</summary>
+    */
+    [PDF(VersionEnum.PDF15)]
+    public sealed class MediaClipSection
+      : MediaClip
     {
-      get
-      {return MediaClip.Wrap(BaseDataObject[PdfName.D]).Data;}
-      set
-      {throw new NotImplementedException();}
+        #region dynamic
+        #region constructors
+        public MediaClipSection(
+          Document context
+          ) : base(context, PdfName.MCS)
+        { }
+
+        internal MediaClipSection(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+
+        #region interface
+        #region public
+        public override PdfObjectWrapper Data
+        {
+            get
+            { return MediaClip.Wrap(BaseDataObject[PdfName.D]).Data; }
+            set
+            { throw new NotImplementedException(); }
+        }
+        #endregion
+        #endregion
+        #endregion
     }
-    #endregion
-    #endregion
-    #endregion
-  }
 }

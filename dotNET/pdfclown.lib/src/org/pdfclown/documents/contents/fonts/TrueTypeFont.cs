@@ -23,32 +23,26 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents.fonts
 {
-  /**
-    <summary>TrueType font [PDF:1.6:5;OFF:2009].</summary>
-  */
-  [PDF(VersionEnum.PDF10)]
-  public sealed class TrueTypeFont
-    : SimpleFont
-  {
-    #region dynamic
-    #region constructors
-    internal TrueTypeFont(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
-    #endregion
-  }
+    /**
+      <summary>TrueType font [PDF:1.6:5;OFF:2009].</summary>
+    */
+    [PDF(VersionEnum.PDF10)]
+    public sealed class TrueTypeFont
+      : SimpleFont
+    {
+        #region dynamic
+        #region constructors
+        internal TrueTypeFont(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+        #endregion
+    }
 }

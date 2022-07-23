@@ -23,44 +23,42 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using org.pdfclown.documents;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.objects;
-
 using System;
+using org.pdfclown.documents.interaction.annotations;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.interaction.forms
 {
-  /**
-    <summary>List box [PDF:1.6:8.6.3].</summary>
-  */
-  [PDF(VersionEnum.PDF12)]
-  public sealed class ListBox
-    : ChoiceField
-  {
-    #region dynamic
-    #region constructors
     /**
-      <summary>Creates a new listbox within the given document context.</summary>
+      <summary>List box [PDF:1.6:8.6.3].</summary>
     */
-    public ListBox(
-      string name,
-      Widget widget
-      ) : base(
-        name,
-        widget
-        )
-    {}
+    [PDF(VersionEnum.PDF12)]
+    public sealed class ListBox
+      : ChoiceField
+    {
+        #region dynamic
+        #region constructors
+        /**
+          <summary>Creates a new listbox within the given document context.</summary>
+        */
+        public ListBox(
+          string name,
+          Widget widget
+          ) : base(
+            name,
+            widget
+            )
+        { }
 
-    internal ListBox(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal ListBox(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #endregion
-    #endregion
-  }
+        #region interface
+        #endregion
+        #endregion
+    }
 }

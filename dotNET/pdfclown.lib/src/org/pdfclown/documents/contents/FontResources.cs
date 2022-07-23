@@ -23,46 +23,41 @@
   this list of conditions.
 */
 
-using org.pdfclown;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.fonts;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using org.pdfclown.documents.contents.fonts;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents
 {
-  /**
-    <summary>Font resources collection [PDF:1.6:3.7.2].</summary>
-  */
-  [PDF(VersionEnum.PDF10)]
-  public sealed class FontResources
-    : ResourceItems<Font>
-  {
-    #region dynamic
-    #region constructors
-    public FontResources(
-      Document context
-      ) : base(context)
-    {}
+    /**
+      <summary>Font resources collection [PDF:1.6:3.7.2].</summary>
+    */
+    [PDF(VersionEnum.PDF10)]
+    public sealed class FontResources
+      : ResourceItems<Font>
+    {
+        #region dynamic
+        #region constructors
+        public FontResources(
+          Document context
+          ) : base(context)
+        { }
 
-    internal FontResources(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal FontResources(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #region protected
-    protected override Font Wrap(
-      PdfDirectObject baseObject
-      )
-    {return Font.Wrap(baseObject);}
-    #endregion
-    #endregion
-    #endregion
-  }
+        #region interface
+        #region protected
+        protected override Font Wrap(
+          PdfDirectObject baseObject
+          )
+        { return Font.Wrap(baseObject); }
+        #endregion
+        #endregion
+        #endregion
+    }
 }

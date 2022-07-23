@@ -23,57 +23,56 @@
   this list of conditions.
 */
 
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 using System;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.contents.layers
 {
-  /**
-    <summary>Object that can be part of a hierarchical layer structure.</summary>
-  */
-  public interface IUILayerNode
-    : IPdfObjectWrapper
-  {
     /**
-      <summary>Gets the sublayers.</summary>
+      <summary>Object that can be part of a hierarchical layer structure.</summary>
     */
-    UILayers Children
+    public interface IUILayerNode
+      : IPdfObjectWrapper
     {
-      get;
+        /**
+          <summary>Gets the sublayers.</summary>
+        */
+        UILayers Children
+        {
+            get;
+        }
+
+        /**
+          <summary>Gets/Sets the text label.</summary>
+        */
+        string Title
+        {
+            get;
+            set;
+        }
     }
 
-    /**
-      <summary>Gets/Sets the text label.</summary>
-    */
-    string Title
+    internal sealed class UILayerNode
     {
-      get;
-      set;
+        public static IUILayerNode Wrap(
+          PdfDirectObject baseObject
+          )
+        {
+            if (baseObject == null)
+                return null;
+
+            PdfDataObject baseDataObject = baseObject.Resolve();
+            if (baseDataObject is PdfDictionary)
+                return Layer.Wrap(baseObject);
+            else if (baseDataObject is PdfArray)
+                return LayerCollection.Wrap(baseObject);
+            else
+                throw new ArgumentException(baseDataObject.GetType().Name + " is NOT a valid layer node.");
+        }
+
+        private UILayerNode(
+          )
+        { }
     }
-  }
-
-  internal sealed class UILayerNode
-  {
-    public static IUILayerNode Wrap(
-      PdfDirectObject baseObject
-      )
-    {
-      if(baseObject == null)
-        return null;
-
-      PdfDataObject baseDataObject = baseObject.Resolve();
-      if(baseDataObject is PdfDictionary)
-        return Layer.Wrap(baseObject);
-      else if(baseDataObject is PdfArray)
-        return LayerCollection.Wrap(baseObject);
-      else
-        throw new ArgumentException(baseDataObject.GetType().Name + " is NOT a valid layer node.");
-    }
-
-    private UILayerNode(
-      )
-    {}
-  }
 }

@@ -23,40 +23,38 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using org.pdfclown.documents;
-using org.pdfclown.objects;
-
 using System;
+
 using System.Drawing;
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.interaction.annotations
 {
-  /**
-    <summary>Polygon annotation [PDF:1.6:8.4.5].</summary>
-    <remarks>It represents a closed polygon to display on a page.</remarks>
-  */
-  [PDF(VersionEnum.PDF15)]
-  public sealed class Polygon
-    : VertexShape
-  {
-    #region dynamic
-    #region constructors
-    public Polygon(
-      Page page,
-      RectangleF box,
-      string text
-      ) : base(page, box, text, PdfName.Polygon)
-    {}
+    /**
+      <summary>Polygon annotation [PDF:1.6:8.4.5].</summary>
+      <remarks>It represents a closed polygon to display on a page.</remarks>
+    */
+    [PDF(VersionEnum.PDF15)]
+    public sealed class Polygon
+      : VertexShape
+    {
+        #region dynamic
+        #region constructors
+        public Polygon(
+          Page page,
+          RectangleF box,
+          string text
+          ) : base(page, box, text, PdfName.Polygon)
+        { }
 
-    internal Polygon(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        internal Polygon(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
 
-    #region interface
-    #endregion
-    #endregion
-  }
+        #region interface
+        #endregion
+        #endregion
+    }
 }

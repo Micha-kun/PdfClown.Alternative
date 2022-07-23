@@ -23,514 +23,477 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes.filters;
-using org.pdfclown.objects;
-using org.pdfclown.tokens;
-using org.pdfclown.util;
-using org.pdfclown.util.io;
-
-using System;
-using System.IO;
-using text = System.Text;
-
 namespace org.pdfclown.bytes
 {
-//TODO:IMPL Substitute System.Array static class invocations with System.Buffer static class invocations (better performance)!!!
-  /**
-    <summary>Byte buffer.</summary>
-  */
-  public sealed class Buffer
+    using System;
+    using System.IO;
+    using org.pdfclown.bytes.filters;
+    using org.pdfclown.objects;
+    using org.pdfclown.tokens;
+    using org.pdfclown.util;
+    using org.pdfclown.util.io;
+    using text = System.Text;
+
+    //TODO:IMPL Substitute System.Array static class invocations with System.Buffer static class invocations (better performance)!!!
+    /**
+      <summary>Byte buffer.</summary>
+    */
+    public sealed class Buffer
     : IBuffer
-  {
-    #region static
-    #region fields
-    /**
-      <summary>Default buffer capacity.</summary>
-    */
-    private const int DefaultCapacity = 1 << 8;
-    #endregion
-    #endregion
-
-    #region dynamic
-    #region events
-    public event EventHandler OnChange;
-    #endregion
-
-    #region fields
-    /**
-      <summary>Inner buffer where data are stored.</summary>
-    */
-    private byte[] data;
-    /**
-      <summary>Number of bytes actually used in the buffer.</summary>
-    */
-    private int length;
-    /**
-      <summary>Pointer position within the buffer.</summary>
-    */
-    private int position = 0;
-
-    private ByteOrderEnum byteOrder = ByteOrderEnum.BigEndian;
-
-    private bool dirty;
-    #endregion
-
-    #region constructors
-    public Buffer(
-      ) : this(0)
-    {}
-
-    public Buffer(
-      int capacity
-      )
     {
-      if(capacity < 1)
-      {capacity = DefaultCapacity;}
+        /**
+<summary>Default buffer capacity.</summary>
+*/
+        private const int DefaultCapacity = 1 << 8;
 
-      this.data = new byte[capacity];
-      this.length = 0;
-    }
+        private ByteOrderEnum byteOrder = ByteOrderEnum.BigEndian;
 
-    public Buffer(
-      byte[] data
-      )
-    {
-      this.data = data;
-      this.length = data.Length;
-    }
+        /**
+  <summary>Inner buffer where data are stored.</summary>
+*/
+        private byte[] data;
 
-    public Buffer(
-      System.IO.Stream data
-      ) : this((int)data.Length)
-    {Append(data);}
+        private bool dirty;
+        /**
+          <summary>Number of bytes actually used in the buffer.</summary>
+        */
+        private int length;
+        /**
+          <summary>Pointer position within the buffer.</summary>
+        */
+        private int position = 0;
 
-    public Buffer(
-      string data
-      ) : this()
-    {Append(data);}
-    #endregion
+        public Buffer(
+  ) : this(0)
+        { }
 
-    #region interface
-    #region public
-    #region IBuffer
-    public IBuffer Append(
-      byte data
-      )
-    {
-      EnsureCapacity(1);
-      this.data[this.length++] = data;
-      NotifyChange();
-      return this;
-    }
+        public Buffer(
+          int capacity
+          )
+        {
+            if (capacity < 1)
+            { capacity = DefaultCapacity; }
 
-    public IBuffer Append(
-      byte[] data
-      )
-    {return Append(data, 0, data.Length);}
+            this.data = new byte[capacity];
+            this.length = 0;
+        }
 
-    public IBuffer Append(
-      byte[] data,
-      int offset,
-      int length
-      )
-    {
-      EnsureCapacity(length);
-      Array.Copy(data, offset, this.data, this.length, length);
-      this.length += length;
-      NotifyChange();
-      return this;
-    }
+        public Buffer(
+          byte[] data
+          )
+        {
+            this.data = data;
+            this.length = data.Length;
+        }
 
-    public IBuffer Append(
-      string data
-      )
-    {return Append(Encoding.Pdf.Encode(data));}
+        public Buffer(
+          System.IO.Stream data
+          ) : this((int)data.Length)
+        { _ = this.Append(data); }
 
-    public IBuffer Append(
-      IInputStream data
-      )
-    {return Append(data.ToByteArray(), 0, (int)data.Length);}
+        public Buffer(
+          string data
+          ) : this()
+        { _ = this.Append(data); }
 
-    public IBuffer Append(
-      System.IO.Stream data
-      )
-    {
-      byte[] array = new byte[data.Length];
-      {
-        data.Position = 0;
-        data.Read(array, 0, array.Length);
-      }
-      return Append(array);
-    }
+        public event EventHandler OnChange;
 
-    public int Capacity
-    {
-      get
-      {return data.Length;}
-    }
+        /**
+  <summary>Check whether the buffer has sufficient room for
+  adding data.</summary>
+*/
+        private void EnsureCapacity(
+          int additionalLength
+          )
+        {
+            var minCapacity = this.length + additionalLength;
+            // Is additional data within the buffer capacity?
+            if (minCapacity <= this.data.Length)
+            {
+                return;
+            }
 
-    public IBuffer Clone(
-      )
-    {
-      IBuffer clone = new Buffer(Capacity);
-      clone.Append(data, 0, this.length);
-      return clone;
-    }
-
-    public void Decode(
-      Filter filter,
-      PdfDictionary parameters
-      )
-    {
-      data = filter.Decode(data,0,length,parameters);
-      length = data.Length;
-    }
-
-    public void Delete(
-      int index,
-      int length
-      )
-    {
-      // Shift left the trailing data block to override the deleted data!
-      Array.Copy(this.data, index + length, this.data, index, this.length - (index + length));
-      this.length -= length;
-      NotifyChange();
-    }
-
-    public bool Dirty
-    {
-      get
-      {return dirty;}
-      set
-      {dirty = value;}
-    }
-
-    public byte[] Encode(
-      Filter filter,
-      PdfDictionary parameters
-      )
-    {return filter.Encode(data, 0, length, parameters);}
-
-    public int GetByte(
-      int index
-      )
-    {return data[index];}
-
-    public byte[] GetByteArray(
-      int index,
-      int length
-      )
-    {
-      byte[] data = new byte[length];
-      Array.Copy(this.data, index, data, 0, length);
-      return data;
-    }
-
-    public string GetString(
-      int index,
-      int length
-      )
-    {return Encoding.Pdf.Decode(data, index, length);}
-
-    public void Insert(
-      int index,
-      byte[] data
-      )
-    {Insert(index, data, 0, data.Length);}
-
-    public void Insert(
-      int index,
-      byte[] data,
-      int offset,
-      int length
-      )
-    {
-      EnsureCapacity(length);
-      // Shift right the existing data block to make room for new data!
-      Array.Copy(this.data, index, this.data, index + length, this.length - index);
-      // Insert additional data!
-      Array.Copy(data, offset, this.data, index, length);
-      this.length += length;
-      NotifyChange();
-    }
-
-    public void Insert(
-      int index,
-      string data
-      )
-    {Insert(index, Encoding.Pdf.Encode(data));}
-
-    public void Insert(
-      int index,
-      IInputStream data
-      )
-    {Insert(index, data.ToByteArray());}
-
-    public void Replace(
-      int index,
-      byte[] data
-      )
-    {
-      Array.Copy(data, 0, this.data, index, data.Length);
-      NotifyChange();
-    }
-
-    public void Replace(
-      int index,
-      byte[] data,
-      int offset,
-      int length
-      )
-    {
-      Array.Copy(data, offset, this.data, index, data.Length);
-      NotifyChange();
-    }
-
-    public void Replace(
-      int index,
-      string data
-      )
-    {Replace(index, Encoding.Pdf.Encode(data));}
-
-    public void Replace(
-      int index,
-      IInputStream data
-      )
-    {Replace(index, data.ToByteArray());}
-
-    public void SetLength(
-      int value
-      )
-    {
-      length = value;
-      NotifyChange();
-    }
-
-    public void WriteTo(
-      IOutputStream stream
-      )
-    {stream.Write(data, 0, length);}
-
-    #region IInputStream
-    public ByteOrderEnum ByteOrder
-    {
-      get
-      {return byteOrder;}
-      set
-      {byteOrder = value;}
-    }
-
-    /* int GetHashCode() uses inherited implementation. */
-
-    public long Position
-    {
-      get
-      {return position;}
-    }
-
-    public void Read(
-      byte[] data
-      )
-    {Read(data, 0, data.Length);}
-
-    public void Read(
-      byte[] data,
-      int offset,
-      int length
-      )
-    {
-      Array.Copy(this.data, position, data, offset, length);
-      position += length;
-    }
-
-    public int ReadByte(
-      )
-    {
-      if(position >= data.Length)
-        return -1; //TODO:harmonize with other Read*() method EOF exceptions!!!
-
-      return data[position++];
-    }
-
-    public int ReadInt(
-      )
-    {
-      int value = ConvertUtils.ByteArrayToInt(data, position, byteOrder);
-      position += sizeof(int);
-      return value;
-    }
-
-    public int ReadInt(
-      int length
-      )
-    {
-      int value = ConvertUtils.ByteArrayToNumber(data, position, length, byteOrder);
-      position += length;
-      return value;
-    }
-
-    public string ReadLine(
-      )
-    {
-      if(position >= data.Length)
-        throw new EndOfStreamException();
-
-      text::StringBuilder buffer = new text::StringBuilder();
-      while(position < data.Length)
-      {
-        int c = data[position++];
-        if(c == '\r'
-          || c == '\n')
-          break;
-
-        buffer.Append((char)c);
-      }
-      return buffer.ToString();
-    }
-
-    public short ReadShort(
-      )
-    {
-      short value = (short)ConvertUtils.ByteArrayToNumber(data, position, sizeof(short), byteOrder);
-      position += sizeof(short);
-      return value;
-    }
-
-    public string ReadString(
-      int length
-      )
-    {
-      string data = Encoding.Pdf.Decode(this.data, position, length);
-      position += length;
-      return data;
-    }
-
-    public sbyte ReadSignedByte(
-      )
-    {
-      if(position >= data.Length)
-        throw new EndOfStreamException();
-
-      return (sbyte)data[position++];
-    }
-
-    public ushort ReadUnsignedShort(
-      )
-    {
-      ushort value = (ushort)ConvertUtils.ByteArrayToNumber(data, position, sizeof(ushort), byteOrder);
-      position += sizeof(ushort);
-      return value;
-    }
-
-    public void Seek(
-      long position
-      )
-    {
-      if(position < 0)
-      {position = 0;}
-      else if(position > data.Length)
-      {position = data.Length;}
-
-      this.position = (int)position;
-    }
-
-    public void Skip(
-      long offset
-      )
-    {Seek(position + offset);}
-
-    #region IDataWrapper
-    public byte[] ToByteArray(
-      )
-    {
-      byte[] data = new byte[this.length];
-      Array.Copy(this.data, 0, data, 0, this.length);
-      return data;
-    }
-    #endregion
-
-    #region IStream
-    public long Length
-    {
-      get
-      {return length;}
-    }
-
-    #region IDisposable
-    public void Dispose(
-      )
-    {}
-    #endregion
-    #endregion
-    #endregion
-    #endregion
-
-    #region IOutputStream
-    public void Clear(
-      )
-    {SetLength(0);}
-
-    public void Write(
-      byte[] data
-      )
-    {Append(data);}
-
-    public void Write(
-      byte[] data,
-      int offset,
-      int length
-      )
-    {Append(data, offset, length);}
-
-    public void Write(
-      string data
-      )
-    {Append(data);}
-
-    public void Write(
-      IInputStream data
-      )
-    {Append(data);}
-    #endregion
-    #endregion
-
-    #region private
-    /**
-      <summary>Check whether the buffer has sufficient room for
-      adding data.</summary>
-    */
-    private void EnsureCapacity(
-      int additionalLength
-      )
-    {
-      int minCapacity = this.length + additionalLength;
-      // Is additional data within the buffer capacity?
-      if(minCapacity <= this.data.Length)
-        return;
-
-      // Additional data exceed buffer capacity.
-      // Reallocate the buffer!
-      byte[] data = new byte[
+            // Additional data exceed buffer capacity.
+            // Reallocate the buffer!
+            var data = new byte[
         Math.Max(
           this.data.Length << 1, // 1 order of magnitude greater than current capacity.
           minCapacity // Minimum capacity required.
           )
         ];
-      Array.Copy(this.data, 0, data, 0, this.length);
-      this.data = data;
-    }
+            Array.Copy(this.data, 0, data, 0, this.length);
+            this.data = data;
+        }
 
-    private void NotifyChange(
+        private void NotifyChange(
+          )
+        {
+            if (this.dirty || (this.OnChange == null))
+            {
+                return;
+            }
+
+            this.dirty = true;
+            this.OnChange(this, null);
+        }
+
+        public IBuffer Append(
+byte data
+)
+        {
+            this.EnsureCapacity(1);
+            this.data[this.length++] = data;
+            this.NotifyChange();
+            return this;
+        }
+
+        public IBuffer Append(
+          byte[] data
+          )
+        { return this.Append(data, 0, data.Length); }
+
+        public IBuffer Append(
+          string data
+          )
+        { return this.Append(Encoding.Pdf.Encode(data)); }
+
+        public IBuffer Append(
+          IInputStream data
+          )
+        { return this.Append(data.ToByteArray(), 0, (int)data.Length); }
+
+        public IBuffer Append(
+          System.IO.Stream data
+          )
+        {
+            var array = new byte[data.Length];
+            data.Position = 0;
+            _ = data.Read(array, 0, array.Length);
+            return this.Append(array);
+        }
+
+        public IBuffer Append(
+          byte[] data,
+          int offset,
+          int length
+          )
+        {
+            this.EnsureCapacity(length);
+            Array.Copy(data, offset, this.data, this.length, length);
+            this.length += length;
+            this.NotifyChange();
+            return this;
+        }
+
+        public void Clear(
+  )
+        { this.SetLength(0); }
+
+        public IBuffer Clone(
       )
-    {
-      if(dirty || OnChange == null)
-        return;
+        {
+            IBuffer clone = new Buffer(this.Capacity);
+            _ = clone.Append(this.data, 0, this.length);
+            return clone;
+        }
 
-      dirty = true;
-      OnChange(this, null);
+        public void Decode(
+          Filter filter,
+          PdfDictionary parameters
+          )
+        {
+            this.data = filter.Decode(this.data, 0, this.length, parameters);
+            this.length = this.data.Length;
+        }
+
+        public void Delete(
+          int index,
+          int length
+          )
+        {
+            // Shift left the trailing data block to override the deleted data!
+            Array.Copy(this.data, index + length, this.data, index, this.length - (index + length));
+            this.length -= length;
+            this.NotifyChange();
+        }
+
+        public void Dispose(
+)
+        { }
+
+        public byte[] Encode(
+      Filter filter,
+      PdfDictionary parameters
+      )
+        { return filter.Encode(this.data, 0, this.length, parameters); }
+
+        public int GetByte(
+          int index
+          )
+        { return this.data[index]; }
+
+        public byte[] GetByteArray(
+          int index,
+          int length
+          )
+        {
+            var data = new byte[length];
+            Array.Copy(this.data, index, data, 0, length);
+            return data;
+        }
+
+        public string GetString(
+          int index,
+          int length
+          )
+        { return Encoding.Pdf.Decode(this.data, index, length); }
+
+        public void Insert(
+          int index,
+          byte[] data
+          )
+        { this.Insert(index, data, 0, data.Length); }
+
+        public void Insert(
+          int index,
+          string data
+          )
+        { this.Insert(index, Encoding.Pdf.Encode(data)); }
+
+        public void Insert(
+          int index,
+          IInputStream data
+          )
+        { this.Insert(index, data.ToByteArray()); }
+
+        public void Insert(
+          int index,
+          byte[] data,
+          int offset,
+          int length
+          )
+        {
+            this.EnsureCapacity(length);
+            // Shift right the existing data block to make room for new data!
+            Array.Copy(this.data, index, this.data, index + length, this.length - index);
+            // Insert additional data!
+            Array.Copy(data, offset, this.data, index, length);
+            this.length += length;
+            this.NotifyChange();
+        }
+
+        public void Read(
+      byte[] data
+      )
+        { this.Read(data, 0, data.Length); }
+
+        public void Read(
+          byte[] data,
+          int offset,
+          int length
+          )
+        {
+            Array.Copy(this.data, this.position, data, offset, length);
+            this.position += length;
+        }
+
+        public int ReadByte(
+          )
+        {
+            if (this.position >= this.data.Length)
+            {
+                return -1; //TODO:harmonize with other Read*() method EOF exceptions!!!
+            }
+
+            return this.data[this.position++];
+        }
+
+        public int ReadInt(
+          )
+        {
+            var value = ConvertUtils.ByteArrayToInt(this.data, this.position, this.byteOrder);
+            this.position += sizeof(int);
+            return value;
+        }
+
+        public int ReadInt(
+          int length
+          )
+        {
+            var value = ConvertUtils.ByteArrayToNumber(this.data, this.position, length, this.byteOrder);
+            this.position += length;
+            return value;
+        }
+
+        public string ReadLine(
+          )
+        {
+            if (this.position >= this.data.Length)
+            {
+                throw new EndOfStreamException();
+            }
+
+            var buffer = new text::StringBuilder();
+            while (this.position < this.data.Length)
+            {
+                int c = this.data[this.position++];
+                if ((c == '\r')
+                  || (c == '\n'))
+                {
+                    break;
+                }
+
+                _ = buffer.Append((char)c);
+            }
+            return buffer.ToString();
+        }
+
+        public short ReadShort(
+          )
+        {
+            var value = (short)ConvertUtils.ByteArrayToNumber(this.data, this.position, sizeof(short), this.byteOrder);
+            this.position += sizeof(short);
+            return value;
+        }
+
+        public sbyte ReadSignedByte(
+          )
+        {
+            if (this.position >= this.data.Length)
+            {
+                throw new EndOfStreamException();
+            }
+
+            return (sbyte)this.data[this.position++];
+        }
+
+        public string ReadString(
+          int length
+          )
+        {
+            var data = Encoding.Pdf.Decode(this.data, this.position, length);
+            this.position += length;
+            return data;
+        }
+
+        public ushort ReadUnsignedShort(
+          )
+        {
+            var value = (ushort)ConvertUtils.ByteArrayToNumber(this.data, this.position, sizeof(ushort), this.byteOrder);
+            this.position += sizeof(ushort);
+            return value;
+        }
+
+        public void Replace(
+          int index,
+          byte[] data
+          )
+        {
+            Array.Copy(data, 0, this.data, index, data.Length);
+            this.NotifyChange();
+        }
+
+        public void Replace(
+          int index,
+          string data
+          )
+        { this.Replace(index, Encoding.Pdf.Encode(data)); }
+
+        public void Replace(
+          int index,
+          IInputStream data
+          )
+        { this.Replace(index, data.ToByteArray()); }
+
+        public void Replace(
+          int index,
+          byte[] data,
+          int offset,
+          int length
+          )
+        {
+            Array.Copy(data, offset, this.data, index, data.Length);
+            this.NotifyChange();
+        }
+
+        public void Seek(
+          long position
+          )
+        {
+            if (position < 0)
+            { position = 0; }
+            else if (position > this.data.Length)
+            { position = this.data.Length; }
+
+            this.position = (int)position;
+        }
+
+        public void SetLength(
+          int value
+          )
+        {
+            this.length = value;
+            this.NotifyChange();
+        }
+
+        public void Skip(
+          long offset
+          )
+        { this.Seek(this.position + offset); }
+
+        public byte[] ToByteArray(
+  )
+        {
+            var data = new byte[this.length];
+            Array.Copy(this.data, 0, data, 0, this.length);
+            return data;
+        }
+
+        public void Write(
+          byte[] data
+          )
+        { _ = this.Append(data); }
+
+        public void Write(
+          string data
+          )
+        { _ = this.Append(data); }
+
+        public void Write(
+          IInputStream data
+          )
+        { _ = this.Append(data); }
+
+        public void Write(
+          byte[] data,
+          int offset,
+          int length
+          )
+        { _ = this.Append(data, offset, length); }
+
+        public void WriteTo(
+          IOutputStream stream
+          )
+        { stream.Write(this.data, 0, this.length); }
+
+        public ByteOrderEnum ByteOrder
+        {
+            get => this.byteOrder;
+            set => this.byteOrder = value;
+        }
+
+        public int Capacity => this.data.Length;
+
+        public bool Dirty
+        {
+            get => this.dirty;
+            set => this.dirty = value;
+        }
+
+        public long Length => this.length;
+
+        /* int GetHashCode() uses inherited implementation. */
+
+        public long Position => this.position;
     }
-    #endregion
-    #endregion
-    #endregion
-  }
 }

@@ -23,80 +23,77 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.objects;
-
 using System;
+using org.pdfclown.documents.contents;
+
+using org.pdfclown.objects;
 
 namespace org.pdfclown.documents.interaction.forms
 {
-  /**
-    <summary>Interactive form (AcroForm) [PDF:1.6:8.6.1].</summary>
-  */
-  [PDF(VersionEnum.PDF12)]
-  public sealed class Form
-    : PdfObjectWrapper<PdfDictionary>
-  {
-    #region static
-    #region interface
-    #region public
-    public static Form Wrap(
-      PdfDirectObject baseObject
-      )
-    {return baseObject != null ? new Form(baseObject) : null;}
-    #endregion
-    #endregion
-    #endregion
-
-    #region dynamic
-    #region constructors
-    public Form(
-      Document context
-      ) : base(
-        context,
-        new PdfDictionary(
-          new PdfName[]
-          {PdfName.Fields},
-          new PdfDirectObject[]
-          {new PdfArray()}
+    /**
+      <summary>Interactive form (AcroForm) [PDF:1.6:8.6.1].</summary>
+    */
+    [PDF(VersionEnum.PDF12)]
+    public sealed class Form
+      : PdfObjectWrapper<PdfDictionary>
+    {
+        #region static
+        #region interface
+        #region public
+        public static Form Wrap(
+          PdfDirectObject baseObject
           )
-        )
-    {}
+        { return baseObject != null ? new Form(baseObject) : null; }
+        #endregion
+        #endregion
+        #endregion
 
-    private Form(
-      PdfDirectObject baseObject
-      ) : base(baseObject)
-    {}
-    #endregion
+        #region dynamic
+        #region constructors
+        public Form(
+          Document context
+          ) : base(
+            context,
+            new PdfDictionary(
+              new PdfName[]
+              {PdfName.Fields},
+              new PdfDirectObject[]
+              {new PdfArray()}
+              )
+            )
+        { }
 
-    #region interface
-    #region public
-    /**
-      <summary>Gets/Sets the fields collection.</summary>
-    */
-    public Fields Fields
-    {
-      get
-      {return new Fields(BaseDataObject.Get<PdfArray>(PdfName.Fields));}
-      set
-      {BaseDataObject[PdfName.Fields] = value.BaseObject;}
+        private Form(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+        #endregion
+
+        #region interface
+        #region public
+        /**
+          <summary>Gets/Sets the fields collection.</summary>
+        */
+        public Fields Fields
+        {
+            get
+            { return new Fields(BaseDataObject.Get<PdfArray>(PdfName.Fields)); }
+            set
+            { BaseDataObject[PdfName.Fields] = value.BaseObject; }
+        }
+
+        /**
+          <summary>Gets/Sets the default resources used by fields.</summary>
+        */
+        public Resources Resources
+        {
+            get
+            { return Resources.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.DR)); }
+            set
+            { BaseDataObject[PdfName.DR] = value.BaseObject; }
+        }
+        #endregion
+        #endregion
+        #endregion
     }
-
-    /**
-      <summary>Gets/Sets the default resources used by fields.</summary>
-    */
-    public Resources Resources
-    {
-      get
-      {return Resources.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.DR));}
-      set
-      {BaseDataObject[PdfName.DR] = value.BaseObject;}
-    }
-    #endregion
-    #endregion
-    #endregion
-  }
 }
