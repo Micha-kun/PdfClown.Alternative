@@ -23,8 +23,6 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.tokens
 {
     /**
@@ -51,6 +49,6 @@ namespace org.pdfclown.tokens
         public byte[] Encode(
           char value
           )
-        { return Encode(value); }
+        { return this.Encode(value); }
     }
 }

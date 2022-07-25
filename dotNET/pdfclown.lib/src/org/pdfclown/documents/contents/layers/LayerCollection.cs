@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.layers
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>UI collection of related layers [PDF:1.7:4.10.3].</summary>
     */
@@ -38,59 +37,45 @@ namespace org.pdfclown.documents.contents.layers
       : UILayers,
         IUILayerNode
     {
-        #region static
-        #region interface
-        #region public
-        public static new LayerCollection Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new LayerCollection(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public LayerCollection(
-          Document context,
-          string title
-          ) : base(context)
-        { Title = title; }
 
         private LayerCollection(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public LayerCollection(
+Document context,
+string title
+) : base(context)
+        { this.Title = title; }
+
+        UILayers IUILayerNode.Children => this;
+
         public override string ToString(
-          )
-        { return Title; }
-
-        #region IUILayerNode
-        UILayers IUILayerNode.Children
-        {
-            get
-            { return this; }
-        }
+)
+        { return this.Title; }
+        public static new LayerCollection Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new LayerCollection(baseObject) : null; }
 
         public string Title
         {
             get
             {
-                if (BaseDataObject.Count == 0)
+                if (this.BaseDataObject.Count == 0)
+                {
                     return null;
+                }
 
-                PdfDirectObject firstObject = BaseDataObject[0];
-                return firstObject is PdfString ? ((PdfString)firstObject).StringValue : null;
+                var firstObject = this.BaseDataObject[0];
+                return (firstObject is PdfString) ? ((PdfString)firstObject).StringValue : null;
             }
             set
             {
-                PdfTextString titleObject = PdfTextString.Get(value);
-                PdfArray baseDataObject = BaseDataObject;
-                PdfDirectObject firstObject = (baseDataObject.Count == 0 ? null : baseDataObject[0]);
+                var titleObject = PdfTextString.Get(value);
+                var baseDataObject = this.BaseDataObject;
+                var firstObject = (baseDataObject.Count == 0) ? null : baseDataObject[0];
                 if (firstObject is PdfString)
                 {
                     if (titleObject != null)
@@ -102,10 +87,6 @@ namespace org.pdfclown.documents.contents.layers
                 { baseDataObject.Insert(0, titleObject); }
             }
         }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }
 

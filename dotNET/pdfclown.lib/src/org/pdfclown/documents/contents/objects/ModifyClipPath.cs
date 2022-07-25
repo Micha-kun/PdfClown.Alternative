@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>Clipping path operation [PDF:1.6:4.4.2].</summary>
     */
@@ -34,8 +34,6 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class ModifyClipPath
       : Operation
     {
-        #region static
-        #region fields
         public const string EvenOddOperatorKeyword = "W*";
         public const string NonZeroOperatorKeyword = "W";
 
@@ -51,47 +49,31 @@ namespace org.pdfclown.documents.contents.objects
           the clipping path' operation.</summary>
         */
         public static readonly ModifyClipPath NonZero = new ModifyClipPath(NonZeroOperatorKeyword, WindModeEnum.NonZero);
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region fields
-        private WindModeEnum clipMode;
-        #endregion
+        private readonly WindModeEnum clipMode;
 
-        #region constructors
         private ModifyClipPath(
-          string @operator,
-          WindModeEnum clipMode
-          ) : base(@operator)
+  string @operator,
+  WindModeEnum clipMode
+  ) : base(@operator)
         { this.clipMode = clipMode; }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets the clipping rule.</summary>
-        */
-        public WindModeEnum ClipMode
-        {
-            get
-            { return clipMode; }
-        }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            ContentScanner scanner = state.Scanner;
-            GraphicsPath pathObject = scanner.RenderObject;
+            var scanner = state.Scanner;
+            var pathObject = scanner.RenderObject;
             if (pathObject != null)
             {
-                pathObject.FillMode = clipMode.ToGdi();
+                pathObject.FillMode = this.clipMode.ToGdi();
                 scanner.RenderContext.SetClip(pathObject, CombineMode.Intersect);
             }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+<summary>Gets the clipping rule.</summary>
+*/
+        public WindModeEnum ClipMode => this.clipMode;
     }
 }

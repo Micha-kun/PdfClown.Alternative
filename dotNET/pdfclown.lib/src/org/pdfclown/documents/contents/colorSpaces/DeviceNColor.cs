@@ -68,6 +68,6 @@ namespace org.pdfclown.documents.contents.colorSpaces
         /// <param name="components">Color components to convert.</param>
         ///
         public static DeviceNColor Get(PdfArray components)
-        { return (components != null) ? (new DeviceNColor(components)) : null; }
+        { return (components != null) ? new DeviceNColor(components) : null; }
     }
 }

@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using org.pdfclown.documents.contents;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.objects;
+
     /**
       <summary>Border characteristics [PDF:1.6:8.4.3].</summary>
     */
@@ -38,45 +37,12 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Border
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region types
-        /**
-          <summary>Border style [PDF:1.6:8.4.3].</summary>
-        */
-        public enum StyleEnum
-        {
-            /**
-              <summary>Solid.</summary>
-            */
-            Solid,
-            /**
-              <summary>Dashed.</summary>
-            */
-            Dashed,
-            /**
-              <summary>Beveled.</summary>
-            */
-            Beveled,
-            /**
-              <summary>Inset.</summary>
-            */
-            Inset,
-            /**
-              <summary>Underline.</summary>
-            */
-            Underline
-        };
-        #endregion
 
-        #region static
-        #region fields
         private static readonly LineDash DefaultLineDash = new LineDash(new double[] { 3 });
-        private static readonly StyleEnum DefaultStyle = StyleEnum.Solid;
         private static readonly double DefaultWidth = 1;
 
         private static readonly Dictionary<StyleEnum, PdfName> StyleEnumCodes;
-        #endregion
 
-        #region constructors
         static Border()
         {
             StyleEnumCodes = new Dictionary<StyleEnum, PdfName>();
@@ -86,41 +52,35 @@ namespace org.pdfclown.documents.interaction.annotations
             StyleEnumCodes[StyleEnum.Inset] = PdfName.I;
             StyleEnumCodes[StyleEnum.Underline] = PdfName.U;
         }
-        #endregion
 
-        #region interface
-        #region private
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          StyleEnum value
-          )
-        { return StyleEnumCodes[value]; }
-
-        /**
-          <summary>Gets the style corresponding to the given value.</summary>
-        */
-        private static StyleEnum ToStyleEnum(
-          PdfName value
-          )
+        private Border(
+          Document context,
+          double width,
+          StyleEnum style,
+          LineDash pattern
+          ) : base(
+            context,
+            new PdfDictionary(
+              new PdfName[]
+              {PdfName.Type},
+              new PdfDirectObject[]
+              {PdfName.Border}
+              )
+            )
         {
-            foreach (KeyValuePair<StyleEnum, PdfName> style in StyleEnumCodes)
-            {
-                if (style.Value.Equals(value))
-                    return style.Key;
-            }
-            return DefaultStyle;
+            this.Width = width;
+            this.Style = style;
+            this.Pattern = pattern;
         }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
+        internal Border(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         /**
-          <summary>Creates a non-reusable instance.</summary>
-        */
+<summary>Creates a non-reusable instance.</summary>
+*/
         public Border(
           double width
           ) : this(null, width)
@@ -173,43 +133,40 @@ namespace org.pdfclown.documents.interaction.annotations
           ) : this(context, width, StyleEnum.Dashed, pattern)
         { }
 
-        private Border(
-          Document context,
-          double width,
-          StyleEnum style,
-          LineDash pattern
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {PdfName.Border}
-              )
-            )
+        /**
+<summary>Gets the code corresponding to the given value.</summary>
+*/
+        private static PdfName ToCode(
+          StyleEnum value
+          )
+        { return StyleEnumCodes[value]; }
+
+        /**
+          <summary>Gets the style corresponding to the given value.</summary>
+        */
+        private static StyleEnum ToStyleEnum(
+          PdfName value
+          )
         {
-            Width = width;
-            Style = style;
-            Pattern = pattern;
+            foreach (var style in StyleEnumCodes)
+            {
+                if (style.Value.Equals(value))
+                {
+                    return style.Key;
+                }
+            }
+            return DefaultStyle;
         }
 
-        internal Border(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the dash pattern used in case of dashed border.</summary>
-        */
+<summary>Gets/Sets the dash pattern used in case of dashed border.</summary>
+*/
         public LineDash Pattern
         {
             get
             {
-                PdfArray dashObject = (PdfArray)BaseDataObject[PdfName.D];
-                return dashObject != null ? LineDash.Get(dashObject, null) : DefaultLineDash;
+                var dashObject = (PdfArray)this.BaseDataObject[PdfName.D];
+                return (dashObject != null) ? LineDash.Get(dashObject, null) : DefaultLineDash;
             }
             set
             {
@@ -217,10 +174,10 @@ namespace org.pdfclown.documents.interaction.annotations
                 if (value != null)
                 {
                     dashObject = new PdfArray();
-                    foreach (double dashItem in value.DashArray)
+                    foreach (var dashItem in value.DashArray)
                     { dashObject.Add(PdfReal.Get(dashItem)); }
                 }
-                BaseDataObject[PdfName.D] = dashObject;
+                this.BaseDataObject[PdfName.D] = dashObject;
             }
         }
 
@@ -229,10 +186,8 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public StyleEnum Style
         {
-            get
-            { return ToStyleEnum((PdfName)BaseDataObject[PdfName.S]); }
-            set
-            { BaseDataObject[PdfName.S] = value != DefaultStyle ? ToCode(value) : null; }
+            get => ToStyleEnum((PdfName)this.BaseDataObject[PdfName.S]);
+            set => this.BaseDataObject[PdfName.S] = (value != DefaultStyle) ? ToCode(value) : null;
         }
 
         /**
@@ -242,14 +197,38 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                IPdfNumber widthObject = (IPdfNumber)BaseDataObject[PdfName.W];
-                return widthObject != null ? widthObject.RawValue : DefaultWidth;
+                var widthObject = (IPdfNumber)this.BaseDataObject[PdfName.W];
+                return (widthObject != null) ? widthObject.RawValue : DefaultWidth;
             }
-            set
-            { BaseDataObject[PdfName.W] = PdfReal.Get(value); }
+            set => this.BaseDataObject[PdfName.W] = PdfReal.Get(value);
         }
-        #endregion
-        #endregion
-        #endregion
+        /**
+  <summary>Border style [PDF:1.6:8.4.3].</summary>
+*/
+        public enum StyleEnum
+        {
+            /**
+              <summary>Solid.</summary>
+            */
+            Solid,
+            /**
+              <summary>Dashed.</summary>
+            */
+            Dashed,
+            /**
+              <summary>Beveled.</summary>
+            */
+            Beveled,
+            /**
+              <summary>Inset.</summary>
+            */
+            Inset,
+            /**
+              <summary>Underline.</summary>
+            */
+            Underline
+        };
+
+        private static readonly StyleEnum DefaultStyle = StyleEnum.Solid;
     }
 }

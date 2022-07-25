@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using org.pdfclown.documents.contents.colorSpaces;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.documents.contents.colorSpaces;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the color to use for nonstroking operations in device RGB color space'
       operation [PDF:1.6:4.5.7].</summary>
@@ -38,36 +38,24 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class SetDeviceRGBFillColor
       : SetFillColor
     {
-        #region static
-        #region fields
-        public static readonly new string OperatorKeyword = "rg";
-        #endregion
-        #endregion
+        public static new readonly string OperatorKeyword = "rg";
 
-        #region dynamic
-        #region constructors
         public SetDeviceRGBFillColor(
-          DeviceRGBColor value
-          ) : base(OperatorKeyword, value)
+DeviceRGBColor value
+) : base(OperatorKeyword, value)
         { }
 
         public SetDeviceRGBFillColor(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
+ContentScanner.GraphicsState state
+)
         {
             state.FillColorSpace = DeviceRGBColorSpace.Default;
             base.Scan(state);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

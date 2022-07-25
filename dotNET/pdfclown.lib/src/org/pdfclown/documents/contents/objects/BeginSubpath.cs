@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Begin a new subpath by moving the current point' operation [PDF:1.6:4.4.1].</summary>
     */
@@ -38,23 +37,22 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class BeginSubpath
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "m";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         /**
-          <param name="point">Current point.</param>
-        */
+<param name="point">Current point.</param>
+*/
         public BeginSubpath(
           PointF point
           ) : this(
             point.X,
             point.Y
             )
+        { }
+
+        public BeginSubpath(
+          IList<PdfDirectObject> operands
+          ) : base(OperatorKeyword, operands)
         { }
 
         /**
@@ -76,46 +74,32 @@ namespace org.pdfclown.documents.contents.objects
             )
         { }
 
-        public BeginSubpath(
-          IList<PdfDirectObject> operands
-          ) : base(OperatorKeyword, operands)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the current point.</summary>
-        */
-        public PointF Point
-        {
-            get
-            {
-                return new PointF(
-                  ((IPdfNumber)operands[0]).FloatValue,
-                  ((IPdfNumber)operands[1]).FloatValue
-                  );
-            }
-            set
-            {
-                operands[0] = PdfReal.Get(value.X);
-                operands[1] = PdfReal.Get(value.Y);
-            }
-        }
-
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            GraphicsPath pathObject = state.Scanner.RenderObject;
+            var pathObject = state.Scanner.RenderObject;
             if (pathObject != null)
             {
-                PointF point = Point;
+                var point = this.Point;
                 pathObject.AddLine(point, point);
             }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+<summary>Gets/Sets the current point.</summary>
+*/
+        public PointF Point
+        {
+            get => new PointF(
+                  ((IPdfNumber)this.operands[0]).FloatValue,
+                  ((IPdfNumber)this.operands[1]).FloatValue
+                  );
+            set
+            {
+                this.operands[0] = PdfReal.Get(value.X);
+                this.operands[1] = PdfReal.Get(value.Y);
+            }
+        }
     }
 }

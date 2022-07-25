@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using System.Linq;
-
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the color to use for nonstroking operations' operation [PDF:1.6:4.5.7].</summary>
     */
@@ -38,11 +37,9 @@ namespace org.pdfclown.documents.contents.objects
     public class SetFillColor
       : Operation
     {
-        #region static
-        #region fields
         /**
-          <summary>'Set the color to use for nonstroking operations in any color space' operator.</summary>
-        */
+<summary>'Set the color to use for nonstroking operations in any color space' operator.</summary>
+*/
         [PDF(VersionEnum.PDF12)]
         public static readonly string ExtendedOperatorKeyword = "scn";
         /**
@@ -51,26 +48,6 @@ namespace org.pdfclown.documents.contents.objects
         */
         [PDF(VersionEnum.PDF11)]
         public static readonly string OperatorKeyword = "sc";
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public SetFillColor(
-          Color value
-          ) : this(ExtendedOperatorKeyword, value)
-        { }
-
-        public SetFillColor(
-          IList<PdfDirectObject> operands
-          ) : this(ExtendedOperatorKeyword, operands)
-        { }
-
-        public SetFillColor(
-          string @operator,
-          IList<PdfDirectObject> operands
-          ) : base(@operator, operands)
-        { }
 
         protected SetFillColor(
           string @operator,
@@ -101,32 +78,38 @@ namespace org.pdfclown.documents.contents.objects
         {
             if (underlyingColor != null)
             {
-                foreach (PdfDirectObject component in underlyingColor.Components)
-                { operands.Add(component); }
+                foreach (var component in underlyingColor.Components)
+                { this.operands.Add(component); }
             }
-            operands.Add(name);
+            this.operands.Add(name);
         }
-        #endregion
 
-        #region interface
-        #region public
-        public IList<PdfDirectObject> Components
-        {
-            get
-            { return operands; }
-        }
+        public SetFillColor(
+Color value
+) : this(ExtendedOperatorKeyword, value)
+        { }
+
+        public SetFillColor(
+          IList<PdfDirectObject> operands
+          ) : this(ExtendedOperatorKeyword, operands)
+        { }
+
+        public SetFillColor(
+          string @operator,
+          IList<PdfDirectObject> operands
+          ) : base(@operator, operands)
+        { }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
             state.FillColor = state.FillColorSpace.GetColor(
-              operands,
+              this.operands,
               state.Scanner.ContentContext
               );
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public IList<PdfDirectObject> Components => this.operands;
     }
 }

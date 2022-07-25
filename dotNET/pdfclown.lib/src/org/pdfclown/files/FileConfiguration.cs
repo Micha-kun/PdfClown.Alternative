@@ -23,8 +23,6 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.files
 {
     /**
@@ -32,47 +30,36 @@ namespace org.pdfclown.files
     */
     public sealed class FileConfiguration
     {
-        #region dynamic
-        #region fields
+
+        private readonly File file;
         private string realFormat;
         private bool streamFilterEnabled;
         private XRefModeEnum xrefMode = XRefModeEnum.Plain;
 
-        private readonly File file;
-        #endregion
-
-        #region constructors
         internal FileConfiguration(
-          File file
-          )
+  File file
+  )
         {
             this.file = file;
 
-            RealPrecision = 0;
-            StreamFilterEnabled = true;
+            this.RealPrecision = 0;
+            this.StreamFilterEnabled = true;
         }
-        #endregion
 
-        #region interface
-        #region public
+        internal string RealFormat => this.realFormat;
+
         /**
-          <summary>Gets the file associated with this configuration.</summary>
-        */
-        public File File
-        {
-            get
-            { return file; }
-        }
+<summary>Gets the file associated with this configuration.</summary>
+*/
+        public File File => this.file;
 
         /**
           <summary>Gets/Sets the number of decimal places applied to real numbers' serialization.</summary>
         */
         public int RealPrecision
         {
-            get
-            { return realFormat.Length - realFormat.IndexOf('.') - 1; }
-            set
-            { realFormat = "0." + new string('#', value <= 0 ? 5 : value); }
+            get => this.realFormat.Length - this.realFormat.IndexOf('.') - 1;
+            set => this.realFormat = $"0.{(new string('#', (value <= 0) ? 5 : value))}";
         }
 
         /**
@@ -80,10 +67,8 @@ namespace org.pdfclown.files
         */
         public bool StreamFilterEnabled
         {
-            get
-            { return streamFilterEnabled; }
-            set
-            { streamFilterEnabled = value; }
+            get => this.streamFilterEnabled;
+            set => this.streamFilterEnabled = value;
         }
 
         /**
@@ -91,21 +76,8 @@ namespace org.pdfclown.files
         */
         public XRefModeEnum XRefMode
         {
-            get
-            { return xrefMode; }
-            set
-            { file.Document.CheckCompatibility(xrefMode = value); }
+            get => this.xrefMode;
+            set => this.file.Document.CheckCompatibility(this.xrefMode = value);
         }
-        #endregion
-
-        #region internal
-        internal string RealFormat
-        {
-            get
-            { return realFormat; }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

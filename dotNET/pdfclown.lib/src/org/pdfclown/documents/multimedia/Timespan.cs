@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Timespan [PDF:1.7:9.1.5].</summary>
     */
@@ -36,46 +35,36 @@ namespace org.pdfclown.documents.multimedia
     internal sealed class Timespan
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region dynamic
-        #region constructors
-        public Timespan(
-          double time
-          ) : base(
-            new PdfDictionary(
-              new PdfName[]
-              {
-            PdfName.Type,
-            PdfName.S
-              },
-              new PdfDirectObject[]
-              {
-            PdfName.Timespan,
-            PdfName.S
-              }
-              )
-            )
-        { Time = time; }
 
         internal Timespan(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public Timespan(
+double time
+) : base(
+new PdfDictionary(
+new PdfName[]
+{
+            PdfName.Type,
+            PdfName.S
+},
+new PdfDirectObject[]
+{
+            PdfName.Timespan,
+            PdfName.S
+}
+)
+)
+        { this.Time = time; }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the temporal offset (in seconds).</summary>
-        */
+<summary>Gets/Sets the temporal offset (in seconds).</summary>
+*/
         public double Time
         {
-            get
-            { return ((IPdfNumber)BaseDataObject[PdfName.V]).DoubleValue; }
-            set
-            { BaseDataObject[PdfName.V] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.BaseDataObject[PdfName.V]).DoubleValue;
+            set => this.BaseDataObject[PdfName.V] = PdfReal.Get(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -1,9 +1,14 @@
-using System;
-
 namespace org.pdfclown.samples.cli
 {
+    using System;
+
     internal static class Utils
     {
+
+        private static Type GetDefinition(
+          Type type
+          )
+        { return type.IsGenericType ? type.GetGenericTypeDefinition() : type; }
         /**
           <summary>Gets the value of the given property.</summary>
           <param name="propertyName">Property name whose value has to be retrieved.</param>
@@ -25,12 +30,14 @@ namespace org.pdfclown.samples.cli
           Type type
           )
         {
-            Type objType = obj.GetType();
-            Type typeDefinition = GetDefinition(type);
+            var objType = obj.GetType();
+            var typeDefinition = GetDefinition(type);
             while (objType != null)
             {
                 if (typeDefinition == GetDefinition(objType))
+                {
                     return true;
+                }
 
                 objType = objType.BaseType;
             }
@@ -41,14 +48,9 @@ namespace org.pdfclown.samples.cli
           string message
           )
         {
-            Console.WriteLine("\n" + message);
+            Console.WriteLine($"\n{message}");
             Console.WriteLine("Press ENTER to continue");
-            Console.ReadLine();
+            _ = Console.ReadLine();
         }
-
-        private static Type GetDefinition(
-          Type type
-          )
-        { return type.IsGenericType ? type.GetGenericTypeDefinition() : type; }
     }
 }

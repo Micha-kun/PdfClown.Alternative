@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.documents;
-
 namespace org.pdfclown.objects
 {
+
+    using org.pdfclown.documents;
+
     /**
       <summary>Number tree [PDF:1.7:3.8.6].</summary>
     */
@@ -38,28 +37,16 @@ namespace org.pdfclown.objects
       : Tree<PdfInteger, TValue>
       where TValue : PdfObjectWrapper
     {
-        #region dynamic
-        #region constructors
         protected NumberTree(
-          Document context
-          ) : base(context)
+Document context
+) : base(context)
         { }
 
         protected NumberTree(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region protected
-        protected override PdfName PairsKey
-        {
-            get
-            { return PdfName.Nums; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        protected override PdfName PairsKey => PdfName.Nums;
     }
 }

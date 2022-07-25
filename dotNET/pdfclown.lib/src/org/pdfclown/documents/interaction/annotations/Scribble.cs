@@ -23,16 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-using org.pdfclown.util.math.geom;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Collections.Generic;
+    using System.Drawing;
+
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.objects;
+    using org.pdfclown.util.math.geom;
+
     /**
       <summary>Freehand "scribble" composed of one or more disjoint paths [PDF:1.6:8.4.5].</summary>
     */
@@ -40,37 +39,32 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Scribble
       : Markup
     {
-        #region dynamic
-        #region constructors
-        public Scribble(
-          Page page,
-          IList<IList<PointF>> paths,
-          string text,
-          DeviceColor color
-          ) : base(page, PdfName.Ink, new RectangleF(), text)
-        {
-            Paths = paths;
-            Color = color;
-        }
 
         internal Scribble(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public Scribble(
+Page page,
+IList<IList<PointF>> paths,
+string text,
+DeviceColor color
+) : base(page, PdfName.Ink, new RectangleF(), text)
+        {
+            this.Paths = paths;
+            this.Color = color;
+        }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the coordinates of each path.</summary>
-        */
+<summary>Gets/Sets the coordinates of each path.</summary>
+*/
         public IList<IList<PointF>> Paths
         {
             get
             {
-                PdfArray pathsObject = (PdfArray)BaseDataObject[PdfName.InkList];
+                var pathsObject = (PdfArray)this.BaseDataObject[PdfName.InkList];
                 IList<IList<PointF>> paths = new List<IList<PointF>>();
-                double pageHeight = Page.Box.Height;
+                double pageHeight = this.Page.Box.Height;
                 for (
                   int pathIndex = 0,
                     pathLength = pathsObject.Count;
@@ -78,7 +72,7 @@ namespace org.pdfclown.documents.interaction.annotations
                   pathIndex++
                   )
                 {
-                    PdfArray pathObject = (PdfArray)pathsObject[pathIndex];
+                    var pathObject = (PdfArray)pathsObject[pathIndex];
                     IList<PointF> path = new List<PointF>();
                     for (
                       int pointIndex = 0,
@@ -101,13 +95,13 @@ namespace org.pdfclown.documents.interaction.annotations
             }
             set
             {
-                PdfArray pathsObject = new PdfArray();
-                double pageHeight = Page.Box.Height;
+                var pathsObject = new PdfArray();
+                double pageHeight = this.Page.Box.Height;
                 RectangleF? box = null;
-                foreach (IList<PointF> path in value)
+                foreach (var path in value)
                 {
-                    PdfArray pathObject = new PdfArray();
-                    foreach (PointF point in path)
+                    var pathObject = new PdfArray();
+                    foreach (var point in path)
                     {
                         if (!box.HasValue)
                         { box = new RectangleF(point.X, point.Y, 0, 0); }
@@ -118,12 +112,9 @@ namespace org.pdfclown.documents.interaction.annotations
                     }
                     pathsObject.Add(pathObject);
                 }
-                Box = box.Value;
-                BaseDataObject[PdfName.InkList] = pathsObject;
+                this.Box = box.Value;
+                this.BaseDataObject[PdfName.InkList] = pathsObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

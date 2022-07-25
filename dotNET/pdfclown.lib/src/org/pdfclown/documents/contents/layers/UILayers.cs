@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.layers
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Optional content group collection.</summary>
     */
@@ -37,114 +36,36 @@ namespace org.pdfclown.documents.contents.layers
     public class UILayers
       : Array<IUILayerNode>
     {
-        #region types
-        private delegate int EvaluateNode(
-          int currentNodeIndex,
-          int currentBaseIndex
-          );
 
-        private class ItemWrapper
-          : IWrapper<IUILayerNode>
-        {
-            public IUILayerNode Wrap(
-              PdfDirectObject baseObject
-              )
-            { return UILayerNode.Wrap(baseObject); }
-        }
-        #endregion
-
-        #region static
-        #region fields
         private static readonly ItemWrapper Wrapper = new ItemWrapper();
-        #endregion
-
-        #region interface
-        #region public
-        public static UILayers Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new UILayers(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public UILayers(
-          Document context
-          ) : base(context, Wrapper)
-        { }
 
         protected UILayers(
           PdfDirectObject baseObject
           ) : base(Wrapper, baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        public override int Count
-        {
-            get
-            {
-                return Evaluate(delegate (
-                  int currentNodeIndex,
-                  int currentBaseIndex
-                  )
-                {
-                    if (currentBaseIndex == -1)
-                        return currentNodeIndex;
-                    else
-                        return -1;
-                }) + 1;
-            }
-        }
+        public UILayers(
+Document context
+) : base(context, Wrapper)
+        { }
 
-        public override int IndexOf(
-          IUILayerNode item
-          )
-        { return GetNodeIndex(base.IndexOf(item)); }
-
-        public override void Insert(
-          int index,
-          IUILayerNode item
-          )
-        { base.Insert(GetBaseIndex(index), item); }
-
-        public override void RemoveAt(
-          int index
-          )
-        {
-            int baseIndex = GetBaseIndex(index);
-            IUILayerNode removedItem = base[baseIndex];
-            base.RemoveAt(baseIndex);
-            if (removedItem is Layer
-              && baseIndex < base.Count)
-            {
-                /*
-                  NOTE: Sublayers MUST be removed as well.
-                */
-                if (BaseDataObject.Resolve(baseIndex) is PdfArray)
-                { BaseDataObject.RemoveAt(baseIndex); }
-            }
-        }
+        private delegate int EvaluateNode(
+  int currentNodeIndex,
+  int currentBaseIndex
+  );
 
         public override IUILayerNode this[
           int index
           ]
         {
-            get
-            { return base[GetBaseIndex(index)]; }
-            set
-            { base[GetBaseIndex(index)] = value; }
+            get => base[this.GetBaseIndex(index)];
+            set => base[this.GetBaseIndex(index)] = value;
         }
-        #endregion
 
-        #region private
         /**
-          <summary>Gets the positional information resulting from the collection evaluation.</summary>
-          <param name="evaluator">Expression used to evaluate the positional matching.</param>
-        */
+  <summary>Gets the positional information resulting from the collection evaluation.</summary>
+  <param name="evaluator">Expression used to evaluate the positional matching.</param>
+*/
         private int Evaluate(
           EvaluateNode evaluateNode
           )
@@ -153,9 +74,9 @@ namespace org.pdfclown.documents.contents.layers
               NOTE: Layer hierarchies are represented through a somewhat flatten structure which needs
               to be evaluated in order to match nodes in their actual place.
             */
-            PdfArray baseDataObject = BaseDataObject;
-            int nodeIndex = -1;
-            bool groupAllowed = true;
+            var baseDataObject = this.BaseDataObject;
+            var nodeIndex = -1;
+            var groupAllowed = true;
             for (
               int baseIndex = 0,
                 baseLength = base.Count;
@@ -163,14 +84,16 @@ namespace org.pdfclown.documents.contents.layers
               baseIndex++
               )
             {
-                PdfDataObject itemDataObject = baseDataObject.Resolve(baseIndex);
-                if (itemDataObject is PdfDictionary
-                  || (itemDataObject is PdfArray && groupAllowed))
+                var itemDataObject = baseDataObject.Resolve(baseIndex);
+                if ((itemDataObject is PdfDictionary)
+                  || ((itemDataObject is PdfArray) && groupAllowed))
                 {
                     nodeIndex++;
-                    int evaluation = evaluateNode(nodeIndex, baseIndex);
+                    var evaluation = evaluateNode(nodeIndex, baseIndex);
                     if (evaluation > -1)
+                    {
                         return evaluation;
+                    }
                 }
                 groupAllowed = !(itemDataObject is PdfDictionary);
             }
@@ -181,15 +104,19 @@ namespace org.pdfclown.documents.contents.layers
           int nodeIndex
           )
         {
-            return Evaluate(delegate (
+            return this.Evaluate(delegate (
               int currentNodeIndex,
               int currentBaseIndex
               )
             {
                 if (currentNodeIndex == nodeIndex)
+                {
                     return currentBaseIndex;
+                }
                 else
+                {
                     return -1;
+                }
             });
         }
 
@@ -197,19 +124,78 @@ namespace org.pdfclown.documents.contents.layers
           int baseIndex
           )
         {
-            return Evaluate(delegate (
+            return this.Evaluate(delegate (
               int currentNodeIndex,
               int currentBaseIndex
               )
             {
                 if (currentBaseIndex == baseIndex)
+                {
                     return currentNodeIndex;
+                }
                 else
+                {
                     return -1;
+                }
             });
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public override int IndexOf(
+          IUILayerNode item
+          )
+        { return this.GetNodeIndex(base.IndexOf(item)); }
+
+        public override void Insert(
+          int index,
+          IUILayerNode item
+          )
+        { base.Insert(this.GetBaseIndex(index), item); }
+
+        public override void RemoveAt(
+          int index
+          )
+        {
+            var baseIndex = this.GetBaseIndex(index);
+            var removedItem = base[baseIndex];
+            base.RemoveAt(baseIndex);
+            if ((removedItem is Layer)
+              && (baseIndex < base.Count))
+            {
+                /*
+                  NOTE: Sublayers MUST be removed as well.
+                */
+                if (this.BaseDataObject.Resolve(baseIndex) is PdfArray)
+                { this.BaseDataObject.RemoveAt(baseIndex); }
+            }
+        }
+
+        public static UILayers Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new UILayers(baseObject) : null; }
+
+        public override int Count => this.Evaluate(delegate (
+                                    int currentNodeIndex,
+                                    int currentBaseIndex
+                                    )
+                                  {
+                                      if (currentBaseIndex == -1)
+                                      {
+                                          return currentNodeIndex;
+                                      }
+                                      else
+                                      {
+                                          return -1;
+                                      }
+                                  }) + 1;
+
+        private class ItemWrapper
+          : IWrapper<IUILayerNode>
+        {
+            public IUILayerNode Wrap(
+              PdfDirectObject baseObject
+              )
+            { return UILayerNode.Wrap(baseObject); }
+        }
     }
 }

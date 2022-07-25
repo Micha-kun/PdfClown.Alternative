@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents
 {
+    using System;
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>Winding rule for determining which points lie inside a path [PDF:1.6:4.4.2].</summary>
     */
@@ -60,7 +60,7 @@ namespace org.pdfclown.documents.contents
                 case WindModeEnum.NonZero:
                     return FillMode.Winding;
                 default:
-                    throw new NotSupportedException(windMode + " convertion not supported.");
+                    throw new NotSupportedException($"{windMode} convertion not supported.");
             }
         }
     }

@@ -24,14 +24,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.navigation.document
 {
+    using System;
+    using System.Drawing;
+
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Interaction target [PDF:1.6:8.2.1].</summary>
       <remarks>
@@ -48,10 +48,211 @@ namespace org.pdfclown.documents.interaction.navigation.document
       : PdfObjectWrapper<PdfArray>,
         IPdfNamedObjectWrapper
     {
-        #region types
+
+        protected Destination(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         /**
-          <summary>Destination mode [PDF:1.6:8.2.1].</summary>
+<summary>Creates a new destination within the given document context.</summary>
+<param name="context">Document context.</param>
+<param name="page">Page reference. It may be either a <see cref="Page"/> or a page index (int).
+</param>
+<param name="mode">Destination mode.</param>
+<param name="location">Destination location.</param>
+<param name="zoom">Magnification factor to use when displaying the page.</param>
+*/
+        protected Destination(
+          Document context,
+          object page,
+          ModeEnum mode,
+          object location,
+          double? zoom
+          ) : base(context, new PdfArray(null, null))
+        {
+            this.Page = page;
+            this.Mode = mode;
+            this.Location = location;
+            this.Zoom = zoom;
+        }
+
+        /**
+<summary>Wraps a destination base object into a destination object.</summary>
+<param name="baseObject">Destination base object.</param>
+<returns>Destination object associated to the base object.</returns>
+*/
+        public static Destination Wrap(
+          PdfDirectObject baseObject
+          )
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
+
+            var dataObject = (PdfArray)baseObject.Resolve();
+            var pageObject = dataObject[0];
+            if (pageObject is PdfReference)
+            {
+                return new LocalDestination(baseObject);
+            }
+            else if (pageObject is PdfInteger)
+            {
+                return new RemoteDestination(baseObject);
+            }
+            else
+            {
+                throw new ArgumentException("Not a valid destination object.", nameof(baseObject));
+            }
+        }
+
+        /**
+<summary>Gets/Sets the page location.</summary>
+*/
+        public object Location
+        {
+            get
+            {
+                // [FIX:66] Invalid cast exception on number unboxing.
+                switch (this.Mode)
+                {
+                    case ModeEnum.FitBoundingBoxHorizontal:
+                    case ModeEnum.FitBoundingBoxVertical:
+                    case ModeEnum.FitHorizontal:
+                    case ModeEnum.FitVertical:
+                        return Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[2], double.NaN));
+                    case ModeEnum.FitRectangle:
+                        var left = Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[2], double.NaN));
+                        var top = Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[5], double.NaN));
+                        var width = Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[4], double.NaN)) - left;
+                        var height = Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[3], double.NaN)) - top;
+                        return new RectangleF(left, top, width, height);
+                    case ModeEnum.XYZ:
+                        return new PointF(
+                          Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[2], double.NaN)),
+                          Convert.ToSingle(PdfSimpleObject<object>.GetValue(this.BaseDataObject[3], double.NaN))
+                          );
+                    default:
+                        return null;
+                }
+            }
+            set
+            {
+                var baseDataObject = this.BaseDataObject;
+                switch (this.Mode)
+                {
+                    case ModeEnum.FitBoundingBoxHorizontal:
+                    case ModeEnum.FitBoundingBoxVertical:
+                    case ModeEnum.FitHorizontal:
+                    case ModeEnum.FitVertical:
+                        baseDataObject[2] = PdfReal.Get(Convert.ToDouble(value));
+                        break;
+                    case ModeEnum.FitRectangle:
+                        var rectangle = (RectangleF)value;
+                        baseDataObject[2] = PdfReal.Get(rectangle.X);
+                        baseDataObject[3] = PdfReal.Get(rectangle.Y);
+                        baseDataObject[4] = PdfReal.Get(rectangle.Right);
+                        baseDataObject[5] = PdfReal.Get(rectangle.Bottom);
+                        break;
+                    case ModeEnum.XYZ:
+                        var point = (PointF)value;
+                        baseDataObject[2] = PdfReal.Get(point.X);
+                        baseDataObject[3] = PdfReal.Get(point.Y);
+                        break;
+                    default:
+                        /* NOOP */
+                        break;
+                }
+            }
+        }
+
+        /**
+          <summary>Gets the destination mode.</summary>
         */
+        public ModeEnum Mode
+        {
+            get => ModeEnumExtension.Get((PdfName)this.BaseDataObject[1]).Value;
+            set
+            {
+                var baseDataObject = this.BaseDataObject;
+
+                baseDataObject[1] = value.GetName();
+
+                // Adjusting parameter list...
+                int parametersCount;
+                switch (value)
+                {
+                    case ModeEnum.Fit:
+                    case ModeEnum.FitBoundingBox:
+                        parametersCount = 2;
+                        break;
+                    case ModeEnum.FitBoundingBoxHorizontal:
+                    case ModeEnum.FitBoundingBoxVertical:
+                    case ModeEnum.FitHorizontal:
+                    case ModeEnum.FitVertical:
+                        parametersCount = 3;
+                        break;
+                    case ModeEnum.XYZ:
+                        parametersCount = 5;
+                        break;
+                    case ModeEnum.FitRectangle:
+                        parametersCount = 6;
+                        break;
+                    default:
+                        throw new NotSupportedException($"Mode unknown: {value}");
+                }
+                while (baseDataObject.Count < parametersCount)
+                { baseDataObject.Add(null); }
+                while (baseDataObject.Count > parametersCount)
+                { baseDataObject.RemoveAt(baseDataObject.Count - 1); }
+            }
+        }
+
+        public PdfString Name => this.RetrieveName();
+
+        public PdfDirectObject NamedBaseObject => this.RetrieveNamedBaseObject();
+
+        /**
+          <summary>Gets/Sets the target page reference.</summary>
+        */
+        public abstract object Page
+        {
+            get;
+            set;
+        }
+
+        /**
+          <summary>Gets the magnification factor to use when displaying the page.</summary>
+        */
+        public double? Zoom
+        {
+            get
+            {
+                switch (this.Mode)
+                {
+                    case ModeEnum.XYZ:
+                        return PdfSimpleObject<object>.GetDoubleValue(this.BaseDataObject[4]);
+                    default:
+                        return null;
+                }
+            }
+            set
+            {
+                switch (this.Mode)
+                {
+                    case ModeEnum.XYZ:
+                        this.BaseDataObject[4] = PdfReal.Get(value);
+                        break;
+                    default:
+                        /* NOOP */
+                        break;
+                }
+            }
+        }
+        /**
+  <summary>Destination mode [PDF:1.6:8.2.1].</summary>
+*/
         public enum ModeEnum
         {
             /**
@@ -143,232 +344,6 @@ namespace org.pdfclown.documents.interaction.navigation.document
             */
             FitBoundingBoxVertical
         }
-        #endregion
-
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Wraps a destination base object into a destination object.</summary>
-          <param name="baseObject">Destination base object.</param>
-          <returns>Destination object associated to the base object.</returns>
-        */
-        public static Destination Wrap(
-          PdfDirectObject baseObject
-          )
-        {
-            if (baseObject == null)
-                return null;
-
-            PdfArray dataObject = (PdfArray)baseObject.Resolve();
-            PdfDirectObject pageObject = dataObject[0];
-            if (pageObject is PdfReference)
-                return new LocalDestination(baseObject);
-            else if (pageObject is PdfInteger)
-                return new RemoteDestination(baseObject);
-            else
-                throw new ArgumentException("Not a valid destination object.", "baseObject");
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new destination within the given document context.</summary>
-          <param name="context">Document context.</param>
-          <param name="page">Page reference. It may be either a <see cref="Page"/> or a page index (int).
-          </param>
-          <param name="mode">Destination mode.</param>
-          <param name="location">Destination location.</param>
-          <param name="zoom">Magnification factor to use when displaying the page.</param>
-        */
-        protected Destination(
-          Document context,
-          object page,
-          ModeEnum mode,
-          object location,
-          double? zoom
-          ) : base(context, new PdfArray(null, null))
-        {
-            Page = page;
-            Mode = mode;
-            Location = location;
-            Zoom = zoom;
-        }
-
-        protected Destination(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the page location.</summary>
-        */
-        public object Location
-        {
-            get
-            {
-                // [FIX:66] Invalid cast exception on number unboxing.
-                switch (Mode)
-                {
-                    case ModeEnum.FitBoundingBoxHorizontal:
-                    case ModeEnum.FitBoundingBoxVertical:
-                    case ModeEnum.FitHorizontal:
-                    case ModeEnum.FitVertical:
-                        return Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[2], Double.NaN));
-                    case ModeEnum.FitRectangle:
-                    {
-                        float left = Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[2], Double.NaN));
-                        float top = Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[5], Double.NaN));
-                        float width = Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[4], Double.NaN)) - left;
-                        float height = Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[3], Double.NaN)) - top;
-                        return new RectangleF(left, top, width, height);
-                    }
-                    case ModeEnum.XYZ:
-                        return new PointF(
-                          Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[2], Double.NaN)),
-                          Convert.ToSingle(PdfSimpleObject<object>.GetValue(BaseDataObject[3], Double.NaN))
-                          );
-                    default:
-                        return null;
-                }
-            }
-            set
-            {
-                PdfArray baseDataObject = BaseDataObject;
-                switch (Mode)
-                {
-                    case ModeEnum.FitBoundingBoxHorizontal:
-                    case ModeEnum.FitBoundingBoxVertical:
-                    case ModeEnum.FitHorizontal:
-                    case ModeEnum.FitVertical:
-                        baseDataObject[2] = PdfReal.Get(Convert.ToDouble(value));
-                        break;
-                    case ModeEnum.FitRectangle:
-                    {
-                        RectangleF rectangle = (RectangleF)value;
-                        baseDataObject[2] = PdfReal.Get(rectangle.X);
-                        baseDataObject[3] = PdfReal.Get(rectangle.Y);
-                        baseDataObject[4] = PdfReal.Get(rectangle.Right);
-                        baseDataObject[5] = PdfReal.Get(rectangle.Bottom);
-                        break;
-                    }
-                    case ModeEnum.XYZ:
-                    {
-                        PointF point = (PointF)value;
-                        baseDataObject[2] = PdfReal.Get(point.X);
-                        baseDataObject[3] = PdfReal.Get(point.Y);
-                        break;
-                    }
-                    default:
-                        /* NOOP */
-                        break;
-                }
-            }
-        }
-
-        /**
-          <summary>Gets the destination mode.</summary>
-        */
-        public ModeEnum Mode
-        {
-            get
-            { return ModeEnumExtension.Get((PdfName)BaseDataObject[1]).Value; }
-            set
-            {
-                PdfArray baseDataObject = BaseDataObject;
-
-                baseDataObject[1] = value.GetName();
-
-                // Adjusting parameter list...
-                int parametersCount;
-                switch (value)
-                {
-                    case ModeEnum.Fit:
-                    case ModeEnum.FitBoundingBox:
-                        parametersCount = 2;
-                        break;
-                    case ModeEnum.FitBoundingBoxHorizontal:
-                    case ModeEnum.FitBoundingBoxVertical:
-                    case ModeEnum.FitHorizontal:
-                    case ModeEnum.FitVertical:
-                        parametersCount = 3;
-                        break;
-                    case ModeEnum.XYZ:
-                        parametersCount = 5;
-                        break;
-                    case ModeEnum.FitRectangle:
-                        parametersCount = 6;
-                        break;
-                    default:
-                        throw new NotSupportedException("Mode unknown: " + value);
-                }
-                while (baseDataObject.Count < parametersCount)
-                { baseDataObject.Add(null); }
-                while (baseDataObject.Count > parametersCount)
-                { baseDataObject.RemoveAt(baseDataObject.Count - 1); }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the target page reference.</summary>
-        */
-        public abstract object Page
-        {
-            get;
-            set;
-        }
-
-        /**
-          <summary>Gets the magnification factor to use when displaying the page.</summary>
-        */
-        public double? Zoom
-        {
-            get
-            {
-                switch (Mode)
-                {
-                    case ModeEnum.XYZ:
-                        return PdfSimpleObject<object>.GetDoubleValue(BaseDataObject[4]);
-                    default:
-                        return null;
-                }
-            }
-            set
-            {
-                switch (Mode)
-                {
-                    case ModeEnum.XYZ:
-                        BaseDataObject[4] = PdfReal.Get(value);
-                        break;
-                    default:
-                        /* NOOP */
-                        break;
-                }
-            }
-        }
-
-        #region IPdfNamedObjectWrapper
-        public PdfString Name
-        {
-            get
-            { return RetrieveName(); }
-        }
-
-        public PdfDirectObject NamedBaseObject
-        {
-            get
-            { return RetrieveNamedBaseObject(); }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 
     internal static class ModeEnumExtension
@@ -393,11 +368,15 @@ namespace org.pdfclown.documents.interaction.navigation.document
           )
         {
             if (name == null)
+            {
                 return null;
+            }
 
             Destination.ModeEnum? mode = codes.GetKey(name);
             if (!mode.HasValue)
-                throw new NotSupportedException("Mode unknown: " + name);
+            {
+                throw new NotSupportedException($"Mode unknown: {name}");
+            }
 
             return mode;
         }

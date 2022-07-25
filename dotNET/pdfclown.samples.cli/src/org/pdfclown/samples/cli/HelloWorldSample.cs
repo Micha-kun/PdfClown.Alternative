@@ -1,37 +1,20 @@
-
-using System.Drawing;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.fonts;
-
-using org.pdfclown.files;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System.Drawing;
+    using org.pdfclown.documents;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.fonts;
+
+    using org.pdfclown.files;
+
     /**
       <summary>This sample is a minimalist introduction to the use of PDF Clown.</summary>
     */
     public class HelloWorldSample
       : Sample
     {
-        public override void Run(
-          )
-        {
-            // 1. Instantiate a new PDF file!
-            /* NOTE: a File object is the low-level (syntactic) representation of a PDF file. */
-            File file = new File();
-
-            // 2. Get its corresponding document!
-            /* NOTE: a Document object is the high-level (semantic) representation of a PDF file. */
-            Document document = file.Document;
-
-            // 3. Insert the contents into the document!
-            Populate(document);
-
-            // 4. Serialize the PDF file!
-            Serialize(file, "Hello world", "a simple 'hello world'", "Hello world");
-        }
 
         /**
           <summary>Populates a PDF file with contents.</summary>
@@ -41,12 +24,12 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Add the page to the document!
-            Page page = new Page(document); // Instantiates the page inside the document context.
+            var page = new Page(document); // Instantiates the page inside the document context.
             document.Pages.Add(page); // Puts the page in the pages collection.
-            SizeF pageSize = page.Size;
+            var pageSize = page.Size;
 
             // 2. Create a content composer for the page!
-            PrimitiveComposer composer = new PrimitiveComposer(page);
+            var composer = new PrimitiveComposer(page);
 
             // 3. Inserting contents...
             // Set the font to use!
@@ -57,7 +40,7 @@ namespace org.pdfclown.samples.cli
               -- see BlockComposer for more advanced uses (horizontal and vertical alignment, hyphenation,
               etc.).
             */
-            composer.ShowText(
+            _ = composer.ShowText(
               "Hello World!",
               new PointF(32, 48)
               );
@@ -86,6 +69,24 @@ namespace org.pdfclown.samples.cli
 
             // 4. Flush the contents into the page!
             composer.Flush();
+        }
+
+        public override void Run(
+          )
+        {
+            // 1. Instantiate a new PDF file!
+            /* NOTE: a File object is the low-level (syntactic) representation of a PDF file. */
+            var file = new File();
+
+            // 2. Get its corresponding document!
+            /* NOTE: a Document object is the high-level (semantic) representation of a PDF file. */
+            var document = file.Document;
+
+            // 3. Insert the contents into the document!
+            this.Populate(document);
+
+            // 4. Serialize the PDF file!
+            _ = this.Serialize(file, "Hello world", "a simple 'hello world'", "Hello world");
         }
     }
 }

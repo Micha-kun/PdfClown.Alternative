@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using System.Linq;
-using System.Text;
-
 namespace org.pdfclown.util
 {
+    using System;
+    using System.Linq;
+    using System.Text;
+
     /**
       <summary>Byte array.</summary>
     */
@@ -47,12 +47,16 @@ namespace org.pdfclown.util
           ByteArray other
           )
         {
-            int comparison = Data.Length - other.Data.Length;
+            var comparison = this.Data.Length - other.Data.Length;
             if (comparison == 0)
             {
-                for (int index = 0, length = Data.Length; index < length; index++)
-                    if ((comparison = Data[index] - other.Data[index]) != 0)
+                for (int index = 0, length = this.Data.Length; index < length; index++)
+                {
+                    if ((comparison = this.Data[index] - other.Data[index]) != 0)
+                    {
                         break;
+                    }
+                }
             }
             return comparison;
         }
@@ -61,33 +65,31 @@ namespace org.pdfclown.util
           object obj
           )
         {
-            return obj is ByteArray
-              && Data.SequenceEqual(((ByteArray)obj).Data);
+            return (obj is ByteArray)
+              && this.Data.SequenceEqual(((ByteArray)obj).Data);
         }
 
         public override int GetHashCode(
           )
         {
-            int hashCode = 0;
-            for (int index = 0, length = Data.Length; index < length; index++)
-            { hashCode ^= Data[index] << (8 * (index % 4)); }
+            var hashCode = 0;
+            for (int index = 0, length = this.Data.Length; index < length; index++)
+            { hashCode ^= this.Data[index] << (8 * (index % 4)); }
             return hashCode;
         }
 
         public override string ToString(
           )
         {
-            StringBuilder builder = new StringBuilder("[");
+            var builder = new StringBuilder("[");
+            foreach (var datum in this.Data)
             {
-                foreach (byte datum in Data)
-                {
-                    if (builder.Length > 1)
-                    { builder.Append(","); }
+                if (builder.Length > 1)
+                { _ = builder.Append(","); }
 
-                    builder.Append(datum & 0xFF);
-                }
-                builder.Append("]");
+                _ = builder.Append(datum & 0xFF);
             }
+            _ = builder.Append("]");
             return builder.ToString();
         }
     }

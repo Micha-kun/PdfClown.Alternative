@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Append a cubic Bezier curve to the current path' operation [PDF:1.6:4.4.1].</summary>
       <remarks>Such curves are defined by four points:
@@ -42,12 +41,10 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class DrawCurve
       : Operation
     {
-        #region static
-        #region fields
         /**
-          <summary>Specifies only the second control point
-          (the first control point coincides with the initial point of the curve).</summary>
-        */
+<summary>Specifies only the second control point
+(the first control point coincides with the initial point of the curve).</summary>
+*/
         public static readonly string FinalOperatorKeyword = "v";
         /**
           <summary>Specifies both control points explicitly.</summary>
@@ -58,17 +55,19 @@ namespace org.pdfclown.documents.contents.objects
           (the second control point coincides with the final point of the curve).</summary>
         */
         public static readonly string InitialOperatorKeyword = "y";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
+        public DrawCurve(
+          string @operator,
+          IList<PdfDirectObject> operands
+          ) : base(@operator, operands)
+        { }
+
         /**
-          <summary>Creates a fully-explicit curve.</summary>
-          <param name="point">Final endpoint.</param>
-          <param name="control1">First control point.</param>
-          <param name="control2">Second control point.</param>
-        */
+<summary>Creates a fully-explicit curve.</summary>
+<param name="point">Final endpoint.</param>
+<param name="control1">First control point.</param>
+<param name="control2">Second control point.</param>
+*/
         public DrawCurve(
           PointF point,
           PointF control1,
@@ -80,6 +79,31 @@ namespace org.pdfclown.documents.contents.objects
             control1.Y,
             control2.X,
             control2.Y
+            )
+        { }
+
+        /**
+          <summary>Creates a partially-explicit curve.</summary>
+          <param name="point">Final endpoint.</param>
+          <param name="control">Explicit control point.</param>
+          <param name="operator">Operator (either <code>InitialOperator</code> or <code>FinalOperator</code>).
+          It defines how to interpret the <code>control</code> parameter.</param>
+        */
+        public DrawCurve(
+          PointF point,
+          PointF control,
+          string @operator
+          ) : base(
+            @operator.Equals(InitialOperatorKeyword) ? InitialOperatorKeyword : FinalOperatorKeyword,
+            new List<PdfDirectObject>(
+              new PdfDirectObject[]
+              {
+            PdfReal.Get(control.X),
+            PdfReal.Get(control.Y),
+            PdfReal.Get(point.X),
+            PdfReal.Get(point.Y)
+              }
+              )
             )
         { }
 
@@ -109,67 +133,56 @@ namespace org.pdfclown.documents.contents.objects
             )
         { }
 
-        /**
-          <summary>Creates a partially-explicit curve.</summary>
-          <param name="point">Final endpoint.</param>
-          <param name="control">Explicit control point.</param>
-          <param name="operator">Operator (either <code>InitialOperator</code> or <code>FinalOperator</code>).
-          It defines how to interpret the <code>control</code> parameter.</param>
-        */
-        public DrawCurve(
-          PointF point,
-          PointF control,
-          string @operator
-          ) : base(
-            @operator.Equals(InitialOperatorKeyword) ? InitialOperatorKeyword : FinalOperatorKeyword,
-            new List<PdfDirectObject>(
-              new PdfDirectObject[]
-              {
-            PdfReal.Get(control.X),
-            PdfReal.Get(control.Y),
-            PdfReal.Get(point.X),
-            PdfReal.Get(point.Y)
-              }
-              )
-            )
-        { }
+        public override void Scan(
+          ContentScanner.GraphicsState state
+          )
+        {
+            var pathObject = state.Scanner.RenderObject;
+            if (pathObject != null)
+            {
+                var controlPoint1 = this.Control1.HasValue ? this.Control1.Value : pathObject.GetLastPoint();
+                var finalPoint = this.Point;
+                var controlPoint2 = this.Control2.HasValue ? this.Control2.Value : finalPoint;
+                pathObject.AddBezier(
+                  pathObject.GetLastPoint(),
+                  controlPoint1,
+                  controlPoint2,
+                  finalPoint
+                  );
+            }
+        }
 
-        public DrawCurve(
-          string @operator,
-          IList<PdfDirectObject> operands
-          ) : base(@operator, operands)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the first control point.</summary>
-        */
+<summary>Gets/Sets the first control point.</summary>
+*/
         public PointF? Control1
         {
             get
             {
-                if (@operator.Equals(FinalOperatorKeyword))
-                    return null;
-                else
-                    return new PointF(
-                      ((IPdfNumber)operands[0]).FloatValue,
-                      ((IPdfNumber)operands[1]).FloatValue
-                      );
-            }
-            set
-            {
-                if (@operator.Equals(FinalOperatorKeyword))
+                if (this.@operator.Equals(FinalOperatorKeyword))
                 {
-                    @operator = FullOperatorKeyword;
-                    operands.Insert(0, PdfReal.Get(value.Value.X));
-                    operands.Insert(1, PdfReal.Get(value.Value.Y));
+                    return null;
                 }
                 else
                 {
-                    operands[0] = PdfReal.Get(value.Value.X);
-                    operands[1] = PdfReal.Get(value.Value.Y);
+                    return new PointF(
+                      ((IPdfNumber)this.operands[0]).FloatValue,
+                      ((IPdfNumber)this.operands[1]).FloatValue
+                      );
+                }
+            }
+            set
+            {
+                if (this.@operator.Equals(FinalOperatorKeyword))
+                {
+                    this.@operator = FullOperatorKeyword;
+                    this.operands.Insert(0, PdfReal.Get(value.Value.X));
+                    this.operands.Insert(1, PdfReal.Get(value.Value.Y));
+                }
+                else
+                {
+                    this.operands[0] = PdfReal.Get(value.Value.X);
+                    this.operands[1] = PdfReal.Get(value.Value.Y);
                 }
             }
         }
@@ -181,28 +194,32 @@ namespace org.pdfclown.documents.contents.objects
         {
             get
             {
-                if (@operator.Equals(FinalOperatorKeyword))
-                    return new PointF(
-                      ((IPdfNumber)operands[0]).FloatValue,
-                      ((IPdfNumber)operands[1]).FloatValue
-                      );
-                else
-                    return new PointF(
-                      ((IPdfNumber)operands[2]).FloatValue,
-                      ((IPdfNumber)operands[3]).FloatValue
-                      );
-            }
-            set
-            {
-                if (@operator.Equals(FinalOperatorKeyword))
+                if (this.@operator.Equals(FinalOperatorKeyword))
                 {
-                    operands[0] = PdfReal.Get(value.Value.X);
-                    operands[1] = PdfReal.Get(value.Value.Y);
+                    return new PointF(
+                      ((IPdfNumber)this.operands[0]).FloatValue,
+                      ((IPdfNumber)this.operands[1]).FloatValue
+                      );
                 }
                 else
                 {
-                    operands[2] = PdfReal.Get(value.Value.X);
-                    operands[3] = PdfReal.Get(value.Value.Y);
+                    return new PointF(
+                      ((IPdfNumber)this.operands[2]).FloatValue,
+                      ((IPdfNumber)this.operands[3]).FloatValue
+                      );
+                }
+            }
+            set
+            {
+                if (this.@operator.Equals(FinalOperatorKeyword))
+                {
+                    this.operands[0] = PdfReal.Get(value.Value.X);
+                    this.operands[1] = PdfReal.Get(value.Value.Y);
+                }
+                else
+                {
+                    this.operands[2] = PdfReal.Get(value.Value.X);
+                    this.operands[3] = PdfReal.Get(value.Value.Y);
                 }
             }
         }
@@ -214,52 +231,34 @@ namespace org.pdfclown.documents.contents.objects
         {
             get
             {
-                if (@operator.Equals(FullOperatorKeyword))
+                if (this.@operator.Equals(FullOperatorKeyword))
+                {
                     return new PointF(
-                      ((IPdfNumber)operands[4]).FloatValue,
-                      ((IPdfNumber)operands[5]).FloatValue
+                      ((IPdfNumber)this.operands[4]).FloatValue,
+                      ((IPdfNumber)this.operands[5]).FloatValue
                       );
+                }
                 else
+                {
                     return new PointF(
-                      ((IPdfNumber)operands[2]).FloatValue,
-                      ((IPdfNumber)operands[3]).FloatValue
+                      ((IPdfNumber)this.operands[2]).FloatValue,
+                      ((IPdfNumber)this.operands[3]).FloatValue
                       );
+                }
             }
             set
             {
-                if (@operator.Equals(FullOperatorKeyword))
+                if (this.@operator.Equals(FullOperatorKeyword))
                 {
-                    operands[4] = PdfReal.Get(value.X);
-                    operands[5] = PdfReal.Get(value.Y);
+                    this.operands[4] = PdfReal.Get(value.X);
+                    this.operands[5] = PdfReal.Get(value.Y);
                 }
                 else
                 {
-                    operands[2] = PdfReal.Get(value.X);
-                    operands[3] = PdfReal.Get(value.Y);
+                    this.operands[2] = PdfReal.Get(value.X);
+                    this.operands[3] = PdfReal.Get(value.Y);
                 }
             }
         }
-
-        public override void Scan(
-          ContentScanner.GraphicsState state
-          )
-        {
-            GraphicsPath pathObject = state.Scanner.RenderObject;
-            if (pathObject != null)
-            {
-                PointF controlPoint1 = (Control1.HasValue ? Control1.Value : pathObject.GetLastPoint());
-                PointF finalPoint = Point;
-                PointF controlPoint2 = (Control2.HasValue ? Control2.Value : finalPoint);
-                pathObject.AddBezier(
-                  pathObject.GetLastPoint(),
-                  controlPoint1,
-                  controlPoint2,
-                  finalPoint
-                  );
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

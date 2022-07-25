@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interchange.metadata;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.navigation.page
 {
+    using org.pdfclown.documents.interchange.metadata;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Article thread [PDF:1.7:8.3.2].</summary>
     */
@@ -37,75 +36,55 @@ namespace org.pdfclown.documents.interaction.navigation.page
     public sealed class Article
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        public static Article Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Article(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Article(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {PdfName.Thread}
-              )
-            )
-        { context.Articles.Add(this); }
 
         private Article(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public Article(
+Document context
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Type},
+new PdfDirectObject[]
+{PdfName.Thread}
+)
+)
+        { context.Articles.Add(this); }
+
         /**
-          <summary>Deletes this thread removing also its reference in the document's collection.</summary>
-        */
+<summary>Deletes this thread removing also its reference in the document's collection.</summary>
+*/
         public override bool Delete(
           )
         {
             // Shallow removal (references):
             // * reference in document
-            Document.Articles.Remove(this);
+            _ = this.Document.Articles.Remove(this);
 
             // Deep removal (indirect object).
             return base.Delete();
         }
+        public static Article Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Article(baseObject) : null; }
 
         /**
           <summary>Gets the beads associated to this thread.</summary>
         */
-        public ArticleElements Elements
-        {
-            get
-            { return ArticleElements.Wrap(BaseObject); }
-        }
+        public ArticleElements Elements => ArticleElements.Wrap(this.BaseObject);
 
         /**
           <summary>Gets/Sets common article metadata.</summary>
         */
         public Information Information
         {
-            get
-            { return Information.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.I)); }
-            set
-            { BaseDataObject[PdfName.I] = PdfObjectWrapper.GetBaseObject(value); }
+            get => Information.Wrap(this.BaseDataObject.Get<PdfDictionary>(PdfName.I));
+            set => this.BaseDataObject[PdfName.I] = PdfObjectWrapper.GetBaseObject(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

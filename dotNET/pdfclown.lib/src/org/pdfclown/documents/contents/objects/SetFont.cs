@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using org.pdfclown.documents.contents.fonts;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.documents.contents.fonts;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the text font' operation [PDF:1.6:5.2].</summary>
     */
@@ -38,43 +38,45 @@ namespace org.pdfclown.documents.contents.objects
       : Operation,
         IResourceReference<Font>
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "Tf";
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public SetFont(
-          PdfName name,
-          double size
-          ) : base(OperatorKeyword, name, PdfReal.Get(size))
-        { }
 
         public SetFont(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public SetFont(
+PdfName name,
+double size
+) : base(OperatorKeyword, name, PdfReal.Get(size))
+        { }
+
         /**
-          <summary>Gets the <see cref="Font">font</see> resource to be set.</summary>
-          <param name="context">Content context.</param>
-        */
+<summary>Gets the <see cref="Font">font</see> resource to be set.</summary>
+<param name="context">Content context.</param>
+*/
         public Font GetFont(
           IContentContext context
           )
-        { return GetResource(context); }
+        { return this.GetResource(context); }
+
+        public Font GetResource(
+  IContentContext context
+  )
+        { return context.Resources.Fonts[this.Name]; }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            state.Font = GetFont(state.Scanner.ContentContext);
-            state.FontSize = Size;
+            state.Font = this.GetFont(state.Scanner.ContentContext);
+            state.FontSize = this.Size;
+        }
+
+        public PdfName Name
+        {
+            get => (PdfName)this.operands[0];
+            set => this.operands[0] = value;
         }
 
         /**
@@ -82,28 +84,8 @@ namespace org.pdfclown.documents.contents.objects
         */
         public double Size
         {
-            get
-            { return ((IPdfNumber)operands[1]).RawValue; }
-            set
-            { operands[1] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.operands[1]).RawValue;
+            set => this.operands[1] = PdfReal.Get(value);
         }
-
-        #region IResourceReference
-        public Font GetResource(
-          IContentContext context
-          )
-        { return context.Resources.Fonts[Name]; }
-
-        public PdfName Name
-        {
-            get
-            { return (PdfName)operands[0]; }
-            set
-            { operands[0] = value; }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

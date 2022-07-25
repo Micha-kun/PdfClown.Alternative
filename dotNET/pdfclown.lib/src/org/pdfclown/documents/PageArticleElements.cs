@@ -24,13 +24,12 @@
 */
 
 
-using System;
-using org.pdfclown.documents.interaction.navigation.page;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.navigation.page;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Page article beads [PDF:1.7:3.6.2].</summary>
       <remarks>The beads are listed in natural reading order.</remarks>
@@ -39,14 +38,10 @@ namespace org.pdfclown.documents
     public sealed class PageArticleElements
       : PageElements<ArticleElement>
     {
-        #region dynamic
-        #region constructors
         internal PageArticleElements(
-          PdfDirectObject baseObject,
-          Page page
-          ) : base(baseObject, page)
+PdfDirectObject baseObject,
+Page page
+) : base(baseObject, page)
         { }
-        #endregion
-        #endregion
     }
 }

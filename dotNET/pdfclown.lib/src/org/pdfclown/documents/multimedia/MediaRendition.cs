@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Media rendition [PDF:1.7:9.1.2].</summary>
     */
@@ -36,30 +35,23 @@ namespace org.pdfclown.documents.multimedia
     public sealed class MediaRendition
       : Rendition
     {
-        #region dynamic
-        #region constructors
-        public MediaRendition(
-          MediaClip clip
-          ) : base(clip.Document, PdfName.MR)
-        { Clip = clip; }
 
         internal MediaRendition(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public MediaRendition(
+MediaClip clip
+) : base(clip.Document, PdfName.MR)
+        { this.Clip = clip; }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the content to be played.</summary>
-        */
+<summary>Gets/Sets the content to be played.</summary>
+*/
         public MediaClip Clip
         {
-            get
-            { return MediaClip.Wrap(BaseDataObject[PdfName.C]); }
-            set
-            { BaseDataObject[PdfName.C] = PdfObjectWrapper.GetBaseObject(value); }
+            get => MediaClip.Wrap(this.BaseDataObject[PdfName.C]);
+            set => this.BaseDataObject[PdfName.C] = PdfObjectWrapper.GetBaseObject(value);
         }
 
         /**
@@ -68,10 +60,8 @@ namespace org.pdfclown.documents.multimedia
         */
         public MediaPlayParameters PlayParameters
         {
-            get
-            { return new MediaPlayParameters(BaseDataObject.Get<PdfDictionary>(PdfName.P)); }
-            set
-            { BaseDataObject[PdfName.P] = PdfObjectWrapper.GetBaseObject(value); }
+            get => new MediaPlayParameters(this.BaseDataObject.Get<PdfDictionary>(PdfName.P));
+            set => this.BaseDataObject[PdfName.P] = PdfObjectWrapper.GetBaseObject(value);
         }
 
         /**
@@ -80,13 +70,8 @@ namespace org.pdfclown.documents.multimedia
         */
         public MediaScreenParameters ScreenParameters
         {
-            get
-            { return new MediaScreenParameters(BaseDataObject.Get<PdfDictionary>(PdfName.SP)); }
-            set
-            { BaseDataObject[PdfName.SP] = PdfObjectWrapper.GetBaseObject(value); }
+            get => new MediaScreenParameters(this.BaseDataObject.Get<PdfDictionary>(PdfName.SP));
+            set => this.BaseDataObject[PdfName.SP] = PdfObjectWrapper.GetBaseObject(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

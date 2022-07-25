@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-using xObjects = org.pdfclown.documents.contents.xObjects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using org.pdfclown.objects;
+    using xObjects = org.pdfclown.documents.contents.xObjects;
+
     /**
       <summary>External object shown in a content stream context [PDF:1.6:4.7].</summary>
     */
@@ -36,56 +36,35 @@ namespace org.pdfclown.documents.contents.objects
       : GraphicsObject,
         IResourceReference<xObjects::XObject>
     {
-        #region static
-        #region fields
         public static readonly string BeginOperatorKeyword = PaintXObject.OperatorKeyword;
-        public static readonly string EndOperatorKeyword = BeginOperatorKeyword;
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public XObject(
-          PaintXObject operation
-          ) : base(operation)
+PaintXObject operation
+) : base(operation)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        private PaintXObject Operation => (PaintXObject)this.Objects[0];
+
+        public xObjects::XObject GetResource(
+  IContentContext context
+  )
+        { return this.Operation.GetResource(context); }
+
         /**
-          <summary>Gets the scanner for this object's contents.</summary>
-          <param name="context">Scanning context.</param>
-        */
+<summary>Gets the scanner for this object's contents.</summary>
+<param name="context">Scanning context.</param>
+*/
         public ContentScanner GetScanner(
           ContentScanner context
           )
-        { return Operation.GetScanner(context); }
-
-        #region IResourceReference
-        public xObjects::XObject GetResource(
-          IContentContext context
-          )
-        { return Operation.GetResource(context); }
+        { return this.Operation.GetScanner(context); }
 
         public PdfName Name
         {
-            get
-            { return Operation.Name; }
-            set
-            { Operation.Name = value; }
+            get => this.Operation.Name;
+            set => this.Operation.Name = value;
         }
-        #endregion
-        #endregion
 
-        #region private
-        private PaintXObject Operation
-        {
-            get
-            { return (PaintXObject)Objects[0]; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public static readonly string EndOperatorKeyword = BeginOperatorKeyword;
     }
 }

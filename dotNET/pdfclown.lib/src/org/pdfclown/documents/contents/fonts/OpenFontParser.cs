@@ -24,177 +24,134 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using org.pdfclown.tokens;
-using org.pdfclown.util.io;
-
-using org.pdfclown.util.parsers;
-using bytes = org.pdfclown.bytes;
-using text = System.Text;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+    using System.Collections.Generic;
+    using org.pdfclown.tokens;
+    using org.pdfclown.util.io;
+
+    using org.pdfclown.util.parsers;
+    using bytes = org.pdfclown.bytes;
+    using text = System.Text;
+
     /**
       <summary>Open Font Format parser [OFF:2009].</summary>
     */
     internal sealed class OpenFontParser
     {
-        #region types
-        /**
-          <summary>Font metrics.</summary>
-        */
-        public sealed class FontMetrics
-        {
-            /**
-              <summary>Whether the encoding is custom (symbolic font).</summary>
-            */
-            public bool IsCustomEncoding;//TODO:verify whether it can be replaced by the 'symbolic' variable!!!
-            /**
-              <summary>Unit normalization coefficient.</summary>
-            */
-            public float UnitNorm;
-            /*
-              Font Header ('head' table).
-            */
-            public int Flags; // USHORT.
-            public int UnitsPerEm; // USHORT.
-            public short XMin;
-            public short YMin;
-            public short XMax;
-            public short YMax;
-            public int MacStyle; // USHORT.
-            /*
-              Horizontal Header ('hhea' table).
-            */
-            public short Ascender;
-            public short Descender;
-            public short LineGap;
-            public int AdvanceWidthMax; // UFWORD.
-            public short MinLeftSideBearing;
-            public short MinRightSideBearing;
-            public short XMaxExtent;
-            public short CaretSlopeRise;
-            public short CaretSlopeRun;
-            public int NumberOfHMetrics; // USHORT.
-            /*
-              OS/2 table ('OS/2' table).
-            */
-            public short STypoAscender;
-            public short STypoDescender;
-            public short STypoLineGap;
-            public short SxHeight;
-            public short SCapHeight;
-            /*
-              PostScript table ('post' table).
-            */
-            public float ItalicAngle;
-            public short UnderlinePosition;
-            public short UnderlineThickness;
-            public bool IsFixedPitch;
-        }
 
-        /**
-          <summary>Outline format.</summary>
-        */
-        public enum OutlineFormatEnum
-        {
-            TrueType,
-            PostScript
-        }
-        #endregion
-
-        #region static
-        #region fields
         private const int MicrosoftLanguage_UsEnglish = 0x409;
         private const int NameID_FontPostscriptName = 6;
-
-        private const int PlatformID_Unicode = 0;
         private const int PlatformID_Macintosh = 1;
         private const int PlatformID_Microsoft = 3;
 
+        private const int PlatformID_Unicode = 0;
+
         private static readonly string TableName_CFF = "CFF ";
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets whether the given data represents a valid Open Font.</summary>
-        */
-        public static bool IsOpenFont(
-          bytes::IInputStream fontData
-          )
-        {
-            long position = fontData.Position;
-            fontData.Seek(0);
-            try
-            {
-                switch (fontData.ReadInt())
-                {
-                    case (0x00010000): // TrueType (standard/Windows).
-                    case (0x74727565): // TrueType (legacy/Apple).
-                    case (0x4F54544F): // CFF (Type 1).
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-            finally
-            { fontData.Seek(position); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        private Dictionary<string, int> tableOffsets;
 
-        #region dynamic
-        #region fields
-        public FontMetrics Metrics;
+        public bytes::IInputStream FontData;
 
         public string FontName;
+
+        public Dictionary<int, int> GlyphIndexes;
+        public Dictionary<int, int> GlyphKernings;
+        public Dictionary<int, int> GlyphWidths;
+
+        public FontMetrics Metrics;
         public OutlineFormatEnum OutlineFormat;
         /**
           <summary>Whether glyphs are indexed by custom (non-Unicode) encoding.</summary>
         */
         public bool Symbolic;
 
-        public Dictionary<int, int> GlyphIndexes;
-        public Dictionary<int, int> GlyphKernings;
-        public Dictionary<int, int> GlyphWidths;
-
-        public bytes::IInputStream FontData;
-
-        private Dictionary<string, int> tableOffsets;
-        #endregion
-
-        #region constructors
         internal OpenFontParser(
-          bytes::IInputStream fontData
+  bytes::IInputStream fontData
+  )
+        {
+            this.FontData = fontData;
+            this.FontData.ByteOrder = ByteOrderEnum.BigEndian; // Ensures that proper endianness is applied.
+
+            this.Load();
+        }
+
+        /**
+          <summary>Gets a name.</summary>
+          <param name="id">Name identifier.</param>
+        */
+        private string GetName(
+          int id
           )
         {
-            FontData = fontData;
-            FontData.ByteOrder = ByteOrderEnum.BigEndian; // Ensures that proper endianness is applied.
+            // Naming Table ('name' table).
+            // Retrieve the location info!
+            int tableOffset;
+            if (!this.tableOffsets.TryGetValue("name", out tableOffset))
+            {
+                throw new ParseException("'name' table does NOT exist.");
+            }
 
-            Load();
+            // Go to the number of name records!
+            this.FontData.Seek(tableOffset + 2);
+
+            int recordCount = this.FontData.ReadUnsignedShort(); // USHORT.
+            int storageOffset = this.FontData.ReadUnsignedShort(); // USHORT.
+                                                                   // Iterating through the name records...
+            for (
+              var recordIndex = 0;
+              recordIndex < recordCount;
+              recordIndex++
+              )
+            {
+                int platformID = this.FontData.ReadUnsignedShort(); // USHORT.
+                                                                    // Is it the default platform?
+                if (platformID == PlatformID_Microsoft)
+                {
+                    this.FontData.Skip(2);
+                    int languageID = this.FontData.ReadUnsignedShort(); // USHORT.
+                                                                        // Is it the default language?
+                    if (languageID == MicrosoftLanguage_UsEnglish)
+                    {
+                        int nameID = this.FontData.ReadUnsignedShort(); // USHORT.
+                                                                        // Does the name ID equal the searched one?
+                        if (nameID == id)
+                        {
+                            int length = this.FontData.ReadUnsignedShort(); // USHORT.
+                            int offset = this.FontData.ReadUnsignedShort(); // USHORT.
+
+                            // Go to the name string!
+                            this.FontData.Seek(tableOffset + storageOffset + offset);
+
+                            return this.ReadString(length, platformID);
+                        }
+                        else
+                        { this.FontData.Skip(4); }
+                    }
+                    else
+                    { this.FontData.Skip(6); }
+                }
+                else
+                { this.FontData.Skip(10); }
+            }
+            return null; // Not found.
         }
-        #endregion
 
-        #region interface
-        #region private
         /**
-          <summary>Loads the font data.</summary>
-        */
+<summary>Loads the font data.</summary>
+*/
         private void Load(
           )
         {
-            LoadTableInfo();
+            this.LoadTableInfo();
 
-            FontName = GetName(NameID_FontPostscriptName);
+            this.FontName = this.GetName(NameID_FontPostscriptName);
 
-            Metrics = new FontMetrics();
-            LoadTables();
-            LoadCMap();
-            LoadGlyphWidths();
-            LoadGlyphKerning();
+            this.Metrics = new FontMetrics();
+            this.LoadTables();
+            this.LoadCMap();
+            this.LoadGlyphWidths();
+            this.LoadGlyphKerning();
         }
 
         /**
@@ -217,29 +174,31 @@ namespace org.pdfclown.documents.contents.fonts
             // Character To Glyph Index Mapping Table ('cmap' table).
             // Retrieve the location info!
             int tableOffset;
-            if (!tableOffsets.TryGetValue("cmap", out tableOffset))
+            if (!this.tableOffsets.TryGetValue("cmap", out tableOffset))
+            {
                 throw new ParseException("'cmap' table does NOT exist.");
+            }
 
-            int cmap10Offset = 0;
-            int cmap31Offset = 0;
+            var cmap10Offset = 0;
+            var cmap31Offset = 0;
             // Header.
             // Go to the number of tables!
-            FontData.Seek(tableOffset + 2);
-            int tableCount = FontData.ReadUnsignedShort();
+            this.FontData.Seek(tableOffset + 2);
+            int tableCount = this.FontData.ReadUnsignedShort();
 
             // Encoding records.
             for (
-              int tableIndex = 0;
+              var tableIndex = 0;
               tableIndex < tableCount;
               tableIndex++
               )
             {
                 // Platform ID.
-                int platformID = FontData.ReadUnsignedShort();
+                int platformID = this.FontData.ReadUnsignedShort();
                 // Encoding ID.
-                int encodingID = FontData.ReadUnsignedShort();
+                int encodingID = this.FontData.ReadUnsignedShort();
                 // Subtable offset.
-                int offset = FontData.ReadInt();
+                var offset = this.FontData.ReadInt();
                 switch (platformID)
                 {
                     case PlatformID_Macintosh:
@@ -269,35 +228,37 @@ namespace org.pdfclown.documents.contents.fonts
             */
             if (cmap31Offset > 0) // Nonsymbolic.
             {
-                Metrics.IsCustomEncoding = false;
+                this.Metrics.IsCustomEncoding = false;
                 // Go to the beginning of the subtable!
-                FontData.Seek(tableOffset + cmap31Offset);
+                this.FontData.Seek(tableOffset + cmap31Offset);
             }
             else if (cmap10Offset > 0) // Symbolic.
             {
-                Metrics.IsCustomEncoding = true;
+                this.Metrics.IsCustomEncoding = true;
                 // Go to the beginning of the subtable!
-                FontData.Seek(tableOffset + cmap10Offset);
+                this.FontData.Seek(tableOffset + cmap10Offset);
             }
             else
+            {
                 throw new ParseException("CMAP table unavailable.");
+            }
 
             int format;
-            format = FontData.ReadUnsignedShort();
+            format = this.FontData.ReadUnsignedShort();
             // Which cmap table format?
             switch (format)
             {
                 case 0: // Byte encoding table.
-                    LoadCMapFormat0();
+                    this.LoadCMapFormat0();
                     break;
                 case 4: // Segment mapping to delta values.
-                    LoadCMapFormat4();
+                    this.LoadCMapFormat4();
                     break;
                 case 6: // Trimmed table mapping.
-                    LoadCMapFormat6();
+                    this.LoadCMapFormat6();
                     break;
                 default:
-                    throw new ParseException("Cmap table format " + format + " NOT supported.");
+                    throw new ParseException($"Cmap table format {format} NOT supported.");
             }
         }
 
@@ -312,22 +273,22 @@ namespace org.pdfclown.documents.contents.fonts
               NOTE: This is a simple 1-to-1 mapping of character codes to glyph indices.
               The glyph collection is limited to 256 entries.
             */
-            Symbolic = true;
-            GlyphIndexes = new Dictionary<int, int>(256);
+            this.Symbolic = true;
+            this.GlyphIndexes = new Dictionary<int, int>(256);
 
             // Skip to the mapping array!
-            FontData.Skip(4);
+            this.FontData.Skip(4);
             // Glyph index array.
             // Iterating through the glyph indexes...
             for (
-              int code = 0;
+              var code = 0;
               code < 256;
               code++
               )
             {
-                GlyphIndexes[
+                this.GlyphIndexes[
                   code // Character code.
-                  ] = FontData.ReadByte() // Glyph index.
+                  ] = this.FontData.ReadByte() // Glyph index.
                   ;
             }
         }
@@ -351,83 +312,83 @@ namespace org.pdfclown.documents.contents.fonts
                 describe the segments (one segment for each contiguous range of codes);
                 3. A variable-length array of glyph IDs.
             */
-            Symbolic = false;
+            this.Symbolic = false;
 
             // 1. Header.
             // Get the table length!
-            int tableLength = FontData.ReadUnsignedShort(); // USHORT.
+            int tableLength = this.FontData.ReadUnsignedShort(); // USHORT.
 
             // Skip to the segment count!
-            FontData.Skip(2);
+            this.FontData.Skip(2);
             // Get the segment count!
-            int segmentCount = FontData.ReadUnsignedShort() / 2;
+            var segmentCount = this.FontData.ReadUnsignedShort() / 2;
 
             // 2. Arrays describing the segments.
             // Skip to the array of end character code for each segment!
-            FontData.Skip(6);
+            this.FontData.Skip(6);
             // End character code for each segment.
-            int[] endCodes = new int[segmentCount]; // USHORT.
+            var endCodes = new int[segmentCount]; // USHORT.
             for (
-              int index = 0;
+              var index = 0;
               index < segmentCount;
               index++
               )
-            { endCodes[index] = FontData.ReadUnsignedShort(); }
+            { endCodes[index] = this.FontData.ReadUnsignedShort(); }
 
             // Skip to the array of start character code for each segment!
-            FontData.Skip(2);
+            this.FontData.Skip(2);
             // Start character code for each segment.
-            int[] startCodes = new int[segmentCount]; // USHORT.
+            var startCodes = new int[segmentCount]; // USHORT.
             for (
-              int index = 0;
+              var index = 0;
               index < segmentCount;
               index++
               )
-            { startCodes[index] = FontData.ReadUnsignedShort(); }
+            { startCodes[index] = this.FontData.ReadUnsignedShort(); }
 
             // Delta for all character codes in segment.
-            short[] deltas = new short[segmentCount];
+            var deltas = new short[segmentCount];
             for (
-              int index = 0;
+              var index = 0;
               index < segmentCount;
               index++
               )
-            { deltas[index] = FontData.ReadShort(); }
+            { deltas[index] = this.FontData.ReadShort(); }
 
             // Offsets into glyph index array.
-            int[] rangeOffsets = new int[segmentCount]; // USHORT.
+            var rangeOffsets = new int[segmentCount]; // USHORT.
             for (
-              int index = 0;
+              var index = 0;
               index < segmentCount;
               index++
               )
-            { rangeOffsets[index] = FontData.ReadUnsignedShort(); }
+            { rangeOffsets[index] = this.FontData.ReadUnsignedShort(); }
 
             // 3. Glyph ID array.
             /*
               NOTE: There's no explicit field defining the array length;
               it must be inferred from the space left by the known fields.
             */
-            int glyphIndexCount = tableLength / 2 // Number of 16-bit words inside the table.
+            var glyphIndexCount = (tableLength / 2) // Number of 16-bit words inside the table.
               - 8 // Number of single-word header fields (8 fields: format, length, language, segCountX2, searchRange, entrySelector, rangeShift, reservedPad).
-              - segmentCount * 4; // Number of single-word items in the arrays describing the segments (4 arrays of segmentCount items).
-            int[] glyphIds = new int[glyphIndexCount]; // USHORT.
+              - (segmentCount * 4); // Number of single-word items in the arrays describing the segments (4 arrays of segmentCount items).
+            var glyphIds = new int[glyphIndexCount]; // USHORT.
             for (
-              int index = 0;
+              var index = 0;
               index < glyphIds.Length;
               index++
               )
-            { glyphIds[index] = FontData.ReadUnsignedShort(); }
+            { glyphIds[index] = this.FontData.ReadUnsignedShort(); }
 
-            GlyphIndexes = new Dictionary<int, int>(glyphIndexCount);
+            this.GlyphIndexes = new Dictionary<int, int>(glyphIndexCount);
             // Iterating through the segments...
             for (
-              int segmentIndex = 0;
+              var segmentIndex = 0;
               segmentIndex < segmentCount;
               segmentIndex++
               )
             {
-                int endCode = endCodes[segmentIndex];
+                var endCode = endCodes[segmentIndex];
                 // Is it NOT the last end character code?
                 /*
                   NOTE: The final segment's endCode MUST be 0xFFFF. This segment need not (but MAY)
@@ -438,7 +399,7 @@ namespace org.pdfclown.documents.contents.fonts
                 { endCode++; }
                 // Iterating inside the current segment...
                 for (
-                  int code = startCodes[segmentIndex];
+                  var code = startCodes[segmentIndex];
                   code < endCode;
                   code++
                   )
@@ -470,7 +431,7 @@ namespace org.pdfclown.documents.contents.fonts
                           instead of an address (sooo-good!).
                         */
                         // Retrieve the glyph index!
-                        int glyphIdIndex = rangeOffsets[segmentIndex] / 2 // 16-bit word range offset.
+                        var glyphIdIndex = (rangeOffsets[segmentIndex] / 2) // 16-bit word range offset.
                           + (code - startCodes[segmentIndex]) // Character code offset from start code.
                           - (segmentCount - segmentIndex); // Physical offset between the offsets into glyph index array and the glyph index array.
 
@@ -481,7 +442,7 @@ namespace org.pdfclown.documents.contents.fonts
                         glyphIndex = (glyphIds[glyphIdIndex] + deltas[segmentIndex]) & 0xFFFF;
                     }
 
-                    GlyphIndexes[
+                    this.GlyphIndexes[
                       code // Character code.
                       ] = glyphIndex; // Glyph index.
                 }
@@ -495,10 +456,10 @@ namespace org.pdfclown.documents.contents.fonts
           )
         {
             // Skip to the first character code!
-            FontData.Skip(4);
-            int firstCode = FontData.ReadUnsignedShort();
-            int codeCount = FontData.ReadUnsignedShort();
-            GlyphIndexes = new Dictionary<int, int>(codeCount);
+            this.FontData.Skip(4);
+            int firstCode = this.FontData.ReadUnsignedShort();
+            int codeCount = this.FontData.ReadUnsignedShort();
+            this.GlyphIndexes = new Dictionary<int, int>(codeCount);
             for (
               int code = firstCode,
                 lastCode = firstCode + codeCount;
@@ -506,69 +467,10 @@ namespace org.pdfclown.documents.contents.fonts
               code++
               )
             {
-                GlyphIndexes[
+                this.GlyphIndexes[
                   code // Character code.
-                  ] = FontData.ReadUnsignedShort(); // Glyph index.
+                  ] = this.FontData.ReadUnsignedShort(); // Glyph index.
             }
-        }
-
-        /**
-          <summary>Gets a name.</summary>
-          <param name="id">Name identifier.</param>
-        */
-        private string GetName(
-          int id
-          )
-        {
-            // Naming Table ('name' table).
-            // Retrieve the location info!
-            int tableOffset;
-            if (!tableOffsets.TryGetValue("name", out tableOffset))
-                throw new ParseException("'name' table does NOT exist.");
-
-            // Go to the number of name records!
-            FontData.Seek(tableOffset + 2);
-
-            int recordCount = FontData.ReadUnsignedShort(); // USHORT.
-            int storageOffset = FontData.ReadUnsignedShort(); // USHORT.
-                                                              // Iterating through the name records...
-            for (
-              int recordIndex = 0;
-              recordIndex < recordCount;
-              recordIndex++
-              )
-            {
-                int platformID = FontData.ReadUnsignedShort(); // USHORT.
-                                                               // Is it the default platform?
-                if (platformID == PlatformID_Microsoft)
-                {
-                    FontData.Skip(2);
-                    int languageID = FontData.ReadUnsignedShort(); // USHORT.
-                                                                   // Is it the default language?
-                    if (languageID == MicrosoftLanguage_UsEnglish)
-                    {
-                        int nameID = FontData.ReadUnsignedShort(); // USHORT.
-                                                                   // Does the name ID equal the searched one?
-                        if (nameID == id)
-                        {
-                            int length = FontData.ReadUnsignedShort(); // USHORT.
-                            int offset = FontData.ReadUnsignedShort(); // USHORT.
-
-                            // Go to the name string!
-                            FontData.Seek(tableOffset + storageOffset + offset);
-
-                            return ReadString(length, platformID);
-                        }
-                        else
-                        { FontData.Skip(4); }
-                    }
-                    else
-                    { FontData.Skip(6); }
-                }
-                else
-                { FontData.Skip(10); }
-            }
-            return null; // Not found.
         }
 
         /**
@@ -580,30 +482,32 @@ namespace org.pdfclown.documents.contents.fonts
             // Kerning ('kern' table).
             // Retrieve the location info!
             int tableOffset;
-            if (!tableOffsets.TryGetValue("kern", out tableOffset))
+            if (!this.tableOffsets.TryGetValue("kern", out tableOffset))
+            {
                 return; // NOTE: Kerning table is not mandatory.
+            }
 
             // Go to the table count!
-            FontData.Seek(tableOffset + 2);
-            int subtableCount = FontData.ReadUnsignedShort(); // USHORT.
+            this.FontData.Seek(tableOffset + 2);
+            int subtableCount = this.FontData.ReadUnsignedShort(); // USHORT.
 
-            GlyphKernings = new Dictionary<int, int>();
-            int subtableOffset = (int)FontData.Position;
+            this.GlyphKernings = new Dictionary<int, int>();
+            var subtableOffset = (int)this.FontData.Position;
             // Iterating through the subtables...
             for (
-              int subtableIndex = 0;
+              var subtableIndex = 0;
               subtableIndex < subtableCount;
               subtableIndex++
               )
             {
                 // Go to the subtable length!
-                FontData.Seek(subtableOffset + 2);
+                this.FontData.Seek(subtableOffset + 2);
                 // Get the subtable length!
-                int length = FontData.ReadUnsignedShort(); // USHORT.
+                int length = this.FontData.ReadUnsignedShort(); // USHORT.
 
                 // Get the type of information contained in the subtable!
-                int coverage = FontData.ReadUnsignedShort(); // USHORT.
-                                                             // Is it a format-0 subtable?
+                int coverage = this.FontData.ReadUnsignedShort(); // USHORT.
+                                                                  // Is it a format-0 subtable?
                 /*
                   NOTE: coverage bits 8-15 (format of the subtable) MUST be all zeros
                   (representing format 0).
@@ -611,23 +515,23 @@ namespace org.pdfclown.documents.contents.fonts
                 //
                 if ((coverage & 0xff00) == 0x0000)
                 {
-                    int pairCount = FontData.ReadUnsignedShort(); // USHORT.
+                    int pairCount = this.FontData.ReadUnsignedShort(); // USHORT.
 
                     // Skip to the beginning of the list!
-                    FontData.Skip(6);
+                    this.FontData.Skip(6);
                     // List of kerning pairs and values.
                     for (
-                      int pairIndex = 0;
+                      var pairIndex = 0;
                       pairIndex < pairCount;
                       pairIndex++
                       )
                     {
                         // Get the glyph index pair (left-hand and right-hand)!
-                        int pair = FontData.ReadInt(); // USHORT USHORT.
-                                                       // Get the normalized kerning value!
-                        int value = (int)(FontData.ReadShort() * Metrics.UnitNorm);
+                        var pair = this.FontData.ReadInt(); // USHORT USHORT.
+                                                            // Get the normalized kerning value!
+                        var value = (int)(this.FontData.ReadShort() * this.Metrics.UnitNorm);
 
-                        GlyphKernings[pair] = value;
+                        this.GlyphKernings[pair] = value;
                     }
                 }
 
@@ -644,22 +548,24 @@ namespace org.pdfclown.documents.contents.fonts
             // Horizontal Metrics ('hmtx' table).
             // Retrieve the location info!
             int tableOffset;
-            if (!tableOffsets.TryGetValue("hmtx", out tableOffset))
+            if (!this.tableOffsets.TryGetValue("hmtx", out tableOffset))
+            {
                 throw new ParseException("'hmtx' table does NOT exist.");
+            }
 
             // Go to the glyph horizontal-metrics entries!
-            FontData.Seek(tableOffset);
-            GlyphWidths = new Dictionary<int, int>(Metrics.NumberOfHMetrics);
+            this.FontData.Seek(tableOffset);
+            this.GlyphWidths = new Dictionary<int, int>(this.Metrics.NumberOfHMetrics);
             for (
-              int index = 0;
-              index < Metrics.NumberOfHMetrics;
+              var index = 0;
+              index < this.Metrics.NumberOfHMetrics;
               index++
               )
             {
                 // Get the glyph advance width!
-                GlyphWidths[index] = (int)(FontData.ReadUnsignedShort() * Metrics.UnitNorm);
+                this.GlyphWidths[index] = (int)(this.FontData.ReadUnsignedShort() * this.Metrics.UnitNorm);
                 // Skip the left side bearing!
-                FontData.Skip(2);
+                this.FontData.Skip(2);
             }
         }
 
@@ -667,33 +573,33 @@ namespace org.pdfclown.documents.contents.fonts
           )
         {
             // 1. Offset Table.
-            FontData.Seek(4);
-            int tableCount = FontData.ReadUnsignedShort();
+            this.FontData.Seek(4);
+            int tableCount = this.FontData.ReadUnsignedShort();
 
             // 2. Table Directory.
             // Skip to the beginning of the table directory!
-            FontData.Skip(6);
+            this.FontData.Skip(6);
             // Collecting the table offsets...
-            tableOffsets = new Dictionary<string, int>(tableCount);
+            this.tableOffsets = new Dictionary<string, int>(tableCount);
             for (
-              int index = 0;
+              var index = 0;
               index < tableCount;
               index++
               )
             {
                 // Get the table tag!
-                String tag = ReadAsciiString(4);
+                var tag = this.ReadAsciiString(4);
                 // Skip to the table offset!
-                FontData.Skip(4);
+                this.FontData.Skip(4);
                 // Get the table offset!
-                int offset = FontData.ReadInt();
+                var offset = this.FontData.ReadInt();
                 // Collect the table offset!
-                tableOffsets[tag] = offset;
+                this.tableOffsets[tag] = offset;
 
                 // Skip to the next entry!
-                FontData.Skip(4);
+                this.FontData.Skip(4);
             }
-            OutlineFormat = (tableOffsets.ContainsKey(TableName_CFF) ? OutlineFormatEnum.PostScript : OutlineFormatEnum.TrueType);
+            this.OutlineFormat = this.tableOffsets.ContainsKey(TableName_CFF) ? OutlineFormatEnum.PostScript : OutlineFormatEnum.TrueType;
         }
 
         /**
@@ -704,37 +610,39 @@ namespace org.pdfclown.documents.contents.fonts
         {
             // Font Header ('head' table).
             int tableOffset;
-            if (!tableOffsets.TryGetValue("head", out tableOffset))
+            if (!this.tableOffsets.TryGetValue("head", out tableOffset))
+            {
                 throw new ParseException("'head' table does NOT exist.");
+            }
 
             // Go to the font flags!
-            FontData.Seek(tableOffset + 16);
-            Metrics.Flags = FontData.ReadUnsignedShort();
-            Metrics.UnitsPerEm = FontData.ReadUnsignedShort();
-            Metrics.UnitNorm = 1000f / Metrics.UnitsPerEm;
+            this.FontData.Seek(tableOffset + 16);
+            this.Metrics.Flags = this.FontData.ReadUnsignedShort();
+            this.Metrics.UnitsPerEm = this.FontData.ReadUnsignedShort();
+            this.Metrics.UnitNorm = 1000f / this.Metrics.UnitsPerEm;
             // Go to the bounding box limits!
-            FontData.Skip(16);
-            Metrics.XMin = FontData.ReadShort();
-            Metrics.YMin = FontData.ReadShort();
-            Metrics.XMax = FontData.ReadShort();
-            Metrics.YMax = FontData.ReadShort();
-            Metrics.MacStyle = FontData.ReadUnsignedShort();
+            this.FontData.Skip(16);
+            this.Metrics.XMin = this.FontData.ReadShort();
+            this.Metrics.YMin = this.FontData.ReadShort();
+            this.Metrics.XMax = this.FontData.ReadShort();
+            this.Metrics.YMax = this.FontData.ReadShort();
+            this.Metrics.MacStyle = this.FontData.ReadUnsignedShort();
 
             // Font Header ('OS/2' table).
-            if (tableOffsets.TryGetValue("OS/2", out tableOffset))
+            if (this.tableOffsets.TryGetValue("OS/2", out tableOffset))
             {
-                FontData.Seek(tableOffset);
-                int version = FontData.ReadUnsignedShort();
+                this.FontData.Seek(tableOffset);
+                int version = this.FontData.ReadUnsignedShort();
                 // Go to the ascender!
-                FontData.Skip(66);
-                Metrics.STypoAscender = FontData.ReadShort();
-                Metrics.STypoDescender = FontData.ReadShort();
-                Metrics.STypoLineGap = FontData.ReadShort();
+                this.FontData.Skip(66);
+                this.Metrics.STypoAscender = this.FontData.ReadShort();
+                this.Metrics.STypoDescender = this.FontData.ReadShort();
+                this.Metrics.STypoLineGap = this.FontData.ReadShort();
                 if (version >= 2)
                 {
-                    FontData.Skip(12);
-                    Metrics.SxHeight = FontData.ReadShort();
-                    Metrics.SCapHeight = FontData.ReadShort();
+                    this.FontData.Skip(12);
+                    this.Metrics.SxHeight = this.FontData.ReadShort();
+                    this.Metrics.SCapHeight = this.FontData.ReadShort();
                 }
                 else
                 {
@@ -742,42 +650,46 @@ namespace org.pdfclown.documents.contents.fonts
                       NOTE: These are just rule-of-thumb values,
                       in case the xHeight and CapHeight fields aren't available.
                     */
-                    Metrics.SxHeight = (short)(.5 * Metrics.UnitsPerEm);
-                    Metrics.SCapHeight = (short)(.7 * Metrics.UnitsPerEm);
+                    this.Metrics.SxHeight = (short)(.5 * this.Metrics.UnitsPerEm);
+                    this.Metrics.SCapHeight = (short)(.7 * this.Metrics.UnitsPerEm);
                 }
             }
 
             // Horizontal Header ('hhea' table).
-            if (!tableOffsets.TryGetValue("hhea", out tableOffset))
+            if (!this.tableOffsets.TryGetValue("hhea", out tableOffset))
+            {
                 throw new ParseException("'hhea' table does NOT exist.");
+            }
 
             // Go to the ascender!
-            FontData.Seek(tableOffset + 4);
-            Metrics.Ascender = FontData.ReadShort();
-            Metrics.Descender = FontData.ReadShort();
-            Metrics.LineGap = FontData.ReadShort();
-            Metrics.AdvanceWidthMax = FontData.ReadUnsignedShort();
-            Metrics.MinLeftSideBearing = FontData.ReadShort();
-            Metrics.MinRightSideBearing = FontData.ReadShort();
-            Metrics.XMaxExtent = FontData.ReadShort();
-            Metrics.CaretSlopeRise = FontData.ReadShort();
-            Metrics.CaretSlopeRun = FontData.ReadShort();
+            this.FontData.Seek(tableOffset + 4);
+            this.Metrics.Ascender = this.FontData.ReadShort();
+            this.Metrics.Descender = this.FontData.ReadShort();
+            this.Metrics.LineGap = this.FontData.ReadShort();
+            this.Metrics.AdvanceWidthMax = this.FontData.ReadUnsignedShort();
+            this.Metrics.MinLeftSideBearing = this.FontData.ReadShort();
+            this.Metrics.MinRightSideBearing = this.FontData.ReadShort();
+            this.Metrics.XMaxExtent = this.FontData.ReadShort();
+            this.Metrics.CaretSlopeRise = this.FontData.ReadShort();
+            this.Metrics.CaretSlopeRun = this.FontData.ReadShort();
             // Go to the horizontal metrics count!
-            FontData.Skip(12);
-            Metrics.NumberOfHMetrics = FontData.ReadUnsignedShort();
+            this.FontData.Skip(12);
+            this.Metrics.NumberOfHMetrics = this.FontData.ReadUnsignedShort();
 
             // PostScript ('post' table).
-            if (!tableOffsets.TryGetValue("post", out tableOffset))
+            if (!this.tableOffsets.TryGetValue("post", out tableOffset))
+            {
                 throw new ParseException("'post' table does NOT exist.");
+            }
 
             // Go to the italic angle!
-            FontData.Seek(tableOffset + 4);
-            Metrics.ItalicAngle =
-              FontData.ReadShort() // Fixed-point mantissa (16 bits).
-              + FontData.ReadUnsignedShort() / 16384f; // Fixed-point fraction (16 bits).
-            Metrics.UnderlinePosition = FontData.ReadShort();
-            Metrics.UnderlineThickness = FontData.ReadShort();
-            Metrics.IsFixedPitch = (FontData.ReadInt() != 0);
+            this.FontData.Seek(tableOffset + 4);
+            this.Metrics.ItalicAngle =
+              this.FontData.ReadShort() // Fixed-point mantissa (16 bits).
+              + (this.FontData.ReadUnsignedShort() / 16384f); // Fixed-point fraction (16 bits).
+            this.Metrics.UnderlinePosition = this.FontData.ReadShort();
+            this.Metrics.UnderlineThickness = this.FontData.ReadShort();
+            this.Metrics.IsFixedPitch = this.FontData.ReadInt() != 0;
         }
 
         /**
@@ -786,7 +698,7 @@ namespace org.pdfclown.documents.contents.fonts
         private string ReadAsciiString(
           int length
           )
-        { return ReadString(length, Charset.ISO88591); }
+        { return this.ReadString(length, Charset.ISO88591); }
 
         /**
           <summary>Reads a string.</summary>
@@ -801,9 +713,9 @@ namespace org.pdfclown.documents.contents.fonts
             {
                 case PlatformID_Unicode:
                 case PlatformID_Microsoft:
-                    return ReadUnicodeString(length);
+                    return this.ReadUnicodeString(length);
                 default:
-                    return ReadAsciiString(length);
+                    return this.ReadAsciiString(length);
             }
         }
 
@@ -815,8 +727,8 @@ namespace org.pdfclown.documents.contents.fonts
           text::Encoding encoding
           )
         {
-            byte[] data = new byte[length];
-            FontData.Read(data, 0, length);
+            var data = new byte[length];
+            this.FontData.Read(data, 0, length);
             return encoding.GetString(data);
         }
 
@@ -826,9 +738,92 @@ namespace org.pdfclown.documents.contents.fonts
         private string ReadUnicodeString(
           int length
           )
-        { return ReadString(length, Charset.UTF16BE); }
-        #endregion
-        #endregion
-        #endregion
+        { return this.ReadString(length, Charset.UTF16BE); }
+
+        /**
+<summary>Gets whether the given data represents a valid Open Font.</summary>
+*/
+        public static bool IsOpenFont(
+          bytes::IInputStream fontData
+          )
+        {
+            var position = fontData.Position;
+            fontData.Seek(0);
+            try
+            {
+                switch (fontData.ReadInt())
+                {
+                    case 0x00010000: // TrueType (standard/Windows).
+                    case 0x74727565: // TrueType (legacy/Apple).
+                    case 0x4F54544F: // CFF (Type 1).
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+            finally
+            { fontData.Seek(position); }
+        }
+        /**
+  <summary>Font metrics.</summary>
+*/
+        public sealed class FontMetrics
+        {
+            public int AdvanceWidthMax; // UFWORD.
+            /*
+              Horizontal Header ('hhea' table).
+            */
+            public short Ascender;
+            public short CaretSlopeRise;
+            public short CaretSlopeRun;
+            public short Descender;
+            /*
+              Font Header ('head' table).
+            */
+            public int Flags; // USHORT.
+            /**
+              <summary>Whether the encoding is custom (symbolic font).</summary>
+            */
+            public bool IsCustomEncoding;//TODO:verify whether it can be replaced by the 'symbolic' variable!!!
+            public bool IsFixedPitch;
+            /*
+              PostScript table ('post' table).
+            */
+            public float ItalicAngle;
+            public short LineGap;
+            public int MacStyle; // USHORT.
+            public short MinLeftSideBearing;
+            public short MinRightSideBearing;
+            public int NumberOfHMetrics; // USHORT.
+            public short SCapHeight;
+            /*
+              OS/2 table ('OS/2' table).
+            */
+            public short STypoAscender;
+            public short STypoDescender;
+            public short STypoLineGap;
+            public short SxHeight;
+            public short UnderlinePosition;
+            public short UnderlineThickness;
+            /**
+              <summary>Unit normalization coefficient.</summary>
+            */
+            public float UnitNorm;
+            public int UnitsPerEm; // USHORT.
+            public short XMax;
+            public short XMaxExtent;
+            public short XMin;
+            public short YMax;
+            public short YMin;
+        }
+
+        /**
+          <summary>Outline format.</summary>
+        */
+        public enum OutlineFormatEnum
+        {
+            TrueType,
+            PostScript
+        }
     }
 }

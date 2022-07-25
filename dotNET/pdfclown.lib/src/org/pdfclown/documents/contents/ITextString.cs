@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using System.Drawing;
-
 namespace org.pdfclown.documents.contents
 {
+    using System.Collections.Generic;
+    using System.Drawing;
+
     /**
       <summary>Text string interface.</summary>
       <remarks>Its purpose is to describe a text chunk extracted from content streams.</remarks>

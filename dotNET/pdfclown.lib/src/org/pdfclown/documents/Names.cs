@@ -24,17 +24,17 @@
 */
 
 
-using System;
-using System.Reflection;
-using org.pdfclown.documents.files;
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.documents.multimedia;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using System;
+    using System.Reflection;
+    using org.pdfclown.documents.files;
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.documents.multimedia;
+    using org.pdfclown.objects;
+
     /**
       <summary>Name dictionary [PDF:1.6:3.6.3].</summary>
     */
@@ -43,31 +43,62 @@ namespace org.pdfclown.documents
       : PdfObjectWrapper<PdfDictionary>,
         ICompositeDictionary<PdfString>
     {
-        #region dynamic
-        #region constructors
-        public Names(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         internal Names(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public Names(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
-        #region interface
-        #region public
+        public PdfObjectWrapper Get(
+  Type type
+  )
+        {
+            if (typeof(Destination).IsAssignableFrom(type))
+            {
+                return this.Destinations;
+            }
+            else if (typeof(FileSpecification).IsAssignableFrom(type))
+            {
+                return this.EmbeddedFiles;
+            }
+            else if (typeof(JavaScript).IsAssignableFrom(type))
+            {
+                return this.JavaScripts;
+            }
+            else if (typeof(Page).IsAssignableFrom(type))
+            {
+                return this.Pages;
+            }
+            else if (typeof(Rendition).IsAssignableFrom(type))
+            {
+                return this.Renditions;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public T Get<T>(
+          PdfString key
+          ) where T : PdfObjectWrapper
+        {
+            var names = this.Get(typeof(T));
+            return (T)names.GetType().GetProperty("Item", BindingFlags.Public | BindingFlags.Instance).GetValue(names, new object[] { key });
+        }
+
         /**
-          <summary>Gets/Sets the named destinations.</summary>
-        */
+<summary>Gets/Sets the named destinations.</summary>
+*/
         [PDF(VersionEnum.PDF12)]
         public NamedDestinations Destinations
         {
-            get
-            { return new NamedDestinations(BaseDataObject.Get<PdfDictionary>(PdfName.Dests, false)); }
-            set
-            { BaseDataObject[PdfName.Dests] = value.BaseObject; }
+            get => new NamedDestinations(this.BaseDataObject.Get<PdfDictionary>(PdfName.Dests, false));
+            set => this.BaseDataObject[PdfName.Dests] = value.BaseObject;
         }
 
         /**
@@ -76,10 +107,8 @@ namespace org.pdfclown.documents
         [PDF(VersionEnum.PDF14)]
         public NamedEmbeddedFiles EmbeddedFiles
         {
-            get
-            { return new NamedEmbeddedFiles(BaseDataObject.Get<PdfDictionary>(PdfName.EmbeddedFiles, false)); }
-            set
-            { BaseDataObject[PdfName.EmbeddedFiles] = value.BaseObject; }
+            get => new NamedEmbeddedFiles(this.BaseDataObject.Get<PdfDictionary>(PdfName.EmbeddedFiles, false));
+            set => this.BaseDataObject[PdfName.EmbeddedFiles] = value.BaseObject;
         }
 
         /**
@@ -88,10 +117,8 @@ namespace org.pdfclown.documents
         [PDF(VersionEnum.PDF13)]
         public NamedJavaScripts JavaScripts
         {
-            get
-            { return new NamedJavaScripts(BaseDataObject.Get<PdfDictionary>(PdfName.JavaScript, false)); }
-            set
-            { BaseDataObject[PdfName.JavaScript] = value.BaseObject; }
+            get => new NamedJavaScripts(this.BaseDataObject.Get<PdfDictionary>(PdfName.JavaScript, false));
+            set => this.BaseDataObject[PdfName.JavaScript] = value.BaseObject;
         }
 
         /**
@@ -100,10 +127,8 @@ namespace org.pdfclown.documents
         [PDF(VersionEnum.PDF13)]
         public NamedPages Pages
         {
-            get
-            { return new NamedPages(BaseDataObject.Get<PdfDictionary>(PdfName.Pages, false)); }
-            set
-            { BaseDataObject[PdfName.Pages] = value.BaseObject; }
+            get => new NamedPages(this.BaseDataObject.Get<PdfDictionary>(PdfName.Pages, false));
+            set => this.BaseDataObject[PdfName.Pages] = value.BaseObject;
         }
 
         /**
@@ -112,41 +137,8 @@ namespace org.pdfclown.documents
         [PDF(VersionEnum.PDF15)]
         public NamedRenditions Renditions
         {
-            get
-            { return new NamedRenditions(BaseDataObject.Get<PdfDictionary>(PdfName.Renditions, false)); }
-            set
-            { BaseDataObject[PdfName.Renditions] = value.BaseObject; }
+            get => new NamedRenditions(this.BaseDataObject.Get<PdfDictionary>(PdfName.Renditions, false));
+            set => this.BaseDataObject[PdfName.Renditions] = value.BaseObject;
         }
-
-        #region ICompositeDictionary
-        public PdfObjectWrapper Get(
-          Type type
-          )
-        {
-            if (typeof(Destination).IsAssignableFrom(type))
-                return Destinations;
-            else if (typeof(FileSpecification).IsAssignableFrom(type))
-                return EmbeddedFiles;
-            else if (typeof(JavaScript).IsAssignableFrom(type))
-                return JavaScripts;
-            else if (typeof(Page).IsAssignableFrom(type))
-                return Pages;
-            else if (typeof(Rendition).IsAssignableFrom(type))
-                return Renditions;
-            else
-                return null;
-        }
-
-        public T Get<T>(
-          PdfString key
-          ) where T : PdfObjectWrapper
-        {
-            PdfObjectWrapper names = Get(typeof(T));
-            return (T)names.GetType().GetProperty("Item", BindingFlags.Public | BindingFlags.Instance).GetValue(names, new object[] { key });
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

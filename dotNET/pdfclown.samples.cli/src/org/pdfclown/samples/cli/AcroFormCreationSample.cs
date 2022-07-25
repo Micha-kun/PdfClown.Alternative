@@ -1,37 +1,22 @@
-
-using System;
-using System.Drawing;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.fonts;
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.documents.interaction.forms;
-
-using org.pdfclown.documents.interaction.forms.styles;
-using org.pdfclown.files;
-
 namespace org.pdfclown.samples.cli
 {
+    using System.Drawing;
+    using org.pdfclown.documents;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.fonts;
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.documents.interaction.forms;
+
+    using org.pdfclown.documents.interaction.forms.styles;
+    using org.pdfclown.files;
+
     /**
       <summary>This sample demonstrates how to insert AcroForm fields into a PDF document.</summary>
     */
     public class AcroFormCreationSample
       : Sample
     {
-        public override void Run(
-          )
-        {
-            // 1. PDF file instantiation.
-            File file = new File();
-            Document document = file.Document;
-
-            // 2. Content creation.
-            Populate(document);
-
-            // 3. Serialize the PDF file!
-            Serialize(file, "AcroForm", "inserting AcroForm fields", "Acroform, creation, annotations, actions, javascript, button, combo, textbox, radio button");
-        }
 
         private void Populate(
           Document document
@@ -49,19 +34,19 @@ namespace org.pdfclown.samples.cli
             */
 
             // 1. Define the form fields collection!
-            Form form = document.Form;
-            Fields fields = form.Fields;
+            var form = document.Form;
+            var fields = form.Fields;
 
             // 2. Define the page where to place the fields!
-            Page page = new Page(document);
+            var page = new Page(document);
             document.Pages.Add(page);
 
             // 3. Define the appearance style to apply to the fields!
-            DefaultStyle fieldStyle = new DefaultStyle();
+            var fieldStyle = new DefaultStyle();
             fieldStyle.FontSize = 12;
             fieldStyle.GraphicsVisibile = true;
 
-            PrimitiveComposer composer = new PrimitiveComposer(page);
+            var composer = new PrimitiveComposer(page);
             composer.SetFont(
               new StandardType1Font(
                 document,
@@ -75,7 +60,7 @@ namespace org.pdfclown.samples.cli
             // 4. Field creation.
             // 4.a. Push button.
             {
-                composer.ShowText(
+                _ = composer.ShowText(
                   "PushButton:",
                   new PointF(140, 68),
                   XAlignmentEnum.Right,
@@ -83,7 +68,7 @@ namespace org.pdfclown.samples.cli
                   0
                   );
 
-                Widget fieldWidget = new Widget(
+                var fieldWidget = new Widget(
                   page,
                   new RectangleF(150, 50, 136, 36)
                   );
@@ -91,33 +76,30 @@ namespace org.pdfclown.samples.cli
                   document,
                   "app.alert(\"Radio button currently selected: '\" + this.getField(\"myRadio\").value + \"'.\",3,0,\"Activation event\");"
                   );
-                PushButton field = new PushButton(
+                var field = new PushButton(
                   "okButton",
                   fieldWidget,
                   "Push" // Current value.
                   ); // 4.1. Field instantiation.
                 fields.Add(field); // 4.2. Field insertion into the fields collection.
                 fieldStyle.Apply(field); // 4.3. Appearance style applied.
-
-                {
-                    BlockComposer blockComposer = new BlockComposer(composer);
-                    blockComposer.Begin(new RectangleF(296, 50, page.Size.Width - 336, 36), XAlignmentEnum.Left, YAlignmentEnum.Middle);
-                    composer.SetFont(composer.State.Font, 7);
-                    blockComposer.ShowText("If you click this push button, a javascript action should prompt you an alert box responding to the activation event triggered by your PDF viewer.");
-                    blockComposer.End();
-                }
+                var blockComposer = new BlockComposer(composer);
+                blockComposer.Begin(new RectangleF(296, 50, page.Size.Width - 336, 36), XAlignmentEnum.Left, YAlignmentEnum.Middle);
+                composer.SetFont(composer.State.Font, 7);
+                _ = blockComposer.ShowText("If you click this push button, a javascript action should prompt you an alert box responding to the activation event triggered by your PDF viewer.");
+                blockComposer.End();
             }
 
             // 4.b. Check box.
             {
-                composer.ShowText(
+                _ = composer.ShowText(
                   "CheckBox:",
                   new PointF(140, 118),
                   XAlignmentEnum.Right,
                   YAlignmentEnum.Middle,
                   0
                   );
-                CheckBox field = new CheckBox(
+                var field = new CheckBox(
                   "myCheck",
                   new Widget(
                     page,
@@ -151,14 +133,14 @@ namespace org.pdfclown.samples.cli
 
             // 4.c. Radio button.
             {
-                composer.ShowText(
+                _ = composer.ShowText(
                   "RadioButton:",
                   new PointF(140, 168),
                   XAlignmentEnum.Right,
                   YAlignmentEnum.Middle,
                   0
                   );
-                RadioButton field = new RadioButton(
+                var field = new RadioButton(
                   "myRadio",
                   /*
                     NOTE: A radio button field typically combines multiple alternative widgets.
@@ -189,14 +171,14 @@ namespace org.pdfclown.samples.cli
 
             // 4.d. Text field.
             {
-                composer.ShowText(
+                _ = composer.ShowText(
                   "TextField:",
                   new PointF(140, 218),
                   XAlignmentEnum.Right,
                   YAlignmentEnum.Middle,
                   0
                   );
-                TextField field = new TextField(
+                var field = new TextField(
                   "myText",
                   new Widget(
                     page,
@@ -205,7 +187,7 @@ namespace org.pdfclown.samples.cli
                   "Carmen Consoli" // Current value.
                   ); // 4.1. Field instantiation.
                 field.SpellChecked = false; // Avoids text spell check.
-                FieldActions fieldActions = new FieldActions(document);
+                var fieldActions = new FieldActions(document);
                 field.Actions = fieldActions;
                 fieldActions.OnValidate = new JavaScript(
                   document,
@@ -213,107 +195,117 @@ namespace org.pdfclown.samples.cli
                   );
                 fields.Add(field); // 4.2. Field insertion into the fields collection.
                 fieldStyle.Apply(field); // 4.3. Appearance style applied.
-
-                {
-                    BlockComposer blockComposer = new BlockComposer(composer);
-                    blockComposer.Begin(new RectangleF(360, 200, page.Size.Width - 400, 36), XAlignmentEnum.Left, YAlignmentEnum.Middle);
-                    composer.SetFont(composer.State.Font, 7);
-                    blockComposer.ShowText("If you leave this text field after changing its content, a javascript action should prompt you an alert box responding to the validation event triggered by your PDF viewer.");
-                    blockComposer.End();
-                }
+                var blockComposer = new BlockComposer(composer);
+                blockComposer.Begin(new RectangleF(360, 200, page.Size.Width - 400, 36), XAlignmentEnum.Left, YAlignmentEnum.Middle);
+                composer.SetFont(composer.State.Font, 7);
+                _ = blockComposer.ShowText("If you leave this text field after changing its content, a javascript action should prompt you an alert box responding to the validation event triggered by your PDF viewer.");
+                blockComposer.End();
             }
 
             // 4.e. Choice fields.
+
+            // Preparing the item list that we'll use for choice fields (a list box and a combo box (see below))...
+            var items = new ChoiceItems(document);
+            _ = items.Add("Tori Amos");
+            _ = items.Add("Anouk");
+            _ = items.Add("Joan Baez");
+            _ = items.Add("Rachele Bastreghi");
+            _ = items.Add("Anna Calvi");
+            _ = items.Add("Tracy Chapman");
+            _ = items.Add("Carmen Consoli");
+            _ = items.Add("Ani DiFranco");
+            _ = items.Add("Cristina Dona'");
+            _ = items.Add("Nathalie Giannitrapani");
+            _ = items.Add("PJ Harvey");
+            _ = items.Add("Billie Holiday");
+            _ = items.Add("Joan As Police Woman");
+            _ = items.Add("Joan Jett");
+            _ = items.Add("Janis Joplin");
+            _ = items.Add("Angelique Kidjo");
+            _ = items.Add("Patrizia Laquidara");
+            _ = items.Add("Annie Lennox");
+            _ = items.Add("Loreena McKennitt");
+            _ = items.Add("Joni Mitchell");
+            _ = items.Add("Alanis Morissette");
+            _ = items.Add("Yael Naim");
+            _ = items.Add("Noa");
+            _ = items.Add("Sinead O'Connor");
+            _ = items.Add("Dolores O'Riordan");
+            _ = items.Add("Nina Persson");
+            _ = items.Add("Brisa Roche'");
+            _ = items.Add("Roberta Sammarelli");
+            _ = items.Add("Cristina Scabbia");
+            _ = items.Add("Nina Simone");
+            _ = items.Add("Skin");
+            _ = items.Add("Patti Smith");
+            _ = items.Add("Fatima Spar");
+            _ = items.Add("Thony (F.V.Caiozzo)");
+            _ = items.Add("Paola Turci");
+            _ = items.Add("Sarah Vaughan");
+            _ = items.Add("Nina Zilli");
+
+            // 4.e1. List box.
             {
-                // Preparing the item list that we'll use for choice fields (a list box and a combo box (see below))...
-                ChoiceItems items = new ChoiceItems(document);
-                items.Add("Tori Amos");
-                items.Add("Anouk");
-                items.Add("Joan Baez");
-                items.Add("Rachele Bastreghi");
-                items.Add("Anna Calvi");
-                items.Add("Tracy Chapman");
-                items.Add("Carmen Consoli");
-                items.Add("Ani DiFranco");
-                items.Add("Cristina Dona'");
-                items.Add("Nathalie Giannitrapani");
-                items.Add("PJ Harvey");
-                items.Add("Billie Holiday");
-                items.Add("Joan As Police Woman");
-                items.Add("Joan Jett");
-                items.Add("Janis Joplin");
-                items.Add("Angelique Kidjo");
-                items.Add("Patrizia Laquidara");
-                items.Add("Annie Lennox");
-                items.Add("Loreena McKennitt");
-                items.Add("Joni Mitchell");
-                items.Add("Alanis Morissette");
-                items.Add("Yael Naim");
-                items.Add("Noa");
-                items.Add("Sinead O'Connor");
-                items.Add("Dolores O'Riordan");
-                items.Add("Nina Persson");
-                items.Add("Brisa Roche'");
-                items.Add("Roberta Sammarelli");
-                items.Add("Cristina Scabbia");
-                items.Add("Nina Simone");
-                items.Add("Skin");
-                items.Add("Patti Smith");
-                items.Add("Fatima Spar");
-                items.Add("Thony (F.V.Caiozzo)");
-                items.Add("Paola Turci");
-                items.Add("Sarah Vaughan");
-                items.Add("Nina Zilli");
+                _ = composer.ShowText(
+                  "ListBox:",
+                  new PointF(140, 268),
+                  XAlignmentEnum.Right,
+                  YAlignmentEnum.Middle,
+                  0
+                  );
+                var field = new ListBox(
+                  "myList",
+                  new Widget(
+                    page,
+                    new RectangleF(150, 250, 200, 70)
+                    )
+                  ); // 4.1. Field instantiation.
+                field.Items = items; // List items assignment.
+                field.MultiSelect = false; // Multiple items may not be selected simultaneously.
+                field.Value = "Carmen Consoli"; // Selected item.
+                fields.Add(field); // 4.2. Field insertion into the fields collection.
+                fieldStyle.Apply(field); // 4.3. Appearance style applied.
+            }
 
-                // 4.e1. List box.
-                {
-                    composer.ShowText(
-                      "ListBox:",
-                      new PointF(140, 268),
-                      XAlignmentEnum.Right,
-                      YAlignmentEnum.Middle,
-                      0
-                      );
-                    ListBox field = new ListBox(
-                      "myList",
-                      new Widget(
-                        page,
-                        new RectangleF(150, 250, 200, 70)
-                        )
-                      ); // 4.1. Field instantiation.
-                    field.Items = items; // List items assignment.
-                    field.MultiSelect = false; // Multiple items may not be selected simultaneously.
-                    field.Value = "Carmen Consoli"; // Selected item.
-                    fields.Add(field); // 4.2. Field insertion into the fields collection.
-                    fieldStyle.Apply(field); // 4.3. Appearance style applied.
-                }
-
-                // 4.e2. Combo box.
-                {
-                    composer.ShowText(
-                      "ComboBox:",
-                      new PointF(140, 350),
-                      XAlignmentEnum.Right,
-                      YAlignmentEnum.Middle,
-                      0
-                      );
-                    ComboBox field = new ComboBox(
-                      "myCombo",
-                      new Widget(
-                        page,
-                        new RectangleF(150, 334, 200, 36)
-                        )
-                      ); // 4.1. Field instantiation.
-                    field.Items = items; // Combo items assignment.
-                    field.Editable = true; // Text may be edited.
-                    field.SpellChecked = false; // Avoids text spell check.
-                    field.Value = "Carmen Consoli"; // Selected item.
-                    fields.Add(field); // 4.2. Field insertion into the fields collection.
-                    fieldStyle.Apply(field); // 4.3. Appearance style applied.
-                }
+            // 4.e2. Combo box.
+            {
+                _ = composer.ShowText(
+                  "ComboBox:",
+                  new PointF(140, 350),
+                  XAlignmentEnum.Right,
+                  YAlignmentEnum.Middle,
+                  0
+                  );
+                var field = new ComboBox(
+                  "myCombo",
+                  new Widget(
+                    page,
+                    new RectangleF(150, 334, 200, 36)
+                    )
+                  ); // 4.1. Field instantiation.
+                field.Items = items; // Combo items assignment.
+                field.Editable = true; // Text may be edited.
+                field.SpellChecked = false; // Avoids text spell check.
+                field.Value = "Carmen Consoli"; // Selected item.
+                fields.Add(field); // 4.2. Field insertion into the fields collection.
+                fieldStyle.Apply(field); // 4.3. Appearance style applied.
             }
 
             composer.Flush();
+        }
+
+        public override void Run(
+          )
+        {
+            // 1. PDF file instantiation.
+            var file = new File();
+            var document = file.Document;
+
+            // 2. Content creation.
+            this.Populate(document);
+
+            // 3. Serialize the PDF file!
+            _ = this.Serialize(file, "AcroForm", "inserting AcroForm fields", "Acroform, creation, annotations, actions, javascript, button, combo, textbox, radio button");
         }
     }
 }

@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Weakly-typed operation.</summary>
       <remarks>This is used to model operations which do not have a dedicated type.</remarks>
@@ -35,11 +35,9 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class GenericOperation
       : Operation
     {
-        #region dynamic
-        #region constructors
         public GenericOperation(
-          string @operator
-          ) : base(@operator)
+string @operator
+) : base(@operator)
         { }
 
         public GenericOperation(
@@ -53,7 +51,5 @@ namespace org.pdfclown.documents.contents.objects
           IList<PdfDirectObject> operands
           ) : base(@operator, operands)
         { }
-        #endregion
-        #endregion
     }
 }

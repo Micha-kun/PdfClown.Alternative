@@ -23,54 +23,36 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+
     /**
       <summary>Exception thrown in case of missing code-to-character mapping.</summary>
     */
     public class DecodeException
       : Exception
     {
-        #region dynamic
-        #region fields
-        private byte[] bytes;
-        private int index;
-        #endregion
+        private readonly byte[] bytes;
+        private readonly int index;
 
-        #region constructors
         public DecodeException(
-          byte[] bytes,
-          int index
-          ) : base(String.Format("Missing character mapping for byte sequence starting with {0:X2} at position {1}", bytes[index], index))
+  byte[] bytes,
+  int index
+  ) : base($"Missing character mapping for byte sequence starting with {bytes[index]:X2} at position {index}")
         {
             this.bytes = bytes;
             this.index = index;
         }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Gets the byte array to decode.</summary>
-        */
-        public byte[] Bytes
-        {
-            get
-            { return bytes; }
-        }
+<summary>Gets the byte array to decode.</summary>
+*/
+        public byte[] Bytes => this.bytes;
 
         /**
           <summary>Gets the position of the missing sequence in the byte array to decode.</summary>
         */
-        public int Index
-        {
-            get
-            { return index; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public int Index => this.index;
     }
 }

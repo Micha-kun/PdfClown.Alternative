@@ -23,94 +23,66 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.fonts;
-using org.pdfclown.documents.contents.xObjects;
-
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms.styles
 {
+    using System.Drawing;
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.fonts;
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.objects;
+
     /**
       <summary>Default field appearance style.</summary>
     */
     public sealed class DefaultStyle
       : FieldStyle
     {
-        #region dynamic
-        #region constructors
         public DefaultStyle(
-          )
-        { BackColor = new DeviceRGBColor(.9, .9, .9); }
-        #endregion
-
-        #region interface
-        #region public
-        public override void Apply(
-          Field field
-          )
-        {
-            if (field is PushButton)
-            { Apply((PushButton)field); }
-            else if (field is CheckBox)
-            { Apply((CheckBox)field); }
-            else if (field is TextField)
-            { Apply((TextField)field); }
-            else if (field is ComboBox)
-            { Apply((ComboBox)field); }
-            else if (field is ListBox)
-            { Apply((ListBox)field); }
-            else if (field is RadioButton)
-            { Apply((RadioButton)field); }
-        }
+)
+        { this.BackColor = new DeviceRGBColor(.9, .9, .9); }
 
         private void Apply(
           CheckBox field
           )
         {
-            Document document = field.Document;
-            foreach (Widget widget in field.Widgets)
+            var document = field.Document;
+            foreach (var widget in field.Widgets)
             {
-                {
-                    PdfDictionary widgetDataObject = widget.BaseDataObject;
-                    widgetDataObject[PdfName.DA] = new PdfString("/ZaDb 0 Tf 0 0 0 rg");
-                    widgetDataObject[PdfName.MK] = new PdfDictionary(
-                      new PdfName[]
-                      {
+                var widgetDataObject = widget.BaseDataObject;
+                widgetDataObject[PdfName.DA] = new PdfString("/ZaDb 0 Tf 0 0 0 rg");
+                widgetDataObject[PdfName.MK] = new PdfDictionary(
+                  new PdfName[]
+                  {
               PdfName.BG,
               PdfName.BC,
               PdfName.CA
-                      },
-                      new PdfDirectObject[]
-                      {
+                  },
+                  new PdfDirectObject[]
+                  {
               new PdfArray(new PdfDirectObject[]{PdfReal.Get(0.9412), PdfReal.Get(0.9412), PdfReal.Get(0.9412)}),
               new PdfArray(new PdfDirectObject[]{PdfInteger.Default, PdfInteger.Default, PdfInteger.Default}),
               new PdfString("4")
-                      }
-                      );
-                    widgetDataObject[PdfName.BS] = new PdfDictionary(
-                      new PdfName[]
-                      {
+                  }
+                  );
+                widgetDataObject[PdfName.BS] = new PdfDictionary(
+                  new PdfName[]
+                  {
               PdfName.W,
               PdfName.S
-                      },
-                      new PdfDirectObject[]
-                      {
+                  },
+                  new PdfDirectObject[]
+                  {
               PdfReal.Get(0.8),
               PdfName.S
-                      }
-                      );
-                    widgetDataObject[PdfName.H] = PdfName.P;
-                }
+                  }
+                  );
+                widgetDataObject[PdfName.H] = PdfName.P;
 
-                Appearance appearance = widget.Appearance;
-                AppearanceStates normalAppearance = appearance.Normal;
-                SizeF size = widget.Box.Size;
-                FormXObject onState = new FormXObject(document, size);
+                var appearance = widget.Appearance;
+                var normalAppearance = appearance.Normal;
+                var size = widget.Box.Size;
+                var onState = new FormXObject(document, size);
                 normalAppearance[PdfName.Yes] = onState;
 
                 //TODO:verify!!!
@@ -120,24 +92,24 @@ namespace org.pdfclown.documents.interaction.forms.styles
                 //   appearance.getDown().put(PdfName.Off,offState);
 
                 float lineWidth = 1;
-                RectangleF frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
+                var frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
                 {
-                    PrimitiveComposer composer = new PrimitiveComposer(onState);
+                    var composer = new PrimitiveComposer(onState);
 
-                    if (GraphicsVisibile)
+                    if (this.GraphicsVisibile)
                     {
-                        composer.BeginLocalState();
+                        _ = composer.BeginLocalState();
                         composer.SetLineWidth(lineWidth);
-                        composer.SetFillColor(BackColor);
-                        composer.SetStrokeColor(ForeColor);
+                        composer.SetFillColor(this.BackColor);
+                        composer.SetStrokeColor(this.ForeColor);
                         composer.DrawRectangle(frame, 5);
                         composer.FillStroke();
                         composer.End();
                     }
 
-                    BlockComposer blockComposer = new BlockComposer(composer);
+                    var blockComposer = new BlockComposer(composer);
                     blockComposer.Begin(frame, XAlignmentEnum.Center, YAlignmentEnum.Middle);
-                    composer.SetFillColor(ForeColor);
+                    composer.SetFillColor(this.ForeColor);
                     composer.SetFont(
                       new StandardType1Font(
                         document,
@@ -147,29 +119,27 @@ namespace org.pdfclown.documents.interaction.forms.styles
                         ),
                       size.Height * 0.8
                       );
-                    blockComposer.ShowText(new String(new char[] { CheckSymbol }));
+                    _ = blockComposer.ShowText(new string(new char[] { this.CheckSymbol }));
                     blockComposer.End();
 
                     composer.Flush();
                 }
 
-                FormXObject offState = new FormXObject(document, size);
+                var offState = new FormXObject(document, size);
                 normalAppearance[PdfName.Off] = offState;
+                if (this.GraphicsVisibile)
                 {
-                    if (GraphicsVisibile)
-                    {
-                        PrimitiveComposer composer = new PrimitiveComposer(offState);
+                    var composer = new PrimitiveComposer(offState);
 
-                        composer.BeginLocalState();
-                        composer.SetLineWidth(lineWidth);
-                        composer.SetFillColor(BackColor);
-                        composer.SetStrokeColor(ForeColor);
-                        composer.DrawRectangle(frame, 5);
-                        composer.FillStroke();
-                        composer.End();
+                    _ = composer.BeginLocalState();
+                    composer.SetLineWidth(lineWidth);
+                    composer.SetFillColor(this.BackColor);
+                    composer.SetStrokeColor(this.ForeColor);
+                    composer.DrawRectangle(frame, 5);
+                    composer.FillStroke();
+                    composer.End();
 
-                        composer.Flush();
-                    }
+                    composer.Flush();
                 }
             }
         }
@@ -178,44 +148,42 @@ namespace org.pdfclown.documents.interaction.forms.styles
           RadioButton field
           )
         {
-            Document document = field.Document;
-            foreach (Widget widget in field.Widgets)
+            var document = field.Document;
+            foreach (var widget in field.Widgets)
             {
-                {
-                    PdfDictionary widgetDataObject = widget.BaseDataObject;
-                    widgetDataObject[PdfName.DA] = new PdfString("/ZaDb 0 Tf 0 0 0 rg");
-                    widgetDataObject[PdfName.MK] = new PdfDictionary(
-                      new PdfName[]
-                      {
+                var widgetDataObject = widget.BaseDataObject;
+                widgetDataObject[PdfName.DA] = new PdfString("/ZaDb 0 Tf 0 0 0 rg");
+                widgetDataObject[PdfName.MK] = new PdfDictionary(
+                  new PdfName[]
+                  {
               PdfName.BG,
               PdfName.BC,
               PdfName.CA
-                      },
-                      new PdfDirectObject[]
-                      {
+                  },
+                  new PdfDirectObject[]
+                  {
               new PdfArray(new PdfDirectObject[]{PdfReal.Get(0.9412), PdfReal.Get(0.9412), PdfReal.Get(0.9412)}),
               new PdfArray(new PdfDirectObject[]{PdfInteger.Default, PdfInteger.Default, PdfInteger.Default}),
               new PdfString("l")
-                      }
-                      );
-                    widgetDataObject[PdfName.BS] = new PdfDictionary(
-                      new PdfName[]
-                      {
+                  }
+                  );
+                widgetDataObject[PdfName.BS] = new PdfDictionary(
+                  new PdfName[]
+                  {
               PdfName.W,
               PdfName.S
-                      },
-                      new PdfDirectObject[]
-                      {
+                  },
+                  new PdfDirectObject[]
+                  {
               PdfReal.Get(0.8),
               PdfName.S
-                      }
-                      );
-                    widgetDataObject[PdfName.H] = PdfName.P;
-                }
+                  }
+                  );
+                widgetDataObject[PdfName.H] = PdfName.P;
 
-                Appearance appearance = widget.Appearance;
-                AppearanceStates normalAppearance = appearance.Normal;
-                FormXObject onState = normalAppearance[new PdfName(widget.Value)];
+                var appearance = widget.Appearance;
+                var normalAppearance = appearance.Normal;
+                var onState = normalAppearance[new PdfName(widget.Value)];
 
                 //TODO:verify!!!
                 //   appearance.getRollover().put(new PdfName(...),onState);
@@ -223,26 +191,26 @@ namespace org.pdfclown.documents.interaction.forms.styles
                 //   appearance.getRollover().put(PdfName.Off,offState);
                 //   appearance.getDown().put(PdfName.Off,offState);
 
-                SizeF size = widget.Box.Size;
+                var size = widget.Box.Size;
                 float lineWidth = 1;
-                RectangleF frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
+                var frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
                 {
-                    PrimitiveComposer composer = new PrimitiveComposer(onState);
+                    var composer = new PrimitiveComposer(onState);
 
-                    if (GraphicsVisibile)
+                    if (this.GraphicsVisibile)
                     {
-                        composer.BeginLocalState();
+                        _ = composer.BeginLocalState();
                         composer.SetLineWidth(lineWidth);
-                        composer.SetFillColor(BackColor);
-                        composer.SetStrokeColor(ForeColor);
+                        composer.SetFillColor(this.BackColor);
+                        composer.SetStrokeColor(this.ForeColor);
                         composer.DrawEllipse(frame);
                         composer.FillStroke();
                         composer.End();
                     }
 
-                    BlockComposer blockComposer = new BlockComposer(composer);
+                    var blockComposer = new BlockComposer(composer);
                     blockComposer.Begin(frame, XAlignmentEnum.Center, YAlignmentEnum.Middle);
-                    composer.SetFillColor(ForeColor);
+                    composer.SetFillColor(this.ForeColor);
                     composer.SetFont(
                       new StandardType1Font(
                         document,
@@ -252,29 +220,27 @@ namespace org.pdfclown.documents.interaction.forms.styles
                         ),
                       size.Height * 0.8
                       );
-                    blockComposer.ShowText(new String(new char[] { RadioSymbol }));
+                    _ = blockComposer.ShowText(new string(new char[] { this.RadioSymbol }));
                     blockComposer.End();
 
                     composer.Flush();
                 }
 
-                FormXObject offState = new FormXObject(document, size);
+                var offState = new FormXObject(document, size);
                 normalAppearance[PdfName.Off] = offState;
+                if (this.GraphicsVisibile)
                 {
-                    if (GraphicsVisibile)
-                    {
-                        PrimitiveComposer composer = new PrimitiveComposer(offState);
+                    var composer = new PrimitiveComposer(offState);
 
-                        composer.BeginLocalState();
-                        composer.SetLineWidth(lineWidth);
-                        composer.SetFillColor(BackColor);
-                        composer.SetStrokeColor(ForeColor);
-                        composer.DrawEllipse(frame);
-                        composer.FillStroke();
-                        composer.End();
+                    _ = composer.BeginLocalState();
+                    composer.SetLineWidth(lineWidth);
+                    composer.SetFillColor(this.BackColor);
+                    composer.SetStrokeColor(this.ForeColor);
+                    composer.DrawEllipse(frame);
+                    composer.FillStroke();
+                    composer.End();
 
-                        composer.Flush();
-                    }
+                    composer.Flush();
                 }
             }
         }
@@ -283,50 +249,48 @@ namespace org.pdfclown.documents.interaction.forms.styles
           PushButton field
           )
         {
-            Document document = field.Document;
-            Widget widget = field.Widgets[0];
+            var document = field.Document;
+            var widget = field.Widgets[0];
 
-            Appearance appearance = widget.Appearance;
+            var appearance = widget.Appearance;
             FormXObject normalAppearanceState;
+            var size = widget.Box.Size;
+            normalAppearanceState = new FormXObject(document, size);
+            var composer = new PrimitiveComposer(normalAppearanceState);
+
+            float lineWidth = 1;
+            var frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
+            if (this.GraphicsVisibile)
             {
-                SizeF size = widget.Box.Size;
-                normalAppearanceState = new FormXObject(document, size);
-                PrimitiveComposer composer = new PrimitiveComposer(normalAppearanceState);
-
-                float lineWidth = 1;
-                RectangleF frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
-                if (GraphicsVisibile)
-                {
-                    composer.BeginLocalState();
-                    composer.SetLineWidth(lineWidth);
-                    composer.SetFillColor(BackColor);
-                    composer.SetStrokeColor(ForeColor);
-                    composer.DrawRectangle(frame, 5);
-                    composer.FillStroke();
-                    composer.End();
-                }
-
-                string title = (string)field.Value;
-                if (title != null)
-                {
-                    BlockComposer blockComposer = new BlockComposer(composer);
-                    blockComposer.Begin(frame, XAlignmentEnum.Center, YAlignmentEnum.Middle);
-                    composer.SetFillColor(ForeColor);
-                    composer.SetFont(
-                      new StandardType1Font(
-                        document,
-                        StandardType1Font.FamilyEnum.Helvetica,
-                        true,
-                        false
-                        ),
-                      size.Height * 0.5
-                      );
-                    blockComposer.ShowText(title);
-                    blockComposer.End();
-                }
-
-                composer.Flush();
+                _ = composer.BeginLocalState();
+                composer.SetLineWidth(lineWidth);
+                composer.SetFillColor(this.BackColor);
+                composer.SetStrokeColor(this.ForeColor);
+                composer.DrawRectangle(frame, 5);
+                composer.FillStroke();
+                composer.End();
             }
+
+            var title = (string)field.Value;
+            if (title != null)
+            {
+                var blockComposer = new BlockComposer(composer);
+                blockComposer.Begin(frame, XAlignmentEnum.Center, YAlignmentEnum.Middle);
+                composer.SetFillColor(this.ForeColor);
+                composer.SetFont(
+                  new StandardType1Font(
+                    document,
+                    StandardType1Font.FamilyEnum.Helvetica,
+                    true,
+                    false
+                    ),
+                  size.Height * 0.5
+                  );
+                _ = blockComposer.ShowText(title);
+                blockComposer.End();
+            }
+
+            composer.Flush();
             appearance.Normal[null] = normalAppearanceState;
         }
 
@@ -334,52 +298,50 @@ namespace org.pdfclown.documents.interaction.forms.styles
           TextField field
           )
         {
-            Document document = field.Document;
-            Widget widget = field.Widgets[0];
+            var document = field.Document;
+            var widget = field.Widgets[0];
 
-            Appearance appearance = widget.Appearance;
-            widget.BaseDataObject[PdfName.DA] = new PdfString("/Helv " + FontSize + " Tf 0 0 0 rg");
+            var appearance = widget.Appearance;
+            widget.BaseDataObject[PdfName.DA] = new PdfString($"/Helv {this.FontSize} Tf 0 0 0 rg");
 
             FormXObject normalAppearanceState;
+            var size = widget.Box.Size;
+            normalAppearanceState = new FormXObject(document, size);
+            var composer = new PrimitiveComposer(normalAppearanceState);
+
+            float lineWidth = 1;
+            var frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
+            if (this.GraphicsVisibile)
             {
-                SizeF size = widget.Box.Size;
-                normalAppearanceState = new FormXObject(document, size);
-                PrimitiveComposer composer = new PrimitiveComposer(normalAppearanceState);
-
-                float lineWidth = 1;
-                RectangleF frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
-                if (GraphicsVisibile)
-                {
-                    composer.BeginLocalState();
-                    composer.SetLineWidth(lineWidth);
-                    composer.SetFillColor(BackColor);
-                    composer.SetStrokeColor(ForeColor);
-                    composer.DrawRectangle(frame, 5);
-                    composer.FillStroke();
-                    composer.End();
-                }
-
-                composer.BeginMarkedContent(PdfName.Tx);
-                composer.SetFont(
-                  new StandardType1Font(
-                    document,
-                    StandardType1Font.FamilyEnum.Helvetica,
-                    false,
-                    false
-                    ),
-                  FontSize
-                  );
-                composer.ShowText(
-                  (string)field.Value,
-                  new PointF(0, size.Height / 2),
-                  XAlignmentEnum.Left,
-                  YAlignmentEnum.Middle,
-                  0
-                  );
+                _ = composer.BeginLocalState();
+                composer.SetLineWidth(lineWidth);
+                composer.SetFillColor(this.BackColor);
+                composer.SetStrokeColor(this.ForeColor);
+                composer.DrawRectangle(frame, 5);
+                composer.FillStroke();
                 composer.End();
-
-                composer.Flush();
             }
+
+            _ = composer.BeginMarkedContent(PdfName.Tx);
+            composer.SetFont(
+              new StandardType1Font(
+                document,
+                StandardType1Font.FamilyEnum.Helvetica,
+                false,
+                false
+                ),
+              this.FontSize
+              );
+            _ = composer.ShowText(
+              (string)field.Value,
+              new PointF(0, size.Height / 2),
+              XAlignmentEnum.Left,
+              YAlignmentEnum.Middle,
+              0
+              );
+            composer.End();
+
+            composer.Flush();
             appearance.Normal[null] = normalAppearanceState;
         }
 
@@ -387,52 +349,50 @@ namespace org.pdfclown.documents.interaction.forms.styles
           ComboBox field
           )
         {
-            Document document = field.Document;
-            Widget widget = field.Widgets[0];
+            var document = field.Document;
+            var widget = field.Widgets[0];
 
-            Appearance appearance = widget.Appearance;
-            widget.BaseDataObject[PdfName.DA] = new PdfString("/Helv " + FontSize + " Tf 0 0 0 rg");
+            var appearance = widget.Appearance;
+            widget.BaseDataObject[PdfName.DA] = new PdfString($"/Helv {this.FontSize} Tf 0 0 0 rg");
 
             FormXObject normalAppearanceState;
+            var size = widget.Box.Size;
+            normalAppearanceState = new FormXObject(document, size);
+            var composer = new PrimitiveComposer(normalAppearanceState);
+
+            float lineWidth = 1;
+            var frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
+            if (this.GraphicsVisibile)
             {
-                SizeF size = widget.Box.Size;
-                normalAppearanceState = new FormXObject(document, size);
-                PrimitiveComposer composer = new PrimitiveComposer(normalAppearanceState);
-
-                float lineWidth = 1;
-                RectangleF frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
-                if (GraphicsVisibile)
-                {
-                    composer.BeginLocalState();
-                    composer.SetLineWidth(lineWidth);
-                    composer.SetFillColor(BackColor);
-                    composer.SetStrokeColor(ForeColor);
-                    composer.DrawRectangle(frame, 5);
-                    composer.FillStroke();
-                    composer.End();
-                }
-
-                composer.BeginMarkedContent(PdfName.Tx);
-                composer.SetFont(
-                  new StandardType1Font(
-                    document,
-                    StandardType1Font.FamilyEnum.Helvetica,
-                    false,
-                    false
-                    ),
-                  FontSize
-                  );
-                composer.ShowText(
-                  (string)field.Value,
-                  new PointF(0, size.Height / 2),
-                  XAlignmentEnum.Left,
-                  YAlignmentEnum.Middle,
-                  0
-                  );
+                _ = composer.BeginLocalState();
+                composer.SetLineWidth(lineWidth);
+                composer.SetFillColor(this.BackColor);
+                composer.SetStrokeColor(this.ForeColor);
+                composer.DrawRectangle(frame, 5);
+                composer.FillStroke();
                 composer.End();
-
-                composer.Flush();
             }
+
+            _ = composer.BeginMarkedContent(PdfName.Tx);
+            composer.SetFont(
+              new StandardType1Font(
+                document,
+                StandardType1Font.FamilyEnum.Helvetica,
+                false,
+                false
+                ),
+              this.FontSize
+              );
+            _ = composer.ShowText(
+              (string)field.Value,
+              new PointF(0, size.Height / 2),
+              XAlignmentEnum.Left,
+              YAlignmentEnum.Middle,
+              0
+              );
+            composer.End();
+
+            composer.Flush();
             appearance.Normal[null] = normalAppearanceState;
         }
 
@@ -440,82 +400,95 @@ namespace org.pdfclown.documents.interaction.forms.styles
           ListBox field
           )
         {
-            Document document = field.Document;
-            Widget widget = field.Widgets[0];
+            var document = field.Document;
+            var widget = field.Widgets[0];
 
-            Appearance appearance = widget.Appearance;
-            {
-                PdfDictionary widgetDataObject = widget.BaseDataObject;
-                widgetDataObject[PdfName.DA] = new PdfString("/Helv " + FontSize + " Tf 0 0 0 rg");
-                widgetDataObject[PdfName.MK] = new PdfDictionary(
-                  new PdfName[]
-                  {
+            var appearance = widget.Appearance;
+            var widgetDataObject = widget.BaseDataObject;
+            widgetDataObject[PdfName.DA] = new PdfString($"/Helv {this.FontSize} Tf 0 0 0 rg");
+            widgetDataObject[PdfName.MK] = new PdfDictionary(
+              new PdfName[]
+              {
             PdfName.BG,
             PdfName.BC
-                  },
-                  new PdfDirectObject[]
-                  {
+              },
+              new PdfDirectObject[]
+              {
             new PdfArray(new PdfDirectObject[]{PdfReal.Get(.9), PdfReal.Get(.9), PdfReal.Get(.9)}),
             new PdfArray(new PdfDirectObject[]{PdfInteger.Default, PdfInteger.Default, PdfInteger.Default})
-                  }
-                  );
-            }
+              }
+              );
 
             FormXObject normalAppearanceState;
+            var size = widget.Box.Size;
+            normalAppearanceState = new FormXObject(document, size);
+            var composer = new PrimitiveComposer(normalAppearanceState);
+
+            float lineWidth = 1;
+            var frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
+            if (this.GraphicsVisibile)
             {
-                SizeF size = widget.Box.Size;
-                normalAppearanceState = new FormXObject(document, size);
-                PrimitiveComposer composer = new PrimitiveComposer(normalAppearanceState);
-
-                float lineWidth = 1;
-                RectangleF frame = new RectangleF(lineWidth / 2, lineWidth / 2, size.Width - lineWidth, size.Height - lineWidth);
-                if (GraphicsVisibile)
-                {
-                    composer.BeginLocalState();
-                    composer.SetLineWidth(lineWidth);
-                    composer.SetFillColor(BackColor);
-                    composer.SetStrokeColor(ForeColor);
-                    composer.DrawRectangle(frame, 5);
-                    composer.FillStroke();
-                    composer.End();
-                }
-
-                composer.BeginLocalState();
-                if (GraphicsVisibile)
-                {
-                    composer.DrawRectangle(frame, 5);
-                    composer.Clip(); // Ensures that the visible content is clipped within the rounded frame.
-                }
-                composer.BeginMarkedContent(PdfName.Tx);
-                composer.SetFont(
-                  new StandardType1Font(
-                    document,
-                    StandardType1Font.FamilyEnum.Helvetica,
-                    false,
-                    false
-                    ),
-                  FontSize
-                  );
-                double y = 3;
-                foreach (ChoiceItem item in field.Items)
-                {
-                    composer.ShowText(
-                      item.Text,
-                      new PointF(0, (float)y)
-                      );
-                    y += FontSize * 1.175;
-                    if (y > size.Height)
-                        break;
-                }
+                _ = composer.BeginLocalState();
+                composer.SetLineWidth(lineWidth);
+                composer.SetFillColor(this.BackColor);
+                composer.SetStrokeColor(this.ForeColor);
+                composer.DrawRectangle(frame, 5);
+                composer.FillStroke();
                 composer.End();
-                composer.End();
-
-                composer.Flush();
             }
+
+            _ = composer.BeginLocalState();
+            if (this.GraphicsVisibile)
+            {
+                composer.DrawRectangle(frame, 5);
+                composer.Clip(); // Ensures that the visible content is clipped within the rounded frame.
+            }
+            _ = composer.BeginMarkedContent(PdfName.Tx);
+            composer.SetFont(
+              new StandardType1Font(
+                document,
+                StandardType1Font.FamilyEnum.Helvetica,
+                false,
+                false
+                ),
+              this.FontSize
+              );
+            double y = 3;
+            foreach (var item in field.Items)
+            {
+                _ = composer.ShowText(
+                  item.Text,
+                  new PointF(0, (float)y)
+                  );
+                y += this.FontSize * 1.175;
+                if (y > size.Height)
+                {
+                    break;
+                }
+            }
+            composer.End();
+            composer.End();
+
+            composer.Flush();
             appearance.Normal[null] = normalAppearanceState;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public override void Apply(
+Field field
+)
+        {
+            if (field is PushButton)
+            { this.Apply((PushButton)field); }
+            else if (field is CheckBox)
+            { this.Apply((CheckBox)field); }
+            else if (field is TextField)
+            { this.Apply((TextField)field); }
+            else if (field is ComboBox)
+            { this.Apply((ComboBox)field); }
+            else if (field is ListBox)
+            { this.Apply((ListBox)field); }
+            else if (field is RadioButton)
+            { this.Apply((RadioButton)field); }
+        }
     }
 }

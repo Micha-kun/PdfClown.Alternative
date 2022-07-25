@@ -24,13 +24,13 @@
 */
 
 
-using System;
-
-using System.Globalization;
-using org.pdfclown.util.io;
-
 namespace org.pdfclown.util
 {
+    using System;
+
+    using System.Globalization;
+    using org.pdfclown.util.io;
+
     /**
       <summary>Data convertion utility.</summary>
       <remarks>This class is a specialized adaptation from the original <a href="http://commons.apache.org/codec/">
@@ -39,19 +39,14 @@ namespace org.pdfclown.util
     */
     public static class ConvertUtils
     {
-        #region static
-        #region fields
         private static readonly char[] HexDigits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-        #endregion
 
-        #region interface
-        #region public
         public static string ByteArrayToHex(
-          byte[] data
-          )
+byte[] data
+)
         {
-            int dataLength = data.Length;
-            char[] result = new char[dataLength * 2];
+            var dataLength = data.Length;
+            var result = new char[dataLength * 2];
             for (int dataIndex = 0, resultIndex = 0; dataIndex < dataLength; dataIndex++)
             {
                 result[resultIndex++] = HexDigits[(0xF0 & data[dataIndex]) >> 4];
@@ -79,10 +74,10 @@ namespace org.pdfclown.util
           ByteOrderEnum byteOrder
           )
         {
-            int value = 0;
+            var value = 0;
             length = Math.Min(length, data.Length - index);
             for (int i = index, endIndex = index + length; i < endIndex; i++)
-            { value |= (data[i] & 0xff) << 8 * (byteOrder == ByteOrderEnum.LittleEndian ? i - index : endIndex - i - 1); }
+            { value |= (data[i] & 0xff) << (8 * ((byteOrder == ByteOrderEnum.LittleEndian) ? (i - index) : (endIndex - i - 1))); }
             return value;
         }
 
@@ -91,24 +86,24 @@ namespace org.pdfclown.util
           )
         {
             byte[] result;
+            var dataLength = data.Length;
+            if (dataLength % 2 != 0)
             {
-                int dataLength = data.Length;
-                if ((dataLength % 2) != 0)
-                    throw new Exception("Odd number of characters.");
+                throw new Exception("Odd number of characters.");
+            }
 
-                result = new byte[dataLength / 2];
-                for (
-                  int resultIndex = 0,
-                    dataIndex = 0;
-                  dataIndex < dataLength;
-                  resultIndex++
-                  )
-                {
-                    result[resultIndex] = byte.Parse(
-                      data[dataIndex++].ToString() + data[dataIndex++].ToString(),
-                      System.Globalization.NumberStyles.HexNumber
-                      );
-                }
+            result = new byte[dataLength / 2];
+            for (
+              int resultIndex = 0,
+                dataIndex = 0;
+              dataIndex < dataLength;
+              resultIndex++
+              )
+            {
+                result[resultIndex] = byte.Parse(
+                  $"{data[dataIndex++]}{data[dataIndex++]}",
+                  NumberStyles.HexNumber
+                  );
             }
             return result;
         }
@@ -124,13 +119,13 @@ namespace org.pdfclown.util
           ByteOrderEnum byteOrder
           )
         {
-            byte[] result = new byte[length];
+            var result = new byte[length];
             for (
-              int index = 0;
+              var index = 0;
               index < length;
               index++
               )
-            { result[index] = (byte)(data >> 8 * (byteOrder == ByteOrderEnum.LittleEndian ? index : length - index - 1)); }
+            { result[index] = (byte)(data >> (8 * ((byteOrder == ByteOrderEnum.LittleEndian) ? index : (length - index - 1)))); }
             return result;
         }
 
@@ -142,29 +137,26 @@ namespace org.pdfclown.util
         public static double ParseDoubleInvariant(
           string value
           )
-        { return Double.Parse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo); }
+        { return double.Parse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo); }
 
         public static float ParseFloatInvariant(
           string value
           )
-        { return Single.Parse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo); }
+        { return float.Parse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo); }
 
         public static int ParseIntInvariant(
           string value
           )
-        { return Int32.Parse(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo); }
+        { return int.Parse(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo); }
 
         public static float[] ToFloatArray(
           double[] array
           )
         {
-            float[] result = new float[array.Length];
+            var result = new float[array.Length];
             for (int index = 0, length = array.Length; index < length; index++)
             { result[index] = (float)array[index]; }
             return result;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

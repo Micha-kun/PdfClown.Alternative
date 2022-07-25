@@ -1,15 +1,13 @@
-
-using System;
-using System.Drawing;
-using System.IO;
-using org.pdfclown.documents;
-
-using org.pdfclown.documents.contents.composition;
-using files = org.pdfclown.files;
-using fonts = org.pdfclown.documents.contents.fonts;
-
 namespace org.pdfclown.samples.cli
 {
+    using System.Drawing;
+    using System.IO;
+    using org.pdfclown.documents;
+
+    using org.pdfclown.documents.contents.composition;
+    using files = org.pdfclown.files;
+    using fonts = org.pdfclown.documents.contents.fonts;
+
     /**
       <summary>This sample demonstrates the PDF Clown's support to Unicode-compliant fonts.</summary>
     */
@@ -17,20 +15,6 @@ namespace org.pdfclown.samples.cli
       : Sample
     {
         private const float Margin = 36;
-
-        public override void Run(
-          )
-        {
-            // 1. Instantiate a new PDF file!
-            files::File file = new files::File();
-            Document document = file.Document;
-
-            // 2. Insert the contents into the document!
-            Populate(document);
-
-            // 3. Serialize the PDF file!
-            Serialize(file, "Unicode", "using Unicode fonts", "Unicode");
-        }
 
         /**
           <summary>Populates a PDF file with contents.</summary>
@@ -40,25 +24,25 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Add the page to the document!
-            Page page = new Page(document); // Instantiates the page inside the document context.
+            var page = new Page(document); // Instantiates the page inside the document context.
             document.Pages.Add(page); // Puts the page in the pages collection.
 
             // 2.1. Create a content composer for the page!
-            PrimitiveComposer composer = new PrimitiveComposer(page);
+            var composer = new PrimitiveComposer(page);
 
             // 2.2. Create a block composer!
-            BlockComposer blockComposer = new BlockComposer(composer);
+            var blockComposer = new BlockComposer(composer);
 
             // 3. Inserting contents...
             // Define the font to use!
-            fonts::Font font = fonts::Font.Get(
+            var font = fonts::Font.Get(
               document,
-              GetResourcePath("fonts" + Path.DirectorySeparatorChar + "GenR102.TTF")
+              this.GetResourcePath($"fonts{Path.DirectorySeparatorChar}GenR102.TTF")
               );
             // Define the paragraph break size!
-            Size breakSize = new Size(0, 10);
+            var breakSize = new Size(0, 10);
             // Define the text to show!
-            string[] titles = new string[]
+            var titles = new string[]
               {
           "ΑΡΘΡΟ 1",
           "ASARIYA SINTE (1)",
@@ -74,7 +58,7 @@ namespace org.pdfclown.samples.cli
           "Bend 1",
           "Abala kìíní."
               };
-            string[] bodies = new string[]
+            var bodies = new string[]
               {
           "'Ολοι οι άνθρωποι γεννιούνται ελεύθεροι και ίσοι στην αξιοπρέπεια και τα δικαιώματα. Είναι προικισμένοι με λογική και συνείδηση, και οφείλουν να συμπεριφέρονται μεταξύ τους με πνεύμα αδελφοσύνης.",
           "Aduniya kuna n gu ibuna damayo hɛi nɔ dei-dei nn daama nna n burucinitɛrɛ fɔ, n lasabu nna laakari ya nam nn mɔ huro cɛrɛ kuna nyanze tɛrɛ bɔŋɔɔ.",
@@ -90,7 +74,7 @@ namespace org.pdfclown.samples.cli
           "Hemû mirov azad û di weqar û mafan de wekhev tên dinyayê. Ew xwedî hiş û şuûr in û divê li hember hev bi zihniyeteke bratiyê bilivin.",
           "Gbogbo ènìyàn ni a bí ní òmìnira; iyì àti è̟tó̟ kò̟ò̟kan sì dó̟gba. Wó̟n ní è̟bùn ti làákàyè àti ti è̟rí-o̟kàn, ó sì ye̟ kí wo̟n ó máa hùwà sí ara wo̟n gé̟gé̟ bí o̟mo̟ ìyá."
               };
-            string[] sources = new string[]
+            var sources = new string[]
             {
         "http://www.ohchr.org/EN/UDHR/Pages/Language.aspx?LangID=grk",
         "http://www.ohchr.org/EN/UDHR/Pages/Language.aspx?LangID=den",
@@ -111,8 +95,8 @@ namespace org.pdfclown.samples.cli
               new RectangleF(
                 Margin,
                 Margin,
-                page.Size.Width - Margin * 2,
-                page.Size.Height - Margin * 2
+                page.Size.Width - (Margin * 2),
+                page.Size.Height - (Margin * 2)
                 ),
               XAlignmentEnum.Justify,
               YAlignmentEnum.Top
@@ -125,22 +109,36 @@ namespace org.pdfclown.samples.cli
               )
             {
                 composer.SetFont(font, 12);
-                blockComposer.ShowText(titles[index]);
-                blockComposer.ShowBreak();
+                _ = blockComposer.ShowText(titles[index]);
+                _ = blockComposer.ShowBreak();
 
                 composer.SetFont(font, 11);
-                blockComposer.ShowText(bodies[index]);
-                blockComposer.ShowBreak(XAlignmentEnum.Right);
+                _ = blockComposer.ShowText(bodies[index]);
+                _ = blockComposer.ShowBreak(XAlignmentEnum.Right);
 
                 composer.SetFont(font, 8);
-                blockComposer.ShowText("[Source: " + sources[index] + "]");
-                blockComposer.ShowBreak(breakSize, XAlignmentEnum.Justify);
+                _ = blockComposer.ShowText($"[Source: {sources[index]}]");
+                _ = blockComposer.ShowBreak(breakSize, XAlignmentEnum.Justify);
             }
             // End the content block!
             blockComposer.End();
 
             // 4. Flush the contents into the page!
             composer.Flush();
+        }
+
+        public override void Run(
+          )
+        {
+            // 1. Instantiate a new PDF file!
+            var file = new files::File();
+            var document = file.Document;
+
+            // 2. Insert the contents into the document!
+            this.Populate(document);
+
+            // 3. Serialize the PDF file!
+            _ = this.Serialize(file, "Unicode", "using Unicode fonts", "Unicode");
         }
     }
 }

@@ -24,16 +24,16 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using org.pdfclown.bytes;
-using org.pdfclown.documents.files;
-
-using org.pdfclown.files;
-using org.pdfclown.tokens;
 
 namespace org.pdfclown.objects
 {
+    using System;
+    using org.pdfclown.bytes;
+    using org.pdfclown.documents.files;
+
+    using org.pdfclown.files;
+    using org.pdfclown.tokens;
+
     /**
       <summary>PDF stream object [PDF:1.6:3.2.7].</summary>
     */
@@ -41,36 +41,28 @@ namespace org.pdfclown.objects
       : PdfDataObject,
         IFileResource
     {
-        #region static
-        #region fields
         private static readonly byte[] BeginStreamBodyChunk = Encoding.Pdf.Encode(Symbol.LineFeed + Keyword.BeginStream + Symbol.LineFeed);
         private static readonly byte[] EndStreamBodyChunk = Encoding.Pdf.Encode(Symbol.LineFeed + Keyword.EndStream);
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        internal IBuffer body;
-        internal PdfDictionary header;
-
-        private PdfObject parent;
-        private bool updateable = true;
-        private bool updated;
-        private bool virtual_;
 
         /**
           <summary>Indicates whether {@link #body} has already been resolved and therefore contains the
           actual stream data.</summary>
         */
         private bool bodyResolved;
-        #endregion
 
-        #region constructors
+        private PdfObject parent;
+        private bool updateable = true;
+        private bool updated;
+        private bool virtual_;
+
+        internal IBuffer body;
+        internal PdfDictionary header;
+
         public PdfStream(
-          ) : this(
-            new PdfDictionary(),
-            new bytes.Buffer()
-            )
+  ) : this(
+    new PdfDictionary(),
+    new bytes.Buffer()
+    )
         { }
 
         public PdfStream(
@@ -94,7 +86,7 @@ namespace org.pdfclown.objects
           IBuffer body
           )
         {
-            this.header = (PdfDictionary)Include(header);
+            this.header = (PdfDictionary)this.Include(header);
 
             this.body = body;
             body.Dirty = false;
@@ -102,51 +94,20 @@ namespace org.pdfclown.objects
               object sender,
               EventArgs args
               )
-            { Update(); };
+            { this.Update(); };
         }
-        #endregion
 
-        #region interface
-        #region public
+        protected internal override bool Virtual
+        {
+            get => this.virtual_;
+            set => this.virtual_ = value;
+        }
+
         public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
+IVisitor visitor,
+object data
+)
         { return visitor.Visit(this, data); }
-
-        /**
-          <summary>Gets the decoded stream body.</summary>
-        */
-        public IBuffer Body
-        {
-            get
-            {
-                /*
-                  NOTE: Encoding filters are removed by default because they belong to a lower layer (token
-                  layer), so that it's appropriate and consistent to transparently keep the object layer
-                  unaware of such a facility.
-                */
-                return GetBody(true);
-            }
-        }
-
-        public PdfDirectObject Filter
-        {
-            get
-            {
-                return (PdfDirectObject)(header[PdfName.F] == null
-                  ? header.Resolve(PdfName.Filter)
-                  : header.Resolve(PdfName.FFilter));
-            }
-            protected set
-            {
-                header[
-                  header[PdfName.F] == null
-                    ? PdfName.Filter
-                    : PdfName.FFilter
-                  ] = value;
-            }
-        }
 
         /**
           <summary>Gets the stream body.</summary>
@@ -156,40 +117,40 @@ namespace org.pdfclown.objects
           bool decode
           )
         {
-            if (!bodyResolved)
+            if (!this.bodyResolved)
             {
                 /*
                   NOTE: In case of stream data from external file, a copy to the local buffer has to be done.
                 */
-                FileSpecification dataFile = DataFile;
+                var dataFile = this.DataFile;
                 if (dataFile != null)
                 {
-                    Updateable = false;
-                    body.Clear();
-                    body.Write(dataFile.GetInputStream());
-                    body.Dirty = false;
-                    Updateable = true;
+                    this.Updateable = false;
+                    this.body.Clear();
+                    this.body.Write(dataFile.GetInputStream());
+                    this.body.Dirty = false;
+                    this.Updateable = true;
                 }
-                bodyResolved = true;
+                this.bodyResolved = true;
             }
             if (decode)
             {
-                PdfDataObject filter = Filter;
+                PdfDataObject filter = this.Filter;
                 if (filter != null) // Stream encoded.
                 {
-                    header.Updateable = false;
-                    PdfDataObject parameters = Parameters;
+                    this.header.Updateable = false;
+                    PdfDataObject parameters = this.Parameters;
                     if (filter is PdfName) // Single filter.
                     {
-                        body.Decode(
+                        this.body.Decode(
                           bytes.filters.Filter.Get((PdfName)filter),
                           (PdfDictionary)parameters
                           );
                     }
                     else // Multiple filters.
                     {
-                        IEnumerator<PdfDirectObject> filterIterator = ((PdfArray)filter).GetEnumerator();
-                        IEnumerator<PdfDirectObject> parametersIterator = (parameters != null ? ((PdfArray)parameters).GetEnumerator() : null);
+                        var filterIterator = ((PdfArray)filter).GetEnumerator();
+                        var parametersIterator = (parameters != null) ? ((PdfArray)parameters).GetEnumerator() : null;
                         while (filterIterator.MoveNext())
                         {
                             PdfDictionary filterParameters;
@@ -197,54 +158,19 @@ namespace org.pdfclown.objects
                             { filterParameters = null; }
                             else
                             {
-                                parametersIterator.MoveNext();
+                                _ = parametersIterator.MoveNext();
                                 filterParameters = (PdfDictionary)Resolve(parametersIterator.Current);
                             }
-                            body.Decode(bytes.filters.Filter.Get((PdfName)Resolve(filterIterator.Current)), filterParameters);
+                            this.body.Decode(bytes.filters.Filter.Get((PdfName)Resolve(filterIterator.Current)), filterParameters);
                         }
                     }
                     // The stream is free from encodings.
-                    Filter = null;
-                    Parameters = null;
-                    header.Updateable = true;
+                    this.Filter = null;
+                    this.Parameters = null;
+                    this.header.Updateable = true;
                 }
             }
-            return body;
-        }
-
-        /**
-          <summary>Gets the stream header.</summary>
-        */
-        public PdfDictionary Header
-        {
-            get
-            { return header; }
-        }
-
-        public PdfDirectObject Parameters
-        {
-            get
-            {
-                return (PdfDirectObject)(header[PdfName.F] == null
-                  ? header.Resolve(PdfName.DecodeParms)
-                  : header.Resolve(PdfName.FDecodeParms));
-            }
-            protected set
-            {
-                header[
-                  header[PdfName.F] == null
-                    ? PdfName.DecodeParms
-                    : PdfName.FDecodeParms
-                  ] = value;
-            }
-        }
-
-        public override PdfObject Parent
-        {
-            get
-            { return parent; }
-            internal set
-            { parent = value; }
+            return this.body;
         }
 
         /**
@@ -273,43 +199,43 @@ namespace org.pdfclown.objects
               external        | null            | true      | G. Import old file to local.
               ----------------------------------------------------------------------------------------------
             */
-            FileSpecification oldDataFile = DataFile;
-            PdfDirectObject dataFileObject = (value != null ? value.BaseObject : null);
+            var oldDataFile = this.DataFile;
+            var dataFileObject = (value != null) ? value.BaseObject : null;
             if (value != null)
             {
                 if (preserve)
                 {
                     if (oldDataFile != null) // Case D (copy old file data to new file).
                     {
-                        if (!bodyResolved)
+                        if (!this.bodyResolved)
                         {
                             // Transfer old file data to local!
-                            GetBody(false); // Ensures that external data is loaded as-is into the local buffer.
+                            _ = this.GetBody(false); // Ensures that external data is loaded as-is into the local buffer.
                         }
                     }
                     else // Case B (export local to new file).
                     {
                         // Transfer local settings to file!
-                        header[PdfName.FFilter] = header[PdfName.Filter];
-                        header.Remove(PdfName.Filter);
-                        header[PdfName.FDecodeParms] = header[PdfName.DecodeParms];
-                        header.Remove(PdfName.DecodeParms);
+                        this.header[PdfName.FFilter] = this.header[PdfName.Filter];
+                        _ = this.header.Remove(PdfName.Filter);
+                        this.header[PdfName.FDecodeParms] = this.header[PdfName.DecodeParms];
+                        _ = this.header.Remove(PdfName.DecodeParms);
 
                         // Ensure local data represents actual data (otherwise it would be substituted by resolved file data)!
-                        bodyResolved = true;
+                        this.bodyResolved = true;
                     }
                     // Ensure local data has to be serialized to new file!
-                    body.Dirty = true;
+                    this.body.Dirty = true;
                 }
                 else // Case A/C (substitute local/old file with new file).
                 {
                     // Dismiss local/old file data!
-                    body.Clear();
+                    this.body.Clear();
                     // Dismiss local/old file settings!
-                    Filter = null;
-                    Parameters = null;
+                    this.Filter = null;
+                    this.Parameters = null;
                     // Ensure local data has to be loaded from new file!
-                    bodyResolved = false;
+                    this.bodyResolved = false;
                 }
             }
             else
@@ -319,37 +245,37 @@ namespace org.pdfclown.objects
                     if (preserve) // Case G (import old file to local).
                     {
                         // Transfer old file data to local!
-                        GetBody(false); // Ensures that external data is loaded as-is into the local buffer.
-                                        // Transfer old file settings to local!
-                        header[PdfName.Filter] = header[PdfName.FFilter];
-                        header.Remove(PdfName.FFilter);
-                        header[PdfName.DecodeParms] = header[PdfName.FDecodeParms];
-                        header.Remove(PdfName.FDecodeParms);
+                        _ = this.GetBody(false); // Ensures that external data is loaded as-is into the local buffer.
+                                                 // Transfer old file settings to local!
+                        this.header[PdfName.Filter] = this.header[PdfName.FFilter];
+                        _ = this.header.Remove(PdfName.FFilter);
+                        this.header[PdfName.DecodeParms] = this.header[PdfName.FDecodeParms];
+                        _ = this.header.Remove(PdfName.FDecodeParms);
                     }
                     else // Case F (empty local).
                     {
                         // Dismiss old file data!
-                        body.Clear();
+                        this.body.Clear();
                         // Dismiss old file settings!
-                        Filter = null;
-                        Parameters = null;
+                        this.Filter = null;
+                        this.Parameters = null;
                         // Ensure local data represents actual data (otherwise it would be substituted by resolved file data)!
-                        bodyResolved = true;
+                        this.bodyResolved = true;
                     }
                 }
                 else // E (no action).
                 { /* NOOP */ }
             }
-            header[PdfName.F] = dataFileObject;
+            this.header[PdfName.F] = dataFileObject;
         }
 
         public override PdfObject Swap(
           PdfObject other
           )
         {
-            PdfStream otherStream = (PdfStream)other;
-            PdfDictionary otherHeader = otherStream.header;
-            IBuffer otherBody = otherStream.body;
+            var otherStream = (PdfStream)other;
+            var otherHeader = otherStream.header;
+            var otherBody = otherStream.body;
             // Update the other!
             otherStream.header = this.header;
             otherStream.body = this.body;
@@ -361,22 +287,6 @@ namespace org.pdfclown.objects
             return this;
         }
 
-        public override bool Updateable
-        {
-            get
-            { return updateable; }
-            set
-            { updateable = value; }
-        }
-
-        public override bool Updated
-        {
-            get
-            { return updated; }
-            protected internal set
-            { updated = value; }
-        }
-
         public override void WriteTo(
           IOutputStream stream,
           File context
@@ -385,61 +295,57 @@ namespace org.pdfclown.objects
             /*
               NOTE: The header is temporarily tweaked to accommodate serialization settings.
             */
-            header.Updateable = false;
+            this.header.Updateable = false;
 
             byte[] bodyData = null;
+            var filterApplied = false;
+            /*
+              NOTE: In case of external file, the body buffer has to be saved back only if the file was
+              actually resolved (that is brought into the body buffer) and modified.
+            */
+            var dataFile = this.DataFile;
+            if ((dataFile == null) || (this.bodyResolved && this.body.Dirty))
             {
-                bool filterApplied = false;
+                /*
+                  NOTE: In order to keep the contents of metadata streams visible as plain text to tools
+                  that are not PDF-aware, no filter is applied to them [PDF:1.7:10.2.2].
+                */
+                if ((this.Filter == null)
+                   && context.Configuration.StreamFilterEnabled
+                   && !PdfName.Metadata.Equals(this.header[PdfName.Type])) // Filter needed.
                 {
-                    /*
-                      NOTE: In case of external file, the body buffer has to be saved back only if the file was
-                      actually resolved (that is brought into the body buffer) and modified.
-                    */
-                    FileSpecification dataFile = DataFile;
-                    if (dataFile == null || (bodyResolved && body.Dirty))
+                    // Apply the filter to the stream!
+                    bodyData = this.body.Encode(bytes.filters.Filter.Get((PdfName)(this.Filter = PdfName.FlateDecode)), null);
+                    filterApplied = true;
+                }
+                else // No filter needed.
+                { bodyData = this.body.ToByteArray(); }
+
+                if (dataFile != null)
+                {
+                    try
                     {
-                        /*
-                          NOTE: In order to keep the contents of metadata streams visible as plain text to tools
-                          that are not PDF-aware, no filter is applied to them [PDF:1.7:10.2.2].
-                        */
-                        if (Filter == null
-                           && context.Configuration.StreamFilterEnabled
-                           && !PdfName.Metadata.Equals(header[PdfName.Type])) // Filter needed.
-                        {
-                            // Apply the filter to the stream!
-                            bodyData = body.Encode(bytes.filters.Filter.Get((PdfName)(Filter = PdfName.FlateDecode)), null);
-                            filterApplied = true;
-                        }
-                        else // No filter needed.
-                        { bodyData = body.ToByteArray(); }
-
-                        if (dataFile != null)
-                        {
-                            try
-                            {
-                                using (var dataFileOutputStream = dataFile.GetOutputStream())
-                                { dataFileOutputStream.Write(bodyData); }
-                            }
-                            catch (Exception e)
-                            { throw new Exception("Data writing into " + dataFile.Path + " failed.", e); }
-                        }
+                        using (var dataFileOutputStream = dataFile.GetOutputStream())
+                        { dataFileOutputStream.Write(bodyData); }
                     }
-                    if (dataFile != null)
-                    { bodyData = new byte[] { }; }
+                    catch (Exception e)
+                    { throw new Exception($"Data writing into {dataFile.Path} failed.", e); }
                 }
+            }
+            if (dataFile != null)
+            { bodyData = new byte[] { }; }
 
-                // Set the encoded data length!
-                header[PdfName.Length] = PdfInteger.Get(bodyData.Length);
+            // Set the encoded data length!
+            this.header[PdfName.Length] = PdfInteger.Get(bodyData.Length);
 
-                // 1. Header.
-                header.WriteTo(stream, context);
+            // 1. Header.
+            this.header.WriteTo(stream, context);
 
-                if (filterApplied)
-                {
-                    // Restore actual header entries!
-                    header[PdfName.Length] = PdfInteger.Get((int)body.Length);
-                    Filter = null;
-                }
+            if (filterApplied)
+            {
+                // Restore actual header entries!
+                this.header[PdfName.Length] = PdfInteger.Get((int)this.body.Length);
+                this.Filter = null;
             }
 
             // 2. Body.
@@ -447,31 +353,72 @@ namespace org.pdfclown.objects
             stream.Write(bodyData);
             stream.Write(EndStreamBodyChunk);
 
-            header.Updateable = true;
+            this.header.Updateable = true;
         }
 
-        #region IFileResource
+        /**
+          <summary>Gets the decoded stream body.</summary>
+        */
+        public IBuffer Body =>
+                /*
+NOTE: Encoding filters are removed by default because they belong to a lower layer (token
+layer), so that it's appropriate and consistent to transparently keep the object layer
+unaware of such a facility.
+*/
+                this.GetBody(true);
+
         [PDF(VersionEnum.PDF12)]
         public FileSpecification DataFile
         {
-            get
-            { return FileSpecification.Wrap(header[PdfName.F]); }
-            set
-            { SetDataFile(value, false); }
+            get => FileSpecification.Wrap(this.header[PdfName.F]);
+            set => this.SetDataFile(value, false);
         }
-        #endregion
-        #endregion
 
-        #region protected
-        protected internal override bool Virtual
+        public PdfDirectObject Filter
         {
-            get
-            { return virtual_; }
-            set
-            { virtual_ = value; }
+            get => (PdfDirectObject)((this.header[PdfName.F] == null)
+                  ? this.header.Resolve(PdfName.Filter)
+                  : this.header.Resolve(PdfName.FFilter));
+            protected set => this.header[
+                  (this.header[PdfName.F] == null)
+                    ? PdfName.Filter
+                    : PdfName.FFilter
+                  ] = value;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+          <summary>Gets the stream header.</summary>
+        */
+        public PdfDictionary Header => this.header;
+
+        public PdfDirectObject Parameters
+        {
+            get => (PdfDirectObject)((this.header[PdfName.F] == null)
+                  ? this.header.Resolve(PdfName.DecodeParms)
+                  : this.header.Resolve(PdfName.FDecodeParms));
+            protected set => this.header[
+                  (this.header[PdfName.F] == null)
+                    ? PdfName.DecodeParms
+                    : PdfName.FDecodeParms
+                  ] = value;
+        }
+
+        public override PdfObject Parent
+        {
+            get => this.parent;
+            internal set => this.parent = value;
+        }
+
+        public override bool Updateable
+        {
+            get => this.updateable;
+            set => this.updateable = value;
+        }
+
+        public override bool Updated
+        {
+            get => this.updated;
+            protected internal set => this.updated = value;
+        }
     }
 }

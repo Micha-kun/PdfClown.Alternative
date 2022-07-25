@@ -24,14 +24,14 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.layers
 {
+    using System;
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Layer entity.</summary>
     */
@@ -39,58 +39,29 @@ namespace org.pdfclown.documents.contents.layers
     public abstract class LayerEntity
       : PropertyList
     {
-        #region types
-        /**
-          <summary>Membership visibility policy [PDF:1.7:4.10.1].</summary>
-        */
-        public enum VisibilityPolicyEnum
-        {
-            /**
-              <summary>Visible only if all of the visibility layers are ON.</summary>
-            */
-            AllOn,
-            /**
-              <summary>Visible if any of the visibility layers are ON.</summary>
-            */
-            AnyOn,
-            /**
-              <summary>Visible if any of the visibility layers are OFF.</summary>
-            */
-            AnyOff,
-            /**
-              <summary>Visible only if all of the visibility layers are OFF.</summary>
-            */
-            AllOff
-        }
-        #endregion
-
-        #region dynamic
-        #region constructors
-        protected LayerEntity(
-          Document context,
-          PdfName typeName
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {typeName}
-            ))
-        { }
 
         protected LayerEntity(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        protected LayerEntity(
+Document context,
+PdfName typeName
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Type},
+new PdfDirectObject[]
+{typeName}
+))
+        { }
+
         /**
-          <summary>Gets the default membership, corresponding to the hierarchical relation between this
-          layer entity and its ascendants; top-level layers return themselves.</summary>
-        */
+<summary>Gets the default membership, corresponding to the hierarchical relation between this
+layer entity and its ascendants; top-level layers return themselves.</summary>
+*/
         public abstract LayerEntity Membership
         {
             get;
@@ -127,9 +98,28 @@ namespace org.pdfclown.documents.contents.layers
             get;
             set;
         }
-        #endregion
-        #endregion
-        #endregion
+        /**
+  <summary>Membership visibility policy [PDF:1.7:4.10.1].</summary>
+*/
+        public enum VisibilityPolicyEnum
+        {
+            /**
+              <summary>Visible only if all of the visibility layers are ON.</summary>
+            */
+            AllOn,
+            /**
+              <summary>Visible if any of the visibility layers are ON.</summary>
+            */
+            AnyOn,
+            /**
+              <summary>Visible if any of the visibility layers are OFF.</summary>
+            */
+            AnyOff,
+            /**
+              <summary>Visible only if all of the visibility layers are OFF.</summary>
+            */
+            AllOff
+        }
     }
 
     internal static class VisibilityPolicyEnumExtension
@@ -150,11 +140,15 @@ namespace org.pdfclown.documents.contents.layers
           )
         {
             if (name == null)
+            {
                 return LayerMembership.VisibilityPolicyEnum.AnyOn;
+            }
 
             LayerMembership.VisibilityPolicyEnum? visibilityPolicy = codes.GetKey(name);
             if (!visibilityPolicy.HasValue)
-                throw new NotSupportedException("Visibility policy unknown: " + name);
+            {
+                throw new NotSupportedException($"Visibility policy unknown: {name}");
+            }
 
             return visibilityPolicy.Value;
         }

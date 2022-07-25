@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Drawing;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.navigation.page
 {
+
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>Article bead [PDF:1.7:8.3.2].</summary>
     */
@@ -37,53 +36,69 @@ namespace org.pdfclown.documents.interaction.navigation.page
     public sealed class ArticleElement
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        public static ArticleElement Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new ArticleElement(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public ArticleElement(
-          Page page,
-          RectangleF box
-          ) : base(
-            page.Document,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {PdfName.Bead}
-              )
-            )
-        {
-            page.ArticleElements.Add(this);
-            Box = box;
-        }
 
         private ArticleElement(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public ArticleElement(
+Page page,
+RectangleF box
+) : base(
+page.Document,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Type},
+new PdfDirectObject[]
+{PdfName.Bead}
+)
+)
+        {
+            page.ArticleElements.Add(this);
+            this.Box = box;
+        }
+
         /**
-          <summary>Gets the thread article this bead belongs to.</summary>
+          <summary>Deletes this bead removing also its references on the page and its article thread.
+          </summary>
         */
+        public override bool Delete(
+          )
+        {
+            // Shallow removal (references):
+            // * thread links
+            _ = this.Article.Elements.Remove(this);
+            // * reference on page
+            _ = this.Page.ArticleElements.Remove(this);
+
+            // Deep removal (indirect object).
+            return base.Delete();
+        }
+
+        /**
+          <summary>Gets whether this is the first bead in its thread.</summary>
+        */
+        public bool IsHead(
+          )
+        {
+            var thread = (PdfDictionary)this.BaseDataObject.Resolve(PdfName.T);
+            return (thread != null) && this.BaseObject.Equals(thread[PdfName.F]);
+        }
+        public static ArticleElement Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new ArticleElement(baseObject) : null; }
+
+        /**
+<summary>Gets the thread article this bead belongs to.</summary>
+*/
         public Article Article
         {
             get
             {
-                PdfDictionary bead = BaseDataObject;
-                Article article = null;
+                var bead = this.BaseDataObject;
+                Article article;
                 while ((article = Article.Wrap(bead[PdfName.T])) == null)
                 { bead = (PdfDictionary)bead.Resolve(PdfName.V); }
                 return article;
@@ -97,80 +112,35 @@ namespace org.pdfclown.documents.interaction.navigation.page
         {
             get
             {
-                org.pdfclown.objects.Rectangle box = org.pdfclown.objects.Rectangle.Wrap(BaseDataObject[PdfName.R]);
+                var box = org.pdfclown.objects.Rectangle.Wrap(this.BaseDataObject[PdfName.R]);
                 return new RectangleF(
                   (float)box.Left,
-                  (float)(Page.Box.Height - box.Top),
+                  (float)(this.Page.Box.Height - box.Top),
                   (float)box.Width,
                   (float)box.Height
                   );
             }
-            set
-            {
-                BaseDataObject[PdfName.R] = new org.pdfclown.objects.Rectangle(
+            set => this.BaseDataObject[PdfName.R] = new org.pdfclown.objects.Rectangle(
                   value.X,
-                  Page.Box.Height - value.Y,
+                  this.Page.Box.Height - value.Y,
                   value.Width,
                   value.Height
                   ).BaseDataObject;
-            }
-        }
-
-        /**
-          <summary>Deletes this bead removing also its references on the page and its article thread.
-          </summary>
-        */
-        public override bool Delete(
-          )
-        {
-            // Shallow removal (references):
-            // * thread links
-            Article.Elements.Remove(this);
-            // * reference on page
-            Page.ArticleElements.Remove(this);
-
-            // Deep removal (indirect object).
-            return base.Delete();
-        }
-
-        /**
-          <summary>Gets whether this is the first bead in its thread.</summary>
-        */
-        public bool IsHead(
-          )
-        {
-            PdfDictionary thread = (PdfDictionary)BaseDataObject.Resolve(PdfName.T);
-            return thread != null && BaseObject.Equals(thread[PdfName.F]);
         }
 
         /**
           <summary>Gets the next bead.</summary>
         */
-        public ArticleElement Next
-        {
-            get
-            { return ArticleElement.Wrap(BaseDataObject[PdfName.N]); }
-        }
+        public ArticleElement Next => ArticleElement.Wrap(this.BaseDataObject[PdfName.N]);
 
         /**
           <summary>Gets the location page.</summary>
         */
-        public Page Page
-        {
-            get
-            { return Page.Wrap(BaseDataObject[PdfName.P]); }
-        }
+        public Page Page => Page.Wrap(this.BaseDataObject[PdfName.P]);
 
         /**
           <summary>Gets the previous bead.</summary>
         */
-        public ArticleElement Previous
-        {
-            get
-            { return ArticleElement.Wrap(BaseDataObject[PdfName.V]); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public ArticleElement Previous => ArticleElement.Wrap(this.BaseDataObject[PdfName.V]);
     }
 }

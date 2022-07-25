@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
     /**
       <summary>Container object. It encompasses multiple content objects.</summary>
     */
@@ -34,17 +34,13 @@ namespace org.pdfclown.documents.contents.objects
     public abstract class ContainerObject
       : CompositeObject
     {
-        #region dynamic
-        #region constructors
         protected ContainerObject(
-          )
+)
         { }
 
         protected ContainerObject(
           IList<ContentObject> objects
           ) : base(objects)
         { }
-        #endregion
-        #endregion
     }
 }

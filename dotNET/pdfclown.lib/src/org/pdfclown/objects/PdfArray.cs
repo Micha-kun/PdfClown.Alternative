@@ -23,18 +23,18 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.bytes;
-
-using org.pdfclown.files;
-using org.pdfclown.tokens;
-using org.pdfclown.util.collections.generic;
-using text = System.Text;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.files;
+    using org.pdfclown.tokens;
+    using org.pdfclown.util.collections.generic;
+    using text = System.Text;
+
     /**
       <summary>PDF array object, that is a one-dimensional collection of (possibly-heterogeneous)
       objects arranged sequentially [PDF:1.7:3.2.5].</summary>
@@ -43,73 +43,111 @@ namespace org.pdfclown.objects
       : PdfDirectObject,
         IList<PdfDirectObject>
     {
-        #region static
-        #region fields
         private static readonly byte[] BeginArrayChunk = Encoding.Pdf.Encode(Keyword.BeginArray);
         private static readonly byte[] EndArrayChunk = Encoding.Pdf.Encode(Keyword.EndArray);
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        internal List<PdfDirectObject> items;
 
         private PdfObject parent;
         private bool updateable = true;
         private bool updated;
         private bool virtual_;
-        #endregion
 
-        #region constructors
+        internal List<PdfDirectObject> items;
+
         public PdfArray(
-          ) : this(10)
+  ) : this(10)
         { }
 
         public PdfArray(
           int capacity
           )
-        { items = new List<PdfDirectObject>(capacity); }
+        { this.items = new List<PdfDirectObject>(capacity); }
 
         public PdfArray(
           params PdfDirectObject[] items
           ) : this(items.Length)
         {
-            Updateable = false;
+            this.Updateable = false;
             this.AddAll(items);
-            Updateable = true;
+            this.Updateable = true;
         }
 
         public PdfArray(
           IList<PdfDirectObject> items
           ) : this(items.Count)
         {
-            Updateable = false;
+            this.Updateable = false;
             this.AddAll(items);
-            Updateable = true;
+            this.Updateable = true;
         }
-        #endregion
 
-        #region interface
-        #region public
+        public PdfDirectObject this[
+          int index
+          ]
+        {
+            get => this.items[index];
+            set
+            {
+                var oldItem = this.items[index];
+                this.items[index] = (PdfDirectObject)this.Include(value);
+                this.Exclude(oldItem);
+                this.Update();
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        { return this.GetEnumerator(); }
+
+        protected internal override bool Virtual
+        {
+            get => this.virtual_;
+            set => this.virtual_ = value;
+        }
+
         public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
+IVisitor visitor,
+object data
+)
         { return visitor.Visit(this, data); }
+
+        public void Add(
+  PdfDirectObject item
+  )
+        {
+            this.items.Add((PdfDirectObject)this.Include(item));
+            this.Update();
+        }
+
+        public void Clear(
+          )
+        {
+            while (this.items.Count > 0)
+            { this.RemoveAt(0); }
+        }
 
         public override int CompareTo(
           PdfDirectObject obj
           )
         { throw new NotImplementedException(); }
 
+        public bool Contains(
+          PdfDirectObject item
+          )
+        { return this.items.Contains(item); }
+
+        public void CopyTo(
+          PdfDirectObject[] items,
+          int index
+          )
+        { this.items.CopyTo(items, index); }
+
         public override bool Equals(
           object @object
           )
         {
             return base.Equals(@object)
-              || (@object != null
-                && @object.GetType().Equals(GetType())
-                && ((PdfArray)@object).items.Equals(items));
+              || ((@object != null)
+                && @object.GetType().Equals(this.GetType())
+                && ((PdfArray)@object).items.Equals(this.items));
         }
 
         /**
@@ -121,7 +159,7 @@ namespace org.pdfclown.objects
         public PdfDirectObject Get<T>(
           int index
           ) where T : PdfDataObject, new()
-        { return Get<T>(index, true); }
+        { return this.Get<T>(index, true); }
 
         /**
           <summary>Gets the value corresponding to the given index, forcing its instantiation in case
@@ -136,8 +174,8 @@ namespace org.pdfclown.objects
           ) where T : PdfDataObject, new()
         {
             PdfDirectObject item;
-            if (index == Count
-              || (item = this[index]) == null
+            if ((index == this.Count)
+              || ((item = this[index]) == null)
               || !item.Resolve().GetType().Equals(typeof(T)))
             {
                 /*
@@ -147,33 +185,67 @@ namespace org.pdfclown.objects
                 */
                 try
                 {
-                    item = (PdfDirectObject)Include(direct
-                      ? (PdfDataObject)new T()
-                      : new PdfIndirectObject(File, new T(), new XRefEntry(0, 0)).Reference);
-                    if (index == Count)
-                    { items.Add(item); }
+                    item = (PdfDirectObject)this.Include(direct
+                      ? ((PdfDataObject)new T())
+                      : new PdfIndirectObject(this.File, new T(), new XRefEntry(0, 0)).Reference);
+                    if (index == this.Count)
+                    { this.items.Add(item); }
                     else if (item == null)
-                    { items[index] = item; }
+                    { this.items[index] = item; }
                     else
-                    { items.Insert(index, item); }
+                    { this.items.Insert(index, item); }
                     item.Virtual = true;
                 }
                 catch (Exception e)
-                { throw new Exception(typeof(T).Name + " failed to instantiate.", e); }
+                { throw new Exception($"{typeof(T).Name} failed to instantiate.", e); }
             }
             return item;
         }
 
+        public IEnumerator<PdfDirectObject> GetEnumerator(
+  )
+        { return this.items.GetEnumerator(); }
+
         public override int GetHashCode(
           )
-        { return items.GetHashCode(); }
+        { return this.items.GetHashCode(); }
 
-        public override PdfObject Parent
+        public int IndexOf(
+  PdfDirectObject item
+  )
+        { return this.items.IndexOf(item); }
+
+        public void Insert(
+          int index,
+          PdfDirectObject item
+          )
         {
-            get
-            { return parent; }
-            internal set
-            { parent = value; }
+            this.items.Insert(index, (PdfDirectObject)this.Include(item));
+            this.Update();
+        }
+
+        public bool Remove(
+          PdfDirectObject item
+          )
+        {
+            if (!this.items.Remove(item))
+            {
+                return false;
+            }
+
+            this.Exclude(item);
+            this.Update();
+            return true;
+        }
+
+        public void RemoveAt(
+          int index
+          )
+        {
+            var oldItem = this.items[index];
+            this.items.RemoveAt(index);
+            this.Exclude(oldItem);
+            this.Update();
         }
 
         /**
@@ -197,14 +269,14 @@ namespace org.pdfclown.objects
         public T Resolve<T>(
           int index
           ) where T : PdfDataObject, new()
-        { return (T)Resolve(Get<T>(index)); }
+        { return (T)Resolve(this.Get<T>(index)); }
 
         public override PdfObject Swap(
           PdfObject other
           )
         {
-            PdfArray otherArray = (PdfArray)other;
-            List<PdfDirectObject> otherItems = otherArray.items;
+            var otherArray = (PdfArray)other;
+            var otherItems = otherArray.items;
             // Update the other!
             otherArray.items = this.items;
             otherArray.Update();
@@ -217,33 +289,15 @@ namespace org.pdfclown.objects
         public override string ToString(
           )
         {
-            text::StringBuilder buffer = new text::StringBuilder();
-            {
-                // Begin.
-                buffer.Append("[ ");
-                // Elements.
-                foreach (PdfDirectObject item in items)
-                { buffer.Append(PdfDirectObject.ToString(item)).Append(" "); }
-                // End.
-                buffer.Append("]");
-            }
+            var buffer = new text::StringBuilder();
+            // Begin.
+            _ = buffer.Append("[ ");
+            // Elements.
+            foreach (var item in this.items)
+            { _ = buffer.Append(PdfDirectObject.ToString(item)).Append(" "); }
+            // End.
+            _ = buffer.Append("]");
             return buffer.ToString();
-        }
-
-        public override bool Updateable
-        {
-            get
-            { return updateable; }
-            set
-            { updateable = value; }
-        }
-
-        public override bool Updated
-        {
-            get
-            { return updated; }
-            protected internal set
-            { updated = value; }
         }
 
         public override void WriteTo(
@@ -254,10 +308,12 @@ namespace org.pdfclown.objects
             // Begin.
             stream.Write(BeginArrayChunk);
             // Elements.
-            foreach (PdfDirectObject item in items)
+            foreach (var item in this.items)
             {
-                if (item != null && item.Virtual)
+                if ((item != null) && item.Virtual)
+                {
                     continue;
+                }
 
                 PdfDirectObject.WriteTo(stream, context, item);
                 stream.Write(Chunk.Space);
@@ -266,121 +322,26 @@ namespace org.pdfclown.objects
             stream.Write(EndArrayChunk);
         }
 
-        #region IList
-        public int IndexOf(
-          PdfDirectObject item
-          )
-        { return items.IndexOf(item); }
+        public int Count => this.items.Count;
 
-        public void Insert(
-          int index,
-          PdfDirectObject item
-          )
+        public bool IsReadOnly => false;
+
+        public override PdfObject Parent
         {
-            items.Insert(index, (PdfDirectObject)Include(item));
-            Update();
+            get => this.parent;
+            internal set => this.parent = value;
         }
 
-        public void RemoveAt(
-          int index
-          )
+        public override bool Updateable
         {
-            PdfDirectObject oldItem = items[index];
-            items.RemoveAt(index);
-            Exclude(oldItem);
-            Update();
+            get => this.updateable;
+            set => this.updateable = value;
         }
 
-        public PdfDirectObject this[
-          int index
-          ]
+        public override bool Updated
         {
-            get
-            { return items[index]; }
-            set
-            {
-                PdfDirectObject oldItem = items[index];
-                items[index] = (PdfDirectObject)Include(value);
-                Exclude(oldItem);
-                Update();
-            }
+            get => this.updated;
+            protected internal set => this.updated = value;
         }
-
-        #region ICollection
-        public void Add(
-          PdfDirectObject item
-          )
-        {
-            items.Add((PdfDirectObject)Include(item));
-            Update();
-        }
-
-        public void Clear(
-          )
-        {
-            while (items.Count > 0)
-            { RemoveAt(0); }
-        }
-
-        public bool Contains(
-          PdfDirectObject item
-          )
-        { return items.Contains(item); }
-
-        public void CopyTo(
-          PdfDirectObject[] items,
-          int index
-          )
-        { this.items.CopyTo(items, index); }
-
-        public int Count
-        {
-            get
-            { return items.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          PdfDirectObject item
-          )
-        {
-            if (!items.Remove(item))
-                return false;
-
-            Exclude(item);
-            Update();
-            return true;
-        }
-
-        #region IEnumerable<PdfDirectObject>
-        public IEnumerator<PdfDirectObject> GetEnumerator(
-          )
-        { return items.GetEnumerator(); }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator()
-        { return ((IEnumerable<PdfDirectObject>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region protected
-        protected internal override bool Virtual
-        {
-            get
-            { return virtual_; }
-            set
-            { virtual_ = value; }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -87,13 +87,13 @@ namespace org.pdfclown.documents.contents.composition
             if ((lineAlignment is double) || lineAlignment.Equals(LineAlignmentEnum.BaseLine))
             {
                 var gap = (lineAlignment is double) ? ((double)lineAlignment) : 0;
-                var superGap = (obj.BaseLine + gap) - this.currentRow.BaseLine;
+                var superGap = obj.BaseLine + gap - this.currentRow.BaseLine;
                 if (superGap > 0)
                 {
                     this.currentRow.Height += superGap;
                     this.currentRow.BaseLine += superGap;
                 }
-                var subGap = (this.currentRow.BaseLine + (obj.Height - obj.BaseLine)) - gap - this.currentRow.Height;
+                var subGap = this.currentRow.BaseLine + (obj.Height - obj.BaseLine) - gap - this.currentRow.Height;
                 if (subGap > 0)
                 {
                     this.currentRow.Height += subGap;
@@ -277,7 +277,7 @@ namespace org.pdfclown.documents.contents.composition
                     if (showTextOperation is ShowAdjustedText)
                     {
                         var wordSpaceObject = PdfInteger.Get(
-                            (int)Math.Round(((-wordSpace) * 1000 * obj.Scale) / obj.FontSize));
+                            (int)Math.Round((-wordSpace) * 1000 * obj.Scale / obj.FontSize));
                         var textParams = (PdfArray)showTextOperation.Operands[0];
                         for (int textParamIndex = 1, textParamsLength = textParams.Count; textParamIndex <
                             textParamsLength; textParamIndex += 2)

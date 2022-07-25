@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.objects;
-using multimedia = org.pdfclown.documents.multimedia;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Drawing;
+
+    using org.pdfclown.objects;
+    using multimedia = org.pdfclown.documents.multimedia;
+
     /**
       <summary>Movie annotation [PDF:1.6:8.4.5].</summary>
     */
@@ -38,41 +38,34 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Movie
       : Annotation
     {
-        #region dynamic
-        #region constructors
-        public Movie(
-          Page page,
-          RectangleF box,
-          string text,
-          multimedia::Movie content
-          ) : base(page, PdfName.Movie, box, text)
-        { Content = content; }
 
         internal Movie(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public Movie(
+Page page,
+RectangleF box,
+string text,
+multimedia::Movie content
+) : base(page, PdfName.Movie, box, text)
+        { this.Content = content; }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the movie to be played.</summary>
-        */
+<summary>Gets/Sets the movie to be played.</summary>
+*/
         public multimedia::Movie Content
         {
-            get
-            { return new multimedia::Movie(BaseDataObject[PdfName.Movie]); }
+            get => new multimedia::Movie(this.BaseDataObject[PdfName.Movie]);
             set
             {
                 if (value == null)
+                {
                     throw new ArgumentException("Movie MUST be defined.");
+                }
 
-                BaseDataObject[PdfName.Movie] = value.BaseObject;
+                this.BaseDataObject[PdfName.Movie] = value.BaseObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

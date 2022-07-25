@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using System.Drawing.Drawing2D;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+
+    using System.Collections.Generic;
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the text matrix' operation [PDF:1.6:5.3.1].</summary>
       <remarks>The specified matrix is not concatenated onto the current text matrix,
@@ -40,24 +39,23 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class SetTextMatrix
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "Tm";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public SetTextMatrix(
-          Matrix value
-          ) : this(
-            value.Elements[0],
-            value.Elements[1],
-            value.Elements[2],
-            value.Elements[3],
-            value.Elements[4],
-            value.Elements[5]
-            )
+Matrix value
+) : this(
+value.Elements[0],
+value.Elements[1],
+value.Elements[2],
+value.Elements[3],
+value.Elements[4],
+value.Elements[5]
+)
+        { }
+
+        public SetTextMatrix(
+          IList<PdfDirectObject> operands
+          ) : base(OperatorKeyword, operands)
         { }
 
         public SetTextMatrix(
@@ -78,38 +76,21 @@ namespace org.pdfclown.documents.contents.objects
             )
         { }
 
-        public SetTextMatrix(
-          IList<PdfDirectObject> operands
-          ) : base(OperatorKeyword, operands)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
+ContentScanner.GraphicsState state
+)
         {
-            state.Tlm = Value;
+            state.Tlm = this.Value;
             state.Tm = state.Tlm.Clone();
         }
 
-        public Matrix Value
-        {
-            get
-            {
-                return new Matrix(
-                  ((IPdfNumber)operands[0]).FloatValue,
-                  ((IPdfNumber)operands[1]).FloatValue,
-                  ((IPdfNumber)operands[2]).FloatValue,
-                  ((IPdfNumber)operands[3]).FloatValue,
-                  ((IPdfNumber)operands[4]).FloatValue,
-                  ((IPdfNumber)operands[5]).FloatValue
+        public Matrix Value => new Matrix(
+                  ((IPdfNumber)this.operands[0]).FloatValue,
+                  ((IPdfNumber)this.operands[1]).FloatValue,
+                  ((IPdfNumber)this.operands[2]).FloatValue,
+                  ((IPdfNumber)this.operands[3]).FloatValue,
+                  ((IPdfNumber)this.operands[4]).FloatValue,
+                  ((IPdfNumber)this.operands[5]).FloatValue
                   );
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

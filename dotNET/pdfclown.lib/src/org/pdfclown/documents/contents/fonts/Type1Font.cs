@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Type 1 font [PDF:1.6:5.5.1;AFM:4.1].</summary>
     */
@@ -42,22 +41,16 @@ namespace org.pdfclown.documents.contents.fonts
     public class Type1Font
       : SimpleFont
     {
-        #region dynamic
-        #region fields
         protected AfmParser.FontMetrics metrics;
-        #endregion
 
-        #region constructors
         internal Type1Font(
-          Document context
-          ) : base(context)
+  Document context
+  ) : base(context)
         { }
 
         internal Type1Font(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-        #endregion
     }
 }

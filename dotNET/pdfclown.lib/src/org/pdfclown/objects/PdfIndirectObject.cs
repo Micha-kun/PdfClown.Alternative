@@ -24,15 +24,15 @@
 */
 
 
-using System;
-using System.Text;
-using org.pdfclown.bytes;
-
-using org.pdfclown.files;
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using System.Text;
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.files;
+    using org.pdfclown.tokens;
+
     /**
       <summary>PDF indirect object [PDF:1.6:3.2.9].</summary>
     */
@@ -40,39 +40,31 @@ namespace org.pdfclown.objects
       : PdfObject,
         IPdfIndirectObject
     {
-        #region static
-        #region fields
         private static readonly byte[] BeginIndirectObjectChunk = tokens.Encoding.Pdf.Encode(Symbol.Space + Keyword.BeginIndirectObject + Symbol.LineFeed);
         private static readonly byte[] EndIndirectObjectChunk = tokens.Encoding.Pdf.Encode(Symbol.LineFeed + Keyword.EndIndirectObject + Symbol.LineFeed);
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region fields
         private PdfDataObject dataObject;
         private File file;
         private bool original;
-        private PdfReference reference;
-        private XRefEntry xrefEntry;
+        private readonly PdfReference reference;
 
         private bool updateable = true;
         private bool updated;
         private bool virtual_;
-        #endregion
+        private readonly XRefEntry xrefEntry;
 
-        #region constructors
         /**
-          <param name="file">Associated file.</param>
-          <param name="dataObject">
-            <para>Data object associated to the indirect object. It MUST be</para>
-            <list type="bullet">
-              <item><code>null</code>, if the indirect object is original or free.</item>
-              <item>NOT <code>null</code>, if the indirect object is new and in-use.</item>
-            </list>
-          </param>
-          <param name="xrefEntry">Cross-reference entry associated to the indirect object. If the
-            indirect object is new, its offset field MUST be set to 0.</param>
-        */
+  <param name="file">Associated file.</param>
+  <param name="dataObject">
+    <para>Data object associated to the indirect object. It MUST be</para>
+    <list type="bullet">
+      <item><code>null</code>, if the indirect object is original or free.</item>
+      <item>NOT <code>null</code>, if the indirect object is new and in-use.</item>
+    </list>
+  </param>
+  <param name="xrefEntry">Cross-reference entry associated to the indirect object. If the
+    indirect object is new, its offset field MUST be set to 0.</param>
+*/
         internal PdfIndirectObject(
           File file,
           PdfDataObject dataObject,
@@ -80,20 +72,48 @@ namespace org.pdfclown.objects
           )
         {
             this.file = file;
-            this.dataObject = Include(dataObject);
+            this.dataObject = this.Include(dataObject);
             this.xrefEntry = xrefEntry;
 
-            this.original = (xrefEntry.Offset >= 0);
+            this.original = xrefEntry.Offset >= 0;
             this.reference = new PdfReference(this);
         }
-        #endregion
 
-        #region interface
-        #region public
-        public override PdfObject Accept(
-          IVisitor visitor,
-          object data
+        protected internal override bool Virtual
+        {
+            get => this.virtual_;
+            set
+            {
+                if (this.virtual_ && !value)
+                {
+                    /*
+                      NOTE: When a virtual indirect object becomes concrete it must be registered.
+                    */
+                    _ = this.file.IndirectObjects.AddVirtual(this);
+                    this.virtual_ = false;
+                    this.Reference.Update();
+                }
+                else
+                { this.virtual_ = value; }
+                this.dataObject.Virtual = this.virtual_;
+            }
+        }
+
+        internal void DropFile(
+  )
+        {
+            this.Uncompress();
+            this.file = null;
+        }
+
+        internal void DropOriginal(
           )
+        { this.original = false; }
+
+        public override PdfObject Accept(
+IVisitor visitor,
+object data
+)
         { return visitor.Visit(this, data); }
 
         /**
@@ -106,35 +126,38 @@ namespace org.pdfclown.objects
           )
         {
             // Remove from previous object stream!
-            Uncompress();
+            this.Uncompress();
 
-            if (objectStream != null
-               && IsCompressible())
+            if ((objectStream != null)
+               && this.IsCompressible())
             {
                 // Add to the object stream!
-                objectStream[xrefEntry.Number] = DataObject;
+                objectStream[this.xrefEntry.Number] = this.DataObject;
                 // Update its xref entry!
-                xrefEntry.Usage = XRefEntry.UsageEnum.InUseCompressed;
-                xrefEntry.StreamNumber = objectStream.Reference.ObjectNumber;
-                xrefEntry.Offset = XRefEntry.UndefinedOffset; // Internal object index unknown (to set on object stream serialization -- see ObjectStream).
+                this.xrefEntry.Usage = XRefEntry.UsageEnum.InUseCompressed;
+                this.xrefEntry.StreamNumber = objectStream.Reference.ObjectNumber;
+                this.xrefEntry.Offset = XRefEntry.UndefinedOffset; // Internal object index unknown (to set on object stream serialization -- see ObjectStream).
             }
         }
 
-        public override PdfIndirectObject Container
+        public override bool Delete(
+          )
         {
-            get
-            { return this; }
-        }
-
-        public override File File
-        {
-            get
-            { return file; }
+            if (this.file != null)
+            {
+                /*
+                  NOTE: It's expected that DropFile() is invoked by IndirectObjects.Remove() method;
+                  such an action is delegated because clients may invoke directly Remove() method,
+                  skipping this method.
+                */
+                this.file.IndirectObjects.RemoveAt(this.xrefEntry.Number);
+            }
+            return true;
         }
 
         public override int GetHashCode(
           )
-        { return reference.GetHashCode(); }
+        { return this.reference.GetHashCode(); }
 
         /**
           <summary>Gets whether this object is compressed within an object stream [PDF:1.6:3.4.6].
@@ -142,7 +165,7 @@ namespace org.pdfclown.objects
         */
         public bool IsCompressed(
           )
-        { return xrefEntry.Usage == XRefEntry.UsageEnum.InUseCompressed; }
+        { return this.xrefEntry.Usage == XRefEntry.UsageEnum.InUseCompressed; }
 
         /**
           <summary>Gets whether this object can be compressed within an object stream [PDF:1.6:3.4.6].
@@ -151,11 +174,11 @@ namespace org.pdfclown.objects
         public bool IsCompressible(
           )
         {
-            return !IsCompressed()
-              && IsInUse()
-              && !(DataObject is PdfStream
-                || dataObject is PdfInteger)
-              && Reference.GenerationNumber == 0;
+            return !this.IsCompressed()
+              && this.IsInUse()
+              && !((this.DataObject is PdfStream)
+                || (this.dataObject is PdfInteger))
+              && (this.Reference.GenerationNumber == 0);
         }
 
         /**
@@ -163,34 +186,37 @@ namespace org.pdfclown.objects
         */
         public bool IsInUse(
           )
-        { return (xrefEntry.Usage == XRefEntry.UsageEnum.InUse); }
+        { return this.xrefEntry.Usage == XRefEntry.UsageEnum.InUse; }
 
         /**
           <summary>Gets whether this object comes intact from an existing file.</summary>
         */
         public bool IsOriginal(
           )
-        { return original; }
-
-        public override PdfObject Parent
-        {
-            get
-            { return null; } // NOTE: As indirect objects are root objects, no parent can be associated.
-            internal set
-            {/* NOOP: As indirect objects are root objects, no parent can be associated. */}
-        }
+        { return this.original; }
 
         public override PdfObject Swap(
           PdfObject other
           )
         {
-            PdfIndirectObject otherObject = (PdfIndirectObject)other;
-            PdfDataObject otherDataObject = otherObject.dataObject;
+            var otherObject = (PdfIndirectObject)other;
+            var otherDataObject = otherObject.dataObject;
             // Update the other!
-            otherObject.DataObject = dataObject;
+            otherObject.DataObject = this.dataObject;
             // Update this one!
             this.DataObject = otherDataObject;
             return this;
+        }
+
+        public override string ToString(
+          )
+        {
+            var buffer = new StringBuilder();
+            // Header.
+            _ = buffer.Append(this.reference.Id).Append(" obj").Append(Symbol.LineFeed);
+            // Body.
+            _ = buffer.Append(this.DataObject);
+            return buffer.ToString();
         }
 
         /**
@@ -199,43 +225,18 @@ namespace org.pdfclown.objects
         public void Uncompress(
           )
         {
-            if (!IsCompressed())
+            if (!this.IsCompressed())
+            {
                 return;
+            }
 
             // Remove from its object stream!
-            ObjectStream oldObjectStream = (ObjectStream)file.IndirectObjects[xrefEntry.StreamNumber].DataObject;
-            oldObjectStream.Remove(xrefEntry.Number);
+            var oldObjectStream = (ObjectStream)this.file.IndirectObjects[this.xrefEntry.StreamNumber].DataObject;
+            _ = oldObjectStream.Remove(this.xrefEntry.Number);
             // Update its xref entry!
-            xrefEntry.Usage = XRefEntry.UsageEnum.InUse;
-            xrefEntry.StreamNumber = XRefEntry.UndefinedStreamNumber; // No object stream.
-            xrefEntry.Offset = XRefEntry.UndefinedOffset; // Offset unknown (to set on file serialization -- see CompressedWriter).
-        }
-
-        public override bool Updateable
-        {
-            get
-            { return updateable; }
-            set
-            { updateable = value; }
-        }
-
-        public override bool Updated
-        {
-            get
-            { return updated; }
-            protected internal set
-            {
-                if (value && original)
-                {
-                    /*
-                      NOTE: It's expected that DropOriginal() is invoked by IndirectObjects indexer;
-                      such an action is delegated because clients may invoke directly the indexer skipping
-                      this method.
-                    */
-                    file.IndirectObjects.Update(this);
-                }
-                updated = value;
-            }
+            this.xrefEntry.Usage = XRefEntry.UsageEnum.InUse;
+            this.xrefEntry.StreamNumber = XRefEntry.UndefinedStreamNumber; // No object stream.
+            this.xrefEntry.Offset = XRefEntry.UndefinedOffset; // Offset unknown (to set on file serialization -- see CompressedWriter).
         }
 
         public override void WriteTo(
@@ -244,141 +245,93 @@ namespace org.pdfclown.objects
           )
         {
             // Header.
-            stream.Write(reference.Id);
+            stream.Write(this.reference.Id);
             stream.Write(BeginIndirectObjectChunk);
             // Body.
-            DataObject.WriteTo(stream, context);
+            this.DataObject.WriteTo(stream, context);
             // Tail.
             stream.Write(EndIndirectObjectChunk);
         }
 
-        public XRefEntry XrefEntry
-        {
-            get
-            { return xrefEntry; }
-        }
+        public override PdfIndirectObject Container => this;
 
-        #region IPdfIndirectObject
         public PdfDataObject DataObject
         {
             get
             {
-                if (dataObject == null)
+                if (this.dataObject == null)
                 {
-                    switch (xrefEntry.Usage)
+                    switch (this.xrefEntry.Usage)
                     {
                         // Free entry (no data object at all).
                         case XRefEntry.UsageEnum.Free:
                             break;
                         // In-use entry (late-bound data object).
                         case XRefEntry.UsageEnum.InUse:
-                        {
                             // Get the indirect data object!
-                            dataObject = Include(file.Reader.Parser.ParsePdfObject(xrefEntry));
+                            this.dataObject = this.Include(this.file.Reader.Parser.ParsePdfObject(this.xrefEntry));
                             break;
-                        }
                         case XRefEntry.UsageEnum.InUseCompressed:
-                        {
                             // Get the object stream where its data object is stored!
-                            ObjectStream objectStream = (ObjectStream)file.IndirectObjects[xrefEntry.StreamNumber].DataObject;
+                            var objectStream = (ObjectStream)this.file.IndirectObjects[this.xrefEntry.StreamNumber].DataObject;
                             // Get the indirect data object!
-                            dataObject = Include(objectStream[xrefEntry.Number]);
+                            this.dataObject = this.Include(objectStream[this.xrefEntry.Number]);
                             break;
-                        }
                     }
                 }
-                return dataObject;
+                return this.dataObject;
             }
             set
             {
-                if (xrefEntry.Generation == XRefEntry.GenerationUnreusable)
+                if (this.xrefEntry.Generation == XRefEntry.GenerationUnreusable)
+                {
                     throw new Exception("Unreusable entry.");
+                }
 
-                Exclude(dataObject);
-                dataObject = Include(value);
-                xrefEntry.Usage = XRefEntry.UsageEnum.InUse;
-                Update();
+                this.Exclude(this.dataObject);
+                this.dataObject = this.Include(value);
+                this.xrefEntry.Usage = XRefEntry.UsageEnum.InUse;
+                this.Update();
             }
         }
 
-        public override bool Delete(
-          )
+        public override File File => this.file;
+
+        public override PdfIndirectObject IndirectObject => this;
+
+        public override PdfObject Parent
         {
-            if (file != null)
+            get => null;  // NOTE: As indirect objects are root objects, no parent can be associated.
+            internal set
+            {/* NOOP: As indirect objects are root objects, no parent can be associated. */}
+        }
+
+        public override PdfReference Reference => this.reference;
+
+        public override bool Updateable
+        {
+            get => this.updateable;
+            set => this.updateable = value;
+        }
+
+        public override bool Updated
+        {
+            get => this.updated;
+            protected internal set
             {
-                /*
-                  NOTE: It's expected that DropFile() is invoked by IndirectObjects.Remove() method;
-                  such an action is delegated because clients may invoke directly Remove() method,
-                  skipping this method.
-                */
-                file.IndirectObjects.RemoveAt(xrefEntry.Number);
-            }
-            return true;
-        }
-
-        public override PdfIndirectObject IndirectObject
-        {
-            get
-            { return this; }
-        }
-
-        public override PdfReference Reference
-        {
-            get
-            { return reference; }
-        }
-
-        public override string ToString(
-          )
-        {
-            StringBuilder buffer = new StringBuilder();
-            {
-                // Header.
-                buffer.Append(reference.Id).Append(" obj").Append(Symbol.LineFeed);
-                // Body.
-                buffer.Append(DataObject);
-            }
-            return buffer.ToString();
-        }
-        #endregion
-        #endregion
-
-        #region protected
-        protected internal override bool Virtual
-        {
-            get
-            { return virtual_; }
-            set
-            {
-                if (virtual_ && !value)
+                if (value && this.original)
                 {
                     /*
-                      NOTE: When a virtual indirect object becomes concrete it must be registered.
+                      NOTE: It's expected that DropOriginal() is invoked by IndirectObjects indexer;
+                      such an action is delegated because clients may invoke directly the indexer skipping
+                      this method.
                     */
-                    file.IndirectObjects.AddVirtual(this);
-                    virtual_ = false;
-                    Reference.Update();
+                    _ = this.file.IndirectObjects.Update(this);
                 }
-                else
-                { virtual_ = value; }
-                dataObject.Virtual = virtual_;
+                this.updated = value;
             }
         }
-        #endregion
 
-        #region internal
-        internal void DropFile(
-          )
-        {
-            Uncompress();
-            file = null;
-        }
-
-        internal void DropOriginal(
-          )
-        { original = false; }
-        #endregion
-        #endregion
-        #endregion
+        public XRefEntry XrefEntry => this.xrefEntry;
     }
 }

@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the specified graphics state parameters' operation [PDF:1.6:4.3.3].</summary>
     */
@@ -37,61 +37,45 @@ namespace org.pdfclown.documents.contents.objects
       : Operation,
         IResourceReference<ExtGState>
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "gs";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public ApplyExtGState(
-          PdfName name
-          ) : base(OperatorKeyword, name)
+PdfName name
+) : base(OperatorKeyword, name)
         { }
 
         public ApplyExtGState(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Gets the <see cref="ExtGState">graphics state parameters</see> resource to be set.
-          </summary>
-          <param name="context">Content context.</param>
-        */
+<summary>Gets the <see cref="ExtGState">graphics state parameters</see> resource to be set.
+</summary>
+<param name="context">Content context.</param>
+*/
         public ExtGState GetExtGState(
           IContentContext context
           )
-        { return GetResource(context); }
+        { return this.GetResource(context); }
+
+        public ExtGState GetResource(
+  IContentContext context
+  )
+        { return context.Resources.ExtGStates[this.Name]; }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            ExtGState extGState = GetExtGState(state.Scanner.ContentContext);
+            var extGState = this.GetExtGState(state.Scanner.ContentContext);
             extGState.ApplyTo(state);
         }
 
-        #region IResourceReference
-        public ExtGState GetResource(
-          IContentContext context
-          )
-        { return context.Resources.ExtGStates[Name]; }
-
         public PdfName Name
         {
-            get
-            { return (PdfName)operands[0]; }
-            set
-            { operands[0] = value; }
+            get => (PdfName)this.operands[0];
+            set => this.operands[0] = value;
         }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

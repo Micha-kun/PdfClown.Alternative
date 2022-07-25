@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.objects;
+
     /**
       <summary>
         <para>Generic content entity.</para>

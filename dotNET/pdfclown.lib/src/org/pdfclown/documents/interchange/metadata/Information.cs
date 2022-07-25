@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interchange.metadata
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Document information [PDF:1.6:10.2.1].</summary>
     */
@@ -39,203 +39,43 @@ namespace org.pdfclown.documents.interchange.metadata
       : PdfObjectWrapper<PdfDictionary>,
         IDictionary<PdfName, object>
     {
-        #region static
-        #region interface
-        #region public
-        public static Information Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Information(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Information(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         private Information(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        public string Author
-        {
-            get
-            { return (string)this[PdfName.Author]; }
-            set
-            { this[PdfName.Author] = value; }
-        }
-
-        public DateTime? CreationDate
-        {
-            get
-            { return (DateTime?)this[PdfName.CreationDate]; }
-            set
-            { this[PdfName.CreationDate] = value; }
-        }
-
-        public string Creator
-        {
-            get
-            { return (string)this[PdfName.Creator]; }
-            set
-            { this[PdfName.Creator] = value; }
-        }
-
-        [PDF(VersionEnum.PDF11)]
-        public string Keywords
-        {
-            get
-            { return (string)this[PdfName.Keywords]; }
-            set
-            { this[PdfName.Keywords] = value; }
-        }
-
-        [PDF(VersionEnum.PDF11)]
-        public DateTime? ModificationDate
-        {
-            get
-            { return (DateTime?)this[PdfName.ModDate]; }
-            set
-            { this[PdfName.ModDate] = value; }
-        }
-
-        public string Producer
-        {
-            get
-            { return (string)this[PdfName.Producer]; }
-            set
-            { this[PdfName.Producer] = value; }
-        }
-
-        [PDF(VersionEnum.PDF11)]
-        public string Subject
-        {
-            get
-            { return (string)this[PdfName.Subject]; }
-            set
-            { this[PdfName.Subject] = value; }
-        }
-
-        [PDF(VersionEnum.PDF11)]
-        public string Title
-        {
-            get
-            { return (string)this[PdfName.Title]; }
-            set
-            { this[PdfName.Title] = value; }
-        }
-
-        #region IDictionary
-        public void Add(
-          PdfName key,
-          object value
-          )
-        { BaseDataObject.Add(key, PdfSimpleObject<object>.Get(value)); }
-
-        public bool ContainsKey(
-          PdfName key
-          )
-        { return BaseDataObject.ContainsKey(key); }
-
-        public ICollection<PdfName> Keys
-        {
-            get
-            { return BaseDataObject.Keys; }
-        }
-
-        public bool Remove(
-          PdfName key
-          )
-        { return BaseDataObject.Remove(key); }
+        public Information(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
         public object this[
           PdfName key
           ]
         {
-            get
-            { return PdfSimpleObject<object>.GetValue(BaseDataObject[key]); }
-            set
-            { BaseDataObject[key] = PdfSimpleObject<object>.Get(value); }
+            get => PdfSimpleObject<object>.GetValue(this.BaseDataObject[key]);
+            set => this.BaseDataObject[key] = PdfSimpleObject<object>.Get(value);
         }
 
-        public bool TryGetValue(
-          PdfName key,
-          out object value
-          )
-        {
-            PdfDirectObject valueObject;
-            if (BaseDataObject.TryGetValue(key, out valueObject))
-            {
-                value = PdfSimpleObject<object>.GetValue(valueObject);
-                return true;
-            }
-            else
-                value = null;
-            return false;
-        }
-
-        public ICollection<object> Values
-        {
-            get
-            {
-                IList<object> values = new List<object>();
-                foreach (PdfDirectObject item in BaseDataObject.Values)
-                { values.Add(PdfSimpleObject<object>.GetValue(item)); }
-                return values;
-            }
-        }
-
-        #region ICollection
         void ICollection<KeyValuePair<PdfName, object>>.Add(
-          KeyValuePair<PdfName, object> entry
-          )
-        { Add(entry.Key, entry.Value); }
-
-        public void Clear(
-          )
-        { BaseDataObject.Clear(); }
+  KeyValuePair<PdfName, object> entry
+  )
+        { this.Add(entry.Key, entry.Value); }
 
         bool ICollection<KeyValuePair<PdfName, object>>.Contains(
           KeyValuePair<PdfName, object> entry
           )
         { return entry.Value.Equals(this[entry.Key]); }
 
-        public void CopyTo(
-          KeyValuePair<PdfName, object>[] entries,
-          int index
-          )
-        { throw new NotImplementedException(); }
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<PdfName, object>>)this).GetEnumerator(); }
 
-        public int Count
-        {
-            get
-            { return BaseDataObject.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          KeyValuePair<PdfName, object> entry
-          )
-        { throw new NotImplementedException(); }
-
-        #region IEnumerable<KeyValuePair<PdfName,object>>
         IEnumerator<KeyValuePair<PdfName, object>> IEnumerable<KeyValuePair<PdfName, object>>.GetEnumerator(
-          )
+  )
         {
-            foreach (KeyValuePair<PdfName, PdfDirectObject> entry in BaseDataObject)
+            foreach (var entry in this.BaseDataObject)
             {
                 yield return new KeyValuePair<PdfName, object>(
                   entry.Key,
@@ -244,16 +84,127 @@ namespace org.pdfclown.documents.interchange.metadata
             }
         }
 
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
+        public void Add(
+  PdfName key,
+  object value
+  )
+        { this.BaseDataObject.Add(key, PdfSimpleObject<object>.Get(value)); }
+
+        public void Clear(
           )
-        { return ((IEnumerable<KeyValuePair<PdfName, object>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        { this.BaseDataObject.Clear(); }
+
+        public bool ContainsKey(
+          PdfName key
+          )
+        { return this.BaseDataObject.ContainsKey(key); }
+
+        public void CopyTo(
+          KeyValuePair<PdfName, object>[] entries,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Remove(
+          PdfName key
+          )
+        { return this.BaseDataObject.Remove(key); }
+
+        public bool Remove(
+          KeyValuePair<PdfName, object> entry
+          )
+        { throw new NotImplementedException(); }
+
+        public bool TryGetValue(
+          PdfName key,
+          out object value
+          )
+        {
+            PdfDirectObject valueObject;
+            if (this.BaseDataObject.TryGetValue(key, out valueObject))
+            {
+                value = PdfSimpleObject<object>.GetValue(valueObject);
+                return true;
+            }
+            else
+            {
+                value = null;
+            }
+
+            return false;
+        }
+        public static Information Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Information(baseObject) : null; }
+
+        public string Author
+        {
+            get => (string)this[PdfName.Author];
+            set => this[PdfName.Author] = value;
+        }
+
+        public int Count => this.BaseDataObject.Count;
+
+        public DateTime? CreationDate
+        {
+            get => (DateTime?)this[PdfName.CreationDate];
+            set => this[PdfName.CreationDate] = value;
+        }
+
+        public string Creator
+        {
+            get => (string)this[PdfName.Creator];
+            set => this[PdfName.Creator] = value;
+        }
+
+        public bool IsReadOnly => false;
+
+        public ICollection<PdfName> Keys => this.BaseDataObject.Keys;
+
+        [PDF(VersionEnum.PDF11)]
+        public string Keywords
+        {
+            get => (string)this[PdfName.Keywords];
+            set => this[PdfName.Keywords] = value;
+        }
+
+        [PDF(VersionEnum.PDF11)]
+        public DateTime? ModificationDate
+        {
+            get => (DateTime?)this[PdfName.ModDate];
+            set => this[PdfName.ModDate] = value;
+        }
+
+        public string Producer
+        {
+            get => (string)this[PdfName.Producer];
+            set => this[PdfName.Producer] = value;
+        }
+
+        [PDF(VersionEnum.PDF11)]
+        public string Subject
+        {
+            get => (string)this[PdfName.Subject];
+            set => this[PdfName.Subject] = value;
+        }
+
+        [PDF(VersionEnum.PDF11)]
+        public string Title
+        {
+            get => (string)this[PdfName.Title];
+            set => this[PdfName.Title] = value;
+        }
+
+        public ICollection<object> Values
+        {
+            get
+            {
+                IList<object> values = new List<object>();
+                foreach (var item in this.BaseDataObject.Values)
+                { values.Add(PdfSimpleObject<object>.GetValue(item)); }
+                return values;
+            }
+        }
     }
 }

@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Go to the previous page of the document' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,24 +36,18 @@ namespace org.pdfclown.documents.interaction.actions
       : NamedAction,
         IGoToAction
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public GoToPreviousPage(
-          Document context
-          ) : base(context, PdfName.PrevPage)
-        { }
 
         internal GoToPreviousPage(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public GoToPreviousPage(
+          Document context
+          ) : base(context, PdfName.PrevPage)
+        { }
 
-        #region interface
-        #endregion
-        #endregion
     }
 }

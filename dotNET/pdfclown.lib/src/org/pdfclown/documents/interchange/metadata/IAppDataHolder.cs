@@ -24,24 +24,17 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interchange.metadata
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Private application data holder [PDF:1.7:10.4].</summary>
     */
     public interface IAppDataHolder
     {
-        /**
-          <summary>Gets the page-piece dictionary holding private application data.</summary>
-        */
-        AppDataCollection AppData
-        {
-            get;
-        }
 
         /**
           <summary>Gets the private data of the specified application, creating it in case no entry in
@@ -51,15 +44,6 @@ namespace org.pdfclown.documents.interchange.metadata
         AppData GetAppData(
           PdfName appName
           );
-
-        /**
-          <summary>Gets the date and time when the holder's contents were most recently modified.
-          </summary>
-        */
-        DateTime? ModificationDate
-        {
-            get;
-        }
 
         /**
           <summary>Updates the <see cref="ModificationDate">modification date</see> with the current
@@ -87,6 +71,22 @@ namespace org.pdfclown.documents.interchange.metadata
           PdfName appName,
           DateTime modificationDate
           );
+        /**
+          <summary>Gets the page-piece dictionary holding private application data.</summary>
+        */
+        AppDataCollection AppData
+        {
+            get;
+        }
+
+        /**
+          <summary>Gets the date and time when the holder's contents were most recently modified.
+          </summary>
+        */
+        DateTime? ModificationDate
+        {
+            get;
+        }
     }
 }
 

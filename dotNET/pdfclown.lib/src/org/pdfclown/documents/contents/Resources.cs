@@ -23,16 +23,16 @@
   this list of conditions.
 */
 
-using System;
-using System.Reflection;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.documents.contents.fonts;
-
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using System;
+    using System.Reflection;
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.documents.contents.fonts;
+
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.objects;
+
     /**
       <summary>Resources collection [PDF:1.6:3.7.2].</summary>
     */
@@ -41,124 +41,113 @@ namespace org.pdfclown.documents.contents
       : PdfObjectWrapper<PdfDictionary>,
         ICompositeDictionary<PdfName>
     {
-        #region static
-        #region interface
-        public static Resources Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Resources(baseObject) : null; }
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Resources(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         private Resources(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        public ColorSpaceResources ColorSpaces
-        {
-            get
-            { return new ColorSpaceResources(BaseDataObject.Get<PdfDictionary>(PdfName.ColorSpace)); }
-            set
-            { BaseDataObject[PdfName.ColorSpace] = value.BaseObject; }
-        }
+        public Resources(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
-        public ExtGStateResources ExtGStates
-        {
-            get
-            { return new ExtGStateResources(BaseDataObject.Get<PdfDictionary>(PdfName.ExtGState)); }
-            set
-            { BaseDataObject[PdfName.ExtGState] = value.BaseObject; }
-        }
-
-        public FontResources Fonts
-        {
-            get
-            { return new FontResources(BaseDataObject.Get<PdfDictionary>(PdfName.Font)); }
-            set
-            { BaseDataObject[PdfName.Font] = value.BaseObject; }
-        }
-
-        public PatternResources Patterns
-        {
-            get
-            { return new PatternResources(BaseDataObject.Get<PdfDictionary>(PdfName.Pattern)); }
-            set
-            { BaseDataObject[PdfName.Pattern] = value.BaseObject; }
-        }
-
-        [PDF(VersionEnum.PDF12)]
-        public PropertyListResources PropertyLists
-        {
-            get
-            { return new PropertyListResources(BaseDataObject.Get<PdfDictionary>(PdfName.Properties)); }
-            set
-            {
-                CheckCompatibility("PropertyLists");
-                BaseDataObject[PdfName.Properties] = value.BaseObject;
-            }
-        }
-
-        [PDF(VersionEnum.PDF13)]
-        public ShadingResources Shadings
-        {
-            get
-            { return new ShadingResources(BaseDataObject.Get<PdfDictionary>(PdfName.Shading)); }
-            set
-            { BaseDataObject[PdfName.Shading] = value.BaseObject; }
-        }
-
-        public XObjectResources XObjects
-        {
-            get
-            { return new XObjectResources(BaseDataObject.Get<PdfDictionary>(PdfName.XObject)); }
-            set
-            { BaseDataObject[PdfName.XObject] = value.BaseObject; }
-        }
-
-        #region ICompositeDictionary
         public PdfObjectWrapper Get(
-          Type type
-          )
+  Type type
+  )
         {
             if (typeof(ColorSpace).IsAssignableFrom(type))
-                return ColorSpaces;
+            {
+                return this.ColorSpaces;
+            }
             else if (typeof(ExtGState).IsAssignableFrom(type))
-                return ExtGStates;
+            {
+                return this.ExtGStates;
+            }
             else if (typeof(Font).IsAssignableFrom(type))
-                return Fonts;
+            {
+                return this.Fonts;
+            }
             else if (typeof(Pattern).IsAssignableFrom(type))
-                return Patterns;
+            {
+                return this.Patterns;
+            }
             else if (typeof(PropertyList).IsAssignableFrom(type))
-                return PropertyLists;
+            {
+                return this.PropertyLists;
+            }
             else if (typeof(Shading).IsAssignableFrom(type))
-                return Shadings;
+            {
+                return this.Shadings;
+            }
             else if (typeof(XObject).IsAssignableFrom(type))
-                return XObjects;
+            {
+                return this.XObjects;
+            }
             else
-                throw new ArgumentException(type.Name + " does NOT represent a valid resource class.");
+            {
+                throw new ArgumentException($"{type.Name} does NOT represent a valid resource class.");
+            }
         }
 
         public T Get<T>(
           PdfName key
           ) where T : PdfObjectWrapper
         {
-            PdfObjectWrapper resources = Get(typeof(T));
+            var resources = this.Get(typeof(T));
             return (T)resources.GetType().GetProperty("Item", BindingFlags.Public | BindingFlags.Instance).GetValue(resources, new object[] { key });
         }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        public static Resources Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Resources(baseObject) : null; }
+
+        public ColorSpaceResources ColorSpaces
+        {
+            get => new ColorSpaceResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.ColorSpace));
+            set => this.BaseDataObject[PdfName.ColorSpace] = value.BaseObject;
+        }
+
+        public ExtGStateResources ExtGStates
+        {
+            get => new ExtGStateResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.ExtGState));
+            set => this.BaseDataObject[PdfName.ExtGState] = value.BaseObject;
+        }
+
+        public FontResources Fonts
+        {
+            get => new FontResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.Font));
+            set => this.BaseDataObject[PdfName.Font] = value.BaseObject;
+        }
+
+        public PatternResources Patterns
+        {
+            get => new PatternResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.Pattern));
+            set => this.BaseDataObject[PdfName.Pattern] = value.BaseObject;
+        }
+
+        [PDF(VersionEnum.PDF12)]
+        public PropertyListResources PropertyLists
+        {
+            get => new PropertyListResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.Properties));
+            set
+            {
+                this.CheckCompatibility("PropertyLists");
+                this.BaseDataObject[PdfName.Properties] = value.BaseObject;
+            }
+        }
+
+        [PDF(VersionEnum.PDF13)]
+        public ShadingResources Shadings
+        {
+            get => new ShadingResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.Shading));
+            set => this.BaseDataObject[PdfName.Shading] = value.BaseObject;
+        }
+
+        public XObjectResources XObjects
+        {
+            get => new XObjectResources(this.BaseDataObject.Get<PdfDictionary>(PdfName.XObject));
+            set => this.BaseDataObject[PdfName.XObject] = value.BaseObject;
+        }
     }
 }

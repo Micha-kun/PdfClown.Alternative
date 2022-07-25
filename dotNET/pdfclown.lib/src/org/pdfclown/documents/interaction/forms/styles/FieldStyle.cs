@@ -23,87 +23,65 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.contents.colorSpaces;
-
 namespace org.pdfclown.documents.interaction.forms.styles
 {
+    using org.pdfclown.documents.contents.colorSpaces;
+
     /**
       <summary>Abstract field appearance style.</summary>
       <remarks>It automates the definition of field appearance, applying a common look.</remarks>
     */
     public abstract class FieldStyle
     {
-        #region dynamic
-        #region fields
         private Color backColor = DeviceRGBColor.White;
         private char checkSymbol = (char)52;
         private double fontSize = 10;
         private Color foreColor = DeviceRGBColor.Black;
         private bool graphicsVisibile = false;
         private char radioSymbol = (char)108;
-        #endregion
 
-        #region constructors
         protected FieldStyle(
-          )
+  )
         { }
-        #endregion
 
-        #region interface
-        #region public
         public abstract void Apply(
-          Field field
-          );
+Field field
+);
 
         public Color BackColor
         {
-            get
-            { return backColor; }
-            set
-            { backColor = value; }
+            get => this.backColor;
+            set => this.backColor = value;
         }
 
         public char CheckSymbol
         {
-            get
-            { return checkSymbol; }
-            set
-            { checkSymbol = value; }
+            get => this.checkSymbol;
+            set => this.checkSymbol = value;
         }
 
         public double FontSize
         {
-            get
-            { return fontSize; }
-            set
-            { fontSize = value; }
+            get => this.fontSize;
+            set => this.fontSize = value;
         }
 
         public Color ForeColor
         {
-            get
-            { return foreColor; }
-            set
-            { foreColor = value; }
+            get => this.foreColor;
+            set => this.foreColor = value;
         }
 
         public bool GraphicsVisibile
         {
-            get
-            { return graphicsVisibile; }
-            set
-            { graphicsVisibile = value; }
+            get => this.graphicsVisibile;
+            set => this.graphicsVisibile = value;
         }
 
         public char RadioSymbol
         {
-            get
-            { return radioSymbol; }
-            set
-            { radioSymbol = value; }
+            get => this.radioSymbol;
+            set => this.radioSymbol = value;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

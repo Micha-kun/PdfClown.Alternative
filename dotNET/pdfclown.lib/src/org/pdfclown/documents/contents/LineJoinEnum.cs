@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents
 {
+    using System;
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>Shape to be used at the corners of stroked paths
       [PDF:1.6:4.3.2].</summary>
@@ -64,7 +64,7 @@ namespace org.pdfclown.documents.contents
                 case LineJoinEnum.Round:
                     return LineJoin.Round;
                 default:
-                    throw new NotSupportedException(lineJoin + " convertion not supported.");
+                    throw new NotSupportedException($"{lineJoin} convertion not supported.");
             }
         }
     }

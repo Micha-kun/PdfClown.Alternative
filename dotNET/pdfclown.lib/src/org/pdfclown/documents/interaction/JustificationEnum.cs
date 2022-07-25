@@ -24,14 +24,14 @@
 */
 
 
-using System;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction
 {
+    using System;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Text justification [PDF:1.6:8.4.5,8.6.2].</summary>
     */
@@ -72,11 +72,15 @@ namespace org.pdfclown.documents.interaction
           )
         {
             if (value == null)
+            {
                 return JustificationEnum.Left;
+            }
 
             JustificationEnum? justification = codes.GetKey(value);
             if (!justification.HasValue)
-                throw new NotSupportedException("Justification unknown: " + value);
+            {
+                throw new NotSupportedException($"Justification unknown: {value}");
+            }
 
             return justification.Value;
         }

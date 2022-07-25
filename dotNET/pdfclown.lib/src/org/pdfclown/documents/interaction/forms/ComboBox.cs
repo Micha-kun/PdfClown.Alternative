@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Combo box [PDF:1.6:8.6.3].</summary>
     */
@@ -38,34 +37,27 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class ComboBox
       : ChoiceField
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new combobox within the given document context.</summary>
-        */
-        public ComboBox(
-          string name,
-          Widget widget
-          ) : base(name, widget)
-        { Flags = EnumUtils.Mask(Flags, FlagsEnum.Combo, true); }
 
         internal ComboBox(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets whether the text is editable.</summary>
-        */
+<summary>Creates a new combobox within the given document context.</summary>
+*/
+        public ComboBox(
+          string name,
+          Widget widget
+          ) : base(name, widget)
+        { this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.Combo, true); }
+
+        /**
+<summary>Gets/Sets whether the text is editable.</summary>
+*/
         public bool Editable
         {
-            get
-            { return (Flags & FlagsEnum.Edit) == FlagsEnum.Edit; }
-            set
-            { Flags = EnumUtils.Mask(Flags, FlagsEnum.Edit, value); }
+            get => (this.Flags & FlagsEnum.Edit) == FlagsEnum.Edit;
+            set => this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.Edit, value);
         }
 
         /**
@@ -73,13 +65,8 @@ namespace org.pdfclown.documents.interaction.forms
         */
         public bool SpellChecked
         {
-            get
-            { return (Flags & FlagsEnum.DoNotSpellCheck) != FlagsEnum.DoNotSpellCheck; }
-            set
-            { Flags = EnumUtils.Mask(Flags, FlagsEnum.DoNotSpellCheck, !value); }
+            get => (this.Flags & FlagsEnum.DoNotSpellCheck) != FlagsEnum.DoNotSpellCheck;
+            set => this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.DoNotSpellCheck, !value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

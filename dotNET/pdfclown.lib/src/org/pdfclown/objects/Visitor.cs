@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using org.pdfclown.tokens;
+
     /**
       <summary>Visitor object.</summary>
     */
@@ -38,8 +38,8 @@ namespace org.pdfclown.objects
           object data
           )
         {
-            foreach (PdfDataObject value in obj.Values)
-            { value.Accept(this, data); }
+            foreach (var value in obj.Values)
+            { _ = value.Accept(this, data); }
             return obj;
         }
 
@@ -48,10 +48,10 @@ namespace org.pdfclown.objects
           object data
           )
         {
-            foreach (PdfDirectObject item in obj)
+            foreach (var item in obj)
             {
                 if (item != null)
-                { item.Accept(this, data); }
+                { _ = item.Accept(this, data); }
             }
             return obj;
         }
@@ -79,10 +79,10 @@ namespace org.pdfclown.objects
           object data
           )
         {
-            foreach (PdfDirectObject value in obj.Values)
+            foreach (var value in obj.Values)
             {
                 if (value != null)
-                { value.Accept(this, data); }
+                { _ = value.Accept(this, data); }
             }
             return obj;
         }
@@ -92,9 +92,9 @@ namespace org.pdfclown.objects
           object data
           )
         {
-            PdfDataObject dataObject = obj.DataObject;
+            var dataObject = obj.DataObject;
             if (dataObject != null)
-            { dataObject.Accept(this, data); }
+            { _ = dataObject.Accept(this, data); }
             return obj;
         }
 
@@ -121,7 +121,7 @@ namespace org.pdfclown.objects
           object data
           )
         {
-            obj.IndirectObject.Accept(this, data);
+            _ = obj.IndirectObject.Accept(this, data);
             return obj;
         }
 
@@ -130,7 +130,7 @@ namespace org.pdfclown.objects
           object data
           )
         {
-            obj.header.Accept(this, data);
+            _ = obj.header.Accept(this, data);
             return obj;
         }
 

@@ -23,14 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Modify the current transformation matrix (CTM) by concatenating the specified matrix'
       operation [PDF:1.6:4.3.3].</summary>
@@ -39,43 +37,23 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class ModifyCTM
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "cm";
-        #endregion
 
-        #region interface
-        #region public
-        public static ModifyCTM GetResetCTM(
-          ContentScanner.GraphicsState state
-          )
-        {
-            Matrix inverseCtm = state.Ctm.Clone();
-            inverseCtm.Invert();
-            return new ModifyCTM(
-              inverseCtm
-              // TODO: inverseCtm is a simplification which assumes an identity initial ctm!
-              //        SquareMatrix.get(state.Ctm).solve(
-              //          SquareMatrix.get(state.GetInitialCtm())
-              //          ).toTransform()
-              );
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         public ModifyCTM(
-          Matrix value
-          ) : this(
-            value.Elements[0],
-            value.Elements[1],
-            value.Elements[2],
-            value.Elements[3],
-            value.Elements[4],
-            value.Elements[5]
-            )
+Matrix value
+) : this(
+value.Elements[0],
+value.Elements[1],
+value.Elements[2],
+value.Elements[3],
+value.Elements[4],
+value.Elements[5]
+)
+        { }
+
+        public ModifyCTM(
+          IList<PdfDirectObject> operands
+          ) : base(OperatorKeyword, operands)
         { }
 
         public ModifyCTM(
@@ -101,41 +79,39 @@ namespace org.pdfclown.documents.contents.objects
             )
         { }
 
-        public ModifyCTM(
-          IList<PdfDirectObject> operands
-          ) : base(OperatorKeyword, operands)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override void Scan(
-          ContentScanner.GraphicsState state
-          )
+        public static ModifyCTM GetResetCTM(
+ContentScanner.GraphicsState state
+)
         {
-            state.Ctm.Multiply(Value);
+            var inverseCtm = state.Ctm.Clone();
+            inverseCtm.Invert();
+            return new ModifyCTM(
+              inverseCtm
+              // TODO: inverseCtm is a simplification which assumes an identity initial ctm!
+              //        SquareMatrix.get(state.Ctm).solve(
+              //          SquareMatrix.get(state.GetInitialCtm())
+              //          ).toTransform()
+              );
+        }
 
-            Graphics context = state.Scanner.RenderContext;
+        public override void Scan(
+ContentScanner.GraphicsState state
+)
+        {
+            state.Ctm.Multiply(this.Value);
+
+            var context = state.Scanner.RenderContext;
             if (context != null)
             { context.Transform = state.Ctm; }
         }
 
-        public Matrix Value
-        {
-            get
-            {
-                return new Matrix(
-                  ((IPdfNumber)operands[0]).FloatValue, // a.
-                  ((IPdfNumber)operands[1]).FloatValue, // b.
-                  ((IPdfNumber)operands[2]).FloatValue, // c.
-                  ((IPdfNumber)operands[3]).FloatValue, // d.
-                  ((IPdfNumber)operands[4]).FloatValue, // e.
-                  ((IPdfNumber)operands[5]).FloatValue // f.
+        public Matrix Value => new Matrix(
+                  ((IPdfNumber)this.operands[0]).FloatValue, // a.
+                  ((IPdfNumber)this.operands[1]).FloatValue, // b.
+                  ((IPdfNumber)this.operands[2]).FloatValue, // c.
+                  ((IPdfNumber)this.operands[3]).FloatValue, // d.
+                  ((IPdfNumber)this.operands[4]).FloatValue, // e.
+                  ((IPdfNumber)this.operands[5]).FloatValue // f.
                   );
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

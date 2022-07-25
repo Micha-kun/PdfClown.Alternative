@@ -23,30 +23,25 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.util;
-
 namespace org.pdfclown.tokens
 {
+    using org.pdfclown.util;
+
     /**
       <summary>Adobe standard Latin character set [PDF:1.7:D].</summary>
     */
     public class LatinEncoding
       : Encoding
     {
-        #region dynamic
-        #region fields
         /**
-          <summary>Code-to-Unicode map.</summary>
-        */
+<summary>Code-to-Unicode map.</summary>
+*/
         protected BiDictionary<int, char> chars;
-        #endregion
 
-        #region interface
         public override string Decode(
-          byte[] value
-          )
-        { return Decode(value, 0, value.Length); }
+  byte[] value
+  )
+        { return this.Decode(value, 0, value.Length); }
 
         public override string Decode(
           byte[] value,
@@ -54,29 +49,29 @@ namespace org.pdfclown.tokens
           int length
           )
         {
-            char[] stringChars = new char[length];
+            var stringChars = new char[length];
             for (int decodeIndex = index, decodeLength = length + index; decodeIndex < decodeLength; decodeIndex++)
-            { stringChars[decodeIndex - index] = chars[value[decodeIndex] & 0xff]; }
-            return new String(stringChars);
+            { stringChars[decodeIndex - index] = this.chars[value[decodeIndex] & 0xff]; }
+            return new string(stringChars);
         }
 
         public override byte[] Encode(
           string value
           )
         {
-            char[] stringChars = value.ToCharArray();
-            byte[] stringBytes = new byte[stringChars.Length];
+            var stringChars = value.ToCharArray();
+            var stringBytes = new byte[stringChars.Length];
             for (int index = 0, length = stringChars.Length; index < length; index++)
             {
-                int code = chars.GetKey(stringChars[index]);
+                var code = this.chars.GetKey(stringChars[index]);
                 if (code == 0) //TODO: verify whether 0 collides with valid code values.
+                {
                     return null;
+                }
 
                 stringBytes[index] = (byte)code;
             }
             return stringBytes;
         }
-        #endregion
-        #endregion
     }
 }

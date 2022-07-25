@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Inline image entries (anonymous) operation [PDF:1.6:4.8.6].</summary>
       <remarks>This is a figurative operation necessary to constrain the inline image entries section
@@ -41,61 +41,11 @@ namespace org.pdfclown.documents.contents.objects
       : Operation,
         IDictionary<PdfName, PdfDirectObject>
     {
-        #region dynamic
-        #region constructors
         // [FIX:0.0.4:2] Null operator.
         public InlineImageHeader(
           IList<PdfDirectObject> operands
-          ) : base(String.Empty, operands)
+          ) : base(string.Empty, operands)
         { }
-        #endregion
-
-        #region public
-        #region IDictionary
-        public void Add(
-          PdfName key,
-          PdfDirectObject value
-          )
-        {
-            if (ContainsKey(key))
-                throw new ArgumentException("Key '" + key + "' already in use.", "key");
-
-            this[key] = value;
-        }
-
-        public bool ContainsKey(
-          PdfName key
-          )
-        { return GetKeyIndex(key) != null; }
-
-        public ICollection<PdfName> Keys
-        {
-            get
-            {
-                ICollection<PdfName> keys = new List<PdfName>();
-                for (
-                  int index = 0,
-                    length = operands.Count - 1;
-                  index < length;
-                  index += 2
-                  )
-                { keys.Add((PdfName)operands[index]); }
-                return keys;
-            }
-        }
-
-        public bool Remove(
-          PdfName key
-          )
-        {
-            int? index = GetKeyIndex(key);
-            if (!index.HasValue)
-                return false;
-
-            operands.RemoveAt(index.Value);
-            operands.RemoveAt(index.Value);
-            return true;
-        }
 
         public PdfDirectObject this[
           PdfName key
@@ -107,33 +57,153 @@ namespace org.pdfclown.documents.contents.objects
                   NOTE: This is an intentional violation of the official .NET Framework Class
                   Library prescription: no exception thrown anytime a key is not found.
                 */
-                int? index = GetKeyIndex(key);
+                var index = this.GetKeyIndex(key);
                 if (index == null)
+                {
                     return null;
+                }
 
-                return operands[index.Value + 1];
+                return this.operands[index.Value + 1];
             }
             set
             {
-                int? index = GetKeyIndex(key);
+                var index = this.GetKeyIndex(key);
                 if (index == null)
                 {
-                    operands.Add(key);
-                    operands.Add(value);
+                    this.operands.Add(key);
+                    this.operands.Add(value);
                 }
                 else
                 {
-                    operands[index.Value] = key;
-                    operands[index.Value + 1] = value;
+                    this.operands[index.Value] = key;
+                    this.operands[index.Value + 1] = value;
                 }
             }
         }
+
+        void ICollection<KeyValuePair<PdfName, PdfDirectObject>>.Add(
+  KeyValuePair<PdfName, PdfDirectObject> keyValuePair
+  )
+        { this.Add(keyValuePair.Key, keyValuePair.Value); }
+
+        bool ICollection<KeyValuePair<PdfName, PdfDirectObject>>.Contains(
+          KeyValuePair<PdfName, PdfDirectObject> keyValuePair
+          )
+        { return this[keyValuePair.Key] == keyValuePair.Value; }
+
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<PdfName, PdfDirectObject>>)this).GetEnumerator(); }
+
+        IEnumerator<KeyValuePair<PdfName, PdfDirectObject>> IEnumerable<KeyValuePair<PdfName, PdfDirectObject>>.GetEnumerator(
+  )
+        {
+            for (
+              int index = 0,
+                length = this.operands.Count - 1;
+              index < length;
+              index += 2
+              )
+            {
+                yield return new KeyValuePair<PdfName, PdfDirectObject>(
+                  (PdfName)this.operands[index],
+                  this.operands[index + 1]
+                  );
+            }
+        }
+
+        private int? GetKeyIndex(
+  object key
+  )
+        {
+            for (
+              int index = 0,
+                length = this.operands.Count - 1;
+              index < length;
+              index += 2
+              )
+            {
+                if (this.operands[index].Equals(key))
+                {
+                    return index;
+                }
+            }
+            return null;
+        }
+
+        public void Add(
+PdfName key,
+PdfDirectObject value
+)
+        {
+            if (this.ContainsKey(key))
+            {
+                throw new ArgumentException($"Key '{key}' already in use.", nameof(key));
+            }
+
+            this[key] = value;
+        }
+
+        public void Clear(
+          )
+        { this.operands.Clear(); }
+
+        public bool ContainsKey(
+          PdfName key
+          )
+        { return this.GetKeyIndex(key) != null; }
+
+        public void CopyTo(
+          KeyValuePair<PdfName, PdfDirectObject>[] keyValuePairs,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Remove(
+          PdfName key
+          )
+        {
+            var index = this.GetKeyIndex(key);
+            if (!index.HasValue)
+            {
+                return false;
+            }
+
+            this.operands.RemoveAt(index.Value);
+            this.operands.RemoveAt(index.Value);
+            return true;
+        }
+
+        public bool Remove(
+          KeyValuePair<PdfName, PdfDirectObject> keyValuePair
+          )
+        { throw new NotImplementedException(); }
 
         public bool TryGetValue(
           PdfName key,
           out PdfDirectObject value
           )
         { throw new NotImplementedException(); }
+
+        public int Count => this.operands.Count / 2;
+
+        public bool IsReadOnly => false;
+
+        public ICollection<PdfName> Keys
+        {
+            get
+            {
+                ICollection<PdfName> keys = new List<PdfName>();
+                for (
+                  int index = 0,
+                    length = this.operands.Count - 1;
+                  index < length;
+                  index += 2
+                  )
+                { keys.Add((PdfName)this.operands[index]); }
+                return keys;
+            }
+        }
 
         public ICollection<PdfDirectObject> Values
         {
@@ -142,99 +212,13 @@ namespace org.pdfclown.documents.contents.objects
                 ICollection<PdfDirectObject> values = new List<PdfDirectObject>();
                 for (
                   int index = 1,
-                    length = operands.Count - 1;
+                    length = this.operands.Count - 1;
                   index < length;
                   index += 2
                   )
-                { values.Add(operands[index]); }
+                { values.Add(this.operands[index]); }
                 return values;
             }
         }
-
-        #region ICollection
-        void ICollection<KeyValuePair<PdfName, PdfDirectObject>>.Add(
-          KeyValuePair<PdfName, PdfDirectObject> keyValuePair
-          )
-        { Add(keyValuePair.Key, keyValuePair.Value); }
-
-        public void Clear(
-          )
-        { operands.Clear(); }
-
-        bool ICollection<KeyValuePair<PdfName, PdfDirectObject>>.Contains(
-          KeyValuePair<PdfName, PdfDirectObject> keyValuePair
-          )
-        { return (this[keyValuePair.Key] == keyValuePair.Value); }
-
-        public void CopyTo(
-          KeyValuePair<PdfName, PdfDirectObject>[] keyValuePairs,
-          int index
-          )
-        { throw new NotImplementedException(); }
-
-        public int Count
-        {
-            get
-            { return operands.Count / 2; }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          KeyValuePair<PdfName, PdfDirectObject> keyValuePair
-          )
-        { throw new NotImplementedException(); }
-
-        #region IEnumerable<KeyValuePair<PdfName,PdfDirectObject>>
-        IEnumerator<KeyValuePair<PdfName, PdfDirectObject>> IEnumerable<KeyValuePair<PdfName, PdfDirectObject>>.GetEnumerator(
-          )
-        {
-            for (
-              int index = 0,
-                length = operands.Count - 1;
-              index < length;
-              index += 2
-              )
-            {
-                yield return new KeyValuePair<PdfName, PdfDirectObject>(
-                  (PdfName)operands[index],
-                  operands[index + 1]
-                  );
-            }
-        }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<KeyValuePair<PdfName, PdfDirectObject>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
-        private int? GetKeyIndex(
-          object key
-          )
-        {
-            for (
-              int index = 0,
-                length = operands.Count - 1;
-              index < length;
-              index += 2
-              )
-            {
-                if (operands[index].Equals(key))
-                    return index;
-            }
-            return null;
-        }
-        #endregion
-        #endregion
     }
 }

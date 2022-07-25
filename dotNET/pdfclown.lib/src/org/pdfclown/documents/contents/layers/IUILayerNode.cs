@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.layers
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Object that can be part of a hierarchical layer structure.</summary>
     */
@@ -55,24 +55,33 @@ namespace org.pdfclown.documents.contents.layers
 
     internal sealed class UILayerNode
     {
+
+        private UILayerNode(
+          )
+        { }
+
         public static IUILayerNode Wrap(
           PdfDirectObject baseObject
           )
         {
             if (baseObject == null)
+            {
                 return null;
+            }
 
-            PdfDataObject baseDataObject = baseObject.Resolve();
+            var baseDataObject = baseObject.Resolve();
             if (baseDataObject is PdfDictionary)
+            {
                 return Layer.Wrap(baseObject);
+            }
             else if (baseDataObject is PdfArray)
+            {
                 return LayerCollection.Wrap(baseObject);
+            }
             else
-                throw new ArgumentException(baseDataObject.GetType().Name + " is NOT a valid layer node.");
+            {
+                throw new ArgumentException($"{baseDataObject.GetType().Name} is NOT a valid layer node.");
+            }
         }
-
-        private UILayerNode(
-          )
-        { }
     }
 }

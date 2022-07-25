@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.files;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.files;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Named embedded files [PDF:1.6:3.6.3].</summary>
     */
@@ -37,27 +36,19 @@ namespace org.pdfclown.documents
     public sealed class NamedEmbeddedFiles
       : NameTree<FileSpecification>
     {
-        #region dynamic
-        #region constructors
-        public NamedEmbeddedFiles(
-          Document context
-          ) : base(context)
-        { }
 
         internal NamedEmbeddedFiles(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public NamedEmbeddedFiles(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override FileSpecification WrapValue(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return FileSpecification.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

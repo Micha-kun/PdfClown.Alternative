@@ -23,8 +23,6 @@
   this list of conditions.
 */
 
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents.objects
 {
     /**
@@ -36,33 +34,21 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class CloseSubpath
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "h";
 
         public static readonly CloseSubpath Value = new CloseSubpath();
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         private CloseSubpath(
-          ) : base(OperatorKeyword)
+) : base(OperatorKeyword)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
+ContentScanner.GraphicsState state
+)
         {
-            GraphicsPath pathObject = state.Scanner.RenderObject;
+            var pathObject = state.Scanner.RenderObject;
             if (pathObject != null)
             { pathObject.CloseFigure(); }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

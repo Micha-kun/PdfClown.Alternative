@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.files
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Simple reference to the contents of another file [PDF:1.6:3.10.2].</summary>
     */
@@ -37,30 +36,18 @@ namespace org.pdfclown.documents.files
     public sealed class SimpleFileSpecification
       : FileSpecification
     {
-        #region dynamic
-        #region constructors
-        internal SimpleFileSpecification(
-          Document context,
-          string path
-          ) : base(context, new PdfString(path))
-        { }
 
         internal SimpleFileSpecification(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        internal SimpleFileSpecification(
+Document context,
+string path
+) : base(context, new PdfString(path))
+        { }
 
-        #region interface
-        #region public
-        public override string Path
-        {
-            get
-            { return (string)((PdfString)BaseDataObject).Value; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public override string Path => (string)((PdfString)this.BaseDataObject).Value;
     }
 }
 

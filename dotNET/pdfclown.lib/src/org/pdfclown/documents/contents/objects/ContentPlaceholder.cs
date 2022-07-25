@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
     /**
       <summary>Anonymous container.</summary>
       <remarks>Having no side effects either running or persisting, this container is useful to group
@@ -36,18 +35,14 @@ namespace org.pdfclown.documents.contents.objects
     public class ContentPlaceholder
       : ContainerObject
     {
-        #region dynamic
-        #region constructors
         public ContentPlaceholder(
-          )
+)
         { }
 
         public ContentPlaceholder(
           IList<ContentObject> objects
           ) : base(objects)
         { }
-        #endregion
-        #endregion
     }
 }
 

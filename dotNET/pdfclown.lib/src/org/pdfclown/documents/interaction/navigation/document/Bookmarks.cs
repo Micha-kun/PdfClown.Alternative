@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.navigation.document
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Collection of bookmarks [PDF:1.6:8.2.2].</summary>
     */
@@ -39,62 +39,30 @@ namespace org.pdfclown.documents.interaction.navigation.document
       : PdfObjectWrapper<PdfDictionary>,
         IList<Bookmark>
     {
-        #region static
-        #region interface
-        #region public
-        public static Bookmarks Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Bookmarks(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Bookmarks(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[2]
-              {
-            PdfName.Type,
-            PdfName.Count
-              },
-              new PdfDirectObject[2]
-              {
-            PdfName.Outlines,
-            PdfInteger.Default
-              }
-              )
-            )
-        { }
 
         private Bookmarks(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        #region IList
-        public int IndexOf(
-          Bookmark bookmark
-          )
-        { throw new NotImplementedException(); }
-
-        public void Insert(
-          int index,
-          Bookmark bookmark
-          )
-        { throw new NotImplementedException(); }
-
-        public void RemoveAt(
-          int index
-          )
-        { throw new NotImplementedException(); }
+        public Bookmarks(
+Document context
+) : base(
+context,
+new PdfDictionary(
+new PdfName[2]
+{
+            PdfName.Type,
+            PdfName.Count
+},
+new PdfDirectObject[2]
+{
+            PdfName.Outlines,
+            PdfInteger.Default
+}
+)
+)
+        { }
 
         public Bookmark this[
           int index
@@ -102,49 +70,85 @@ namespace org.pdfclown.documents.interaction.navigation.document
         {
             get
             {
-                PdfReference bookmarkObject = (PdfReference)BaseDataObject[PdfName.First];
+                var bookmarkObject = (PdfReference)this.BaseDataObject[PdfName.First];
                 while (index > 0)
                 {
                     bookmarkObject = (PdfReference)((PdfDictionary)bookmarkObject.DataObject)[PdfName.Next];
                     // Did we go past the collection range?
                     if (bookmarkObject == null)
+                    {
                         throw new ArgumentOutOfRangeException();
+                    }
 
                     index--;
                 }
 
                 return new Bookmark(bookmarkObject);
             }
-            set
-            {
-                throw new NotImplementedException();
-            }
+            set => throw new NotImplementedException();
         }
 
-        #region ICollection
-        public void Add(
-          Bookmark bookmark
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<Bookmark>)this).GetEnumerator(); }
+
+        IEnumerator<Bookmark> IEnumerable<Bookmark>.GetEnumerator(
+  )
+        {
+            var bookmarkObject = this.BaseDataObject[PdfName.First];
+            if (bookmarkObject == null)
+            {
+                yield break;
+            }
+
+            do
+            {
+                yield return new Bookmark(bookmarkObject);
+
+                bookmarkObject = ((PdfDictionary)bookmarkObject.Resolve())[PdfName.Next];
+            } while (bookmarkObject != null);
+        }
+
+        /**
+  <summary>Gets the count object, forcing its creation if it doesn't
+  exist.</summary>
+*/
+        private PdfInteger EnsureCountObject(
           )
+        {
+            /*
+              NOTE: The Count entry may be absent [PDF:1.6:8.2.2].
+            */
+            var countObject = (PdfInteger)this.BaseDataObject[PdfName.Count];
+            if (countObject == null)
+            { this.BaseDataObject[PdfName.Count] = countObject = PdfInteger.Default; }
+
+            return countObject;
+        }
+
+        public void Add(
+  Bookmark bookmark
+  )
         {
             /*
               NOTE: Bookmarks imported from alien PDF files MUST be cloned
               before being added.
             */
-            bookmark.BaseDataObject[PdfName.Parent] = BaseObject;
+            bookmark.BaseDataObject[PdfName.Parent] = this.BaseObject;
 
-            PdfInteger countObject = EnsureCountObject();
+            var countObject = this.EnsureCountObject();
             // Is it the first bookmark?
             if ((int)countObject.Value == 0) // First bookmark.
             {
-                BaseDataObject[PdfName.Last]
-                  = BaseDataObject[PdfName.First]
+                this.BaseDataObject[PdfName.Last]
+                  = this.BaseDataObject[PdfName.First]
                   = bookmark.BaseObject;
-                BaseDataObject[PdfName.Count] = PdfInteger.Get(countObject.IntValue + 1);
+                this.BaseDataObject[PdfName.Count] = PdfInteger.Get(countObject.IntValue + 1);
             }
             else // Non-first bookmark.
             {
-                PdfReference oldLastBookmarkReference = (PdfReference)BaseDataObject[PdfName.Last];
-                BaseDataObject[PdfName.Last] // Added bookmark is the last in the collection...
+                var oldLastBookmarkReference = (PdfReference)this.BaseDataObject[PdfName.Last];
+                this.BaseDataObject[PdfName.Last] // Added bookmark is the last in the collection...
                   = ((PdfDictionary)oldLastBookmarkReference.DataObject)[PdfName.Next] // ...and the next of the previously-last bookmark.
                   = bookmark.BaseObject;
                 bookmark.BaseDataObject[PdfName.Prev] = oldLastBookmarkReference;
@@ -153,7 +157,7 @@ namespace org.pdfclown.documents.interaction.navigation.document
                   NOTE: The Count entry is a relative number (whose sign represents
                   the node open state).
                 */
-                BaseDataObject[PdfName.Count] = PdfInteger.Get(countObject.IntValue + Math.Sign(countObject.IntValue));
+                this.BaseDataObject[PdfName.Count] = PdfInteger.Get(countObject.IntValue + Math.Sign(countObject.IntValue));
             }
         }
 
@@ -172,6 +176,31 @@ namespace org.pdfclown.documents.interaction.navigation.document
           )
         { throw new NotImplementedException(); }
 
+        public int IndexOf(
+Bookmark bookmark
+)
+        { throw new NotImplementedException(); }
+
+        public void Insert(
+          int index,
+          Bookmark bookmark
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Remove(
+          Bookmark bookmark
+          )
+        { throw new NotImplementedException(); }
+
+        public void RemoveAt(
+          int index
+          )
+        { throw new NotImplementedException(); }
+        public static Bookmarks Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Bookmarks(baseObject) : null; }
+
         public int Count
         {
             get
@@ -179,67 +208,16 @@ namespace org.pdfclown.documents.interaction.navigation.document
                 /*
                   NOTE: The Count entry may be absent [PDF:1.6:8.2.2].
                 */
-                PdfInteger countObject = (PdfInteger)BaseDataObject[PdfName.Count];
+                var countObject = (PdfInteger)this.BaseDataObject[PdfName.Count];
                 if (countObject == null)
+                {
                     return 0;
+                }
 
                 return countObject.RawValue;
             }
         }
 
-        public bool IsReadOnly
-        { get { return false; } }
-
-        public bool Remove(
-          Bookmark bookmark
-          )
-        { throw new NotImplementedException(); }
-
-        #region IEnumerable<ContentStream>
-        IEnumerator<Bookmark> IEnumerable<Bookmark>.GetEnumerator(
-          )
-        {
-            PdfDirectObject bookmarkObject = BaseDataObject[PdfName.First];
-            if (bookmarkObject == null)
-                yield break;
-
-            do
-            {
-                yield return new Bookmark(bookmarkObject);
-
-                bookmarkObject = ((PdfDictionary)bookmarkObject.Resolve())[PdfName.Next];
-            } while (bookmarkObject != null);
-        }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<Bookmark>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
-        /**
-          <summary>Gets the count object, forcing its creation if it doesn't
-          exist.</summary>
-        */
-        private PdfInteger EnsureCountObject(
-          )
-        {
-            /*
-              NOTE: The Count entry may be absent [PDF:1.6:8.2.2].
-            */
-            PdfInteger countObject = (PdfInteger)BaseDataObject[PdfName.Count];
-            if (countObject == null)
-            { BaseDataObject[PdfName.Count] = countObject = PdfInteger.Default; }
-
-            return countObject;
-        }
-        #endregion
-        #endregion
-        #endregion
+        public bool IsReadOnly => false;
     }
 }

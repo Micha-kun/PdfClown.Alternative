@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Drawing;
+
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.objects;
+
     /**
       <summary>Line annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It displays displays a single straight line on the page.
@@ -40,62 +39,68 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Line
       : Markup
     {
-        #region static
-        #region fields
         private static readonly double DefaultLeaderLineExtensionLength = 0;
         private static readonly double DefaultLeaderLineLength = 0;
         private static readonly LineEndStyleEnum DefaultLineEndStyle = LineEndStyleEnum.None;
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Line(
-          Page page,
-          PointF startPoint,
-          PointF endPoint,
-          string text,
-          DeviceRGBColor color
-          ) : base(
-            page,
-            PdfName.Line,
-            new RectangleF(
-              startPoint.X,
-              startPoint.Y,
-              endPoint.X - startPoint.X,
-              endPoint.Y - startPoint.Y
-              ),
-            text
-            )
-        {
-            BaseDataObject[PdfName.L] = new PdfArray(new PdfDirectObject[] { PdfReal.Get(0), PdfReal.Get(0), PdfReal.Get(0), PdfReal.Get(0) });
-            StartPoint = startPoint;
-            EndPoint = endPoint;
-            Color = color;
-        }
 
         internal Line(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public Line(
+Page page,
+PointF startPoint,
+PointF endPoint,
+string text,
+DeviceRGBColor color
+) : base(
+page,
+PdfName.Line,
+new RectangleF(
+startPoint.X,
+startPoint.Y,
+endPoint.X - startPoint.X,
+endPoint.Y - startPoint.Y
+),
+text
+)
+        {
+            this.BaseDataObject[PdfName.L] = new PdfArray(new PdfDirectObject[] { PdfReal.Get(0), PdfReal.Get(0), PdfReal.Get(0), PdfReal.Get(0) });
+            this.StartPoint = startPoint;
+            this.EndPoint = endPoint;
+            this.Color = color;
+        }
+
+        private PdfArray EnsureLineEndStylesObject(
+  )
+        {
+            var endStylesObject = (PdfArray)this.BaseDataObject[PdfName.LE];
+            if (endStylesObject == null)
+            {
+                this.BaseDataObject[PdfName.LE] = endStylesObject = new PdfArray(
+                  new PdfDirectObject[]
+                  {
+            DefaultLineEndStyle.GetName(),
+            DefaultLineEndStyle.GetName()
+                  }
+                  );
+            }
+            return endStylesObject;
+        }
+
         /**
-          <summary>Gets/Sets whether the contents should be shown as a caption.</summary>
-        */
+<summary>Gets/Sets whether the contents should be shown as a caption.</summary>
+*/
         public bool CaptionVisible
         {
             get
             {
-                PdfBoolean captionVisibleObject = (PdfBoolean)BaseDataObject[PdfName.Cap];
-                return captionVisibleObject != null
-                  ? captionVisibleObject.BooleanValue
-                  : false;
+                var captionVisibleObject = (PdfBoolean)this.BaseDataObject[PdfName.Cap];
+                return (captionVisibleObject != null)
+&& captionVisibleObject.BooleanValue;
             }
-            set
-            { BaseDataObject[PdfName.Cap] = PdfBoolean.Get(value); }
+            set => this.BaseDataObject[PdfName.Cap] = PdfBoolean.Get(value);
         }
 
         /**
@@ -105,7 +110,7 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfArray coordinatesObject = (PdfArray)BaseDataObject[PdfName.L];
+                var coordinatesObject = (PdfArray)this.BaseDataObject[PdfName.L];
                 return new PointF(
                   (float)((IPdfNumber)coordinatesObject[2]).RawValue,
                   (float)((IPdfNumber)coordinatesObject[3]).RawValue
@@ -113,9 +118,9 @@ namespace org.pdfclown.documents.interaction.annotations
             }
             set
             {
-                PdfArray coordinatesObject = (PdfArray)BaseDataObject[PdfName.L];
+                var coordinatesObject = (PdfArray)this.BaseDataObject[PdfName.L];
                 coordinatesObject[2] = PdfReal.Get(value.X);
-                coordinatesObject[3] = PdfReal.Get(Page.Box.Height - value.Y);
+                coordinatesObject[3] = PdfReal.Get(this.Page.Box.Height - value.Y);
             }
         }
 
@@ -126,13 +131,12 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfArray endstylesObject = (PdfArray)BaseDataObject[PdfName.LE];
-                return endstylesObject != null
+                var endstylesObject = (PdfArray)this.BaseDataObject[PdfName.LE];
+                return (endstylesObject != null)
                   ? LineEndStyleEnumExtension.Get((PdfName)endstylesObject[1])
                   : DefaultLineEndStyle;
             }
-            set
-            { EnsureLineEndStylesObject()[1] = value.GetName(); }
+            set => this.EnsureLineEndStylesObject()[1] = value.GetName();
         }
 
         /**
@@ -142,9 +146,11 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfArray fillColorObject = (PdfArray)BaseDataObject[PdfName.IC];
+                var fillColorObject = (PdfArray)this.BaseDataObject[PdfName.IC];
                 if (fillColorObject == null)
+                {
                     return null;
+                }
                 //TODO:use baseObject constructor!!!
                 return new DeviceRGBColor(
                   ((IPdfNumber)fillColorObject[0]).RawValue,
@@ -152,8 +158,7 @@ namespace org.pdfclown.documents.interaction.annotations
                   ((IPdfNumber)fillColorObject[2]).RawValue
                   );
             }
-            set
-            { BaseDataObject[PdfName.IC] = (PdfDirectObject)value.BaseDataObject; }
+            set => this.BaseDataObject[PdfName.IC] = (PdfDirectObject)value.BaseDataObject;
         }
 
         /**
@@ -164,19 +169,19 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                IPdfNumber leaderLineExtensionLengthObject = (IPdfNumber)BaseDataObject[PdfName.LLE];
-                return leaderLineExtensionLengthObject != null
+                var leaderLineExtensionLengthObject = (IPdfNumber)this.BaseDataObject[PdfName.LLE];
+                return (leaderLineExtensionLengthObject != null)
                   ? leaderLineExtensionLengthObject.RawValue
                   : DefaultLeaderLineExtensionLength;
             }
             set
             {
-                BaseDataObject[PdfName.LLE] = PdfReal.Get(value);
+                this.BaseDataObject[PdfName.LLE] = PdfReal.Get(value);
                 /*
                   NOTE: If leader line extension entry is present, leader line MUST be too.
                 */
-                if (!BaseDataObject.ContainsKey(PdfName.LL))
-                { LeaderLineLength = DefaultLeaderLineLength; }
+                if (!this.BaseDataObject.ContainsKey(PdfName.LL))
+                { this.LeaderLineLength = DefaultLeaderLineLength; }
             }
         }
 
@@ -191,13 +196,12 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                IPdfNumber leaderLineLengthObject = (IPdfNumber)BaseDataObject[PdfName.LL];
-                return leaderLineLengthObject != null
-                  ? -leaderLineLengthObject.RawValue
+                var leaderLineLengthObject = (IPdfNumber)this.BaseDataObject[PdfName.LL];
+                return (leaderLineLengthObject != null)
+                  ? (-leaderLineLengthObject.RawValue)
                   : DefaultLeaderLineLength;
             }
-            set
-            { BaseDataObject[PdfName.LL] = PdfReal.Get(-value); }
+            set => this.BaseDataObject[PdfName.LL] = PdfReal.Get(-value);
         }
 
         /**
@@ -207,7 +211,7 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfArray coordinatesObject = (PdfArray)BaseDataObject[PdfName.L];
+                var coordinatesObject = (PdfArray)this.BaseDataObject[PdfName.L];
                 return new PointF(
                   (float)((IPdfNumber)coordinatesObject[0]).RawValue,
                   (float)((IPdfNumber)coordinatesObject[1]).RawValue
@@ -215,9 +219,9 @@ namespace org.pdfclown.documents.interaction.annotations
             }
             set
             {
-                PdfArray coordinatesObject = (PdfArray)BaseDataObject[PdfName.L];
+                var coordinatesObject = (PdfArray)this.BaseDataObject[PdfName.L];
                 coordinatesObject[0] = PdfReal.Get(value.X);
-                coordinatesObject[1] = PdfReal.Get(Page.Box.Height - value.Y);
+                coordinatesObject[1] = PdfReal.Get(this.Page.Box.Height - value.Y);
             }
         }
 
@@ -228,35 +232,12 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfArray endstylesObject = (PdfArray)BaseDataObject[PdfName.LE];
-                return endstylesObject != null
+                var endstylesObject = (PdfArray)this.BaseDataObject[PdfName.LE];
+                return (endstylesObject != null)
                   ? LineEndStyleEnumExtension.Get((PdfName)endstylesObject[0])
                   : DefaultLineEndStyle;
             }
-            set
-            { EnsureLineEndStylesObject()[0] = value.GetName(); }
+            set => this.EnsureLineEndStylesObject()[0] = value.GetName();
         }
-        #endregion
-
-        #region private
-        private PdfArray EnsureLineEndStylesObject(
-          )
-        {
-            PdfArray endStylesObject = (PdfArray)BaseDataObject[PdfName.LE];
-            if (endStylesObject == null)
-            {
-                BaseDataObject[PdfName.LE] = endStylesObject = new PdfArray(
-                  new PdfDirectObject[]
-                  {
-            DefaultLineEndStyle.GetName(),
-            DefaultLineEndStyle.GetName()
-                  }
-                  );
-            }
-            return endStylesObject;
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

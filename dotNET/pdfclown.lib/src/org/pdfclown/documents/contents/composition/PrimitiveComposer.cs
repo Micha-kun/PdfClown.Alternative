@@ -117,7 +117,7 @@ namespace org.pdfclown.documents.contents.composition
 
             var endRadians = MathUtils.ToRadians(endAngle);
             var quadrantRadians = Math.PI / 2;
-            var radians2 = Math.Min((radians1 + quadrantRadians) - (radians1 % quadrantRadians), endRadians);
+            var radians2 = Math.Min(radians1 + quadrantRadians - (radians1 % quadrantRadians), endRadians);
             var kappa = 0.5522847498;
             while (true)
             {
@@ -132,9 +132,9 @@ namespace org.pdfclown.documents.contents.composition
                 // Control point 1.
                 var tangentialRadians1 = Math.Atan(
                     (-(Math.Pow(radiusY, 2) * (point1.X - center.X))) / (Math.Pow(radiusX, 2) * (point1.Y - center.Y)));
-                var segment1 = (((segmentY * (1 - Math.Abs(Math.Sin(radians1)))) +
+                var segment1 = ((segmentY * (1 - Math.Abs(Math.Sin(radians1)))) +
                             (segmentX * (1 - Math.Abs(Math.Cos(radians1))))) *
-                        (radians2 - radians1)) /
+                        (radians2 - radians1) /
                     quadrantRadians; // TODO: control segment calculation is still not so accurate as it should -- verify how to improve it!!!
                 var control1 = new PointF(
                     (float)(point1.X +
@@ -145,9 +145,9 @@ namespace org.pdfclown.documents.contents.composition
                 // Control point 2.
                 var tangentialRadians2 = Math.Atan(
                     (-(Math.Pow(radiusY, 2) * (point2.X - center.X))) / (Math.Pow(radiusX, 2) * (point2.Y - center.Y)));
-                var segment2 = (((segmentY * (1 - Math.Abs(Math.Sin(radians2)))) +
+                var segment2 = ((segmentY * (1 - Math.Abs(Math.Sin(radians2)))) +
                             (segmentX * (1 - Math.Abs(Math.Cos(radians2))))) *
-                        (radians2 - radians1)) /
+                        (radians2 - radians1) /
                     quadrantRadians; // TODO: control segment calculation is still not so accurate as it should -- verify how to improve it!!!
                 var control2 = new PointF(
                     (float)(point2.X +
@@ -675,7 +675,7 @@ namespace org.pdfclown.documents.contents.composition
                         if (sin2 == 1)
                         {
                             var x1 = x2 = location.X + location.Width;
-                            var y1 = (location.Y + location.Height) - radius;
+                            var y1 = location.Y + location.Height - radius;
                             y2 = location.Y + radius;
 
                             xArc = (-radius) * 2;
@@ -687,7 +687,7 @@ namespace org.pdfclown.documents.contents.composition
                         {
                             _ = x2 = location.X;
                             _ = location.Y + radius;
-                            y2 = (location.Y + location.Height) - radius;
+                            y2 = location.Y + location.Height - radius;
 
                             yArc = -radius;
                         }
@@ -695,7 +695,7 @@ namespace org.pdfclown.documents.contents.composition
                     else if (cos2 == 1)
                     {
                         _ = location.X + radius;
-                        x2 = (location.X + location.Width) - radius;
+                        x2 = location.X + location.Width - radius;
                         _ = y2 = location.Y + location.Height;
 
                         xArc = -radius;
@@ -703,7 +703,7 @@ namespace org.pdfclown.documents.contents.composition
                     }
                     else if (cos2 == -1)
                     {
-                        _ = (location.X + location.Width) - radius;
+                        _ = location.X + location.Width - radius;
                         x2 = location.X + radius;
                         _ = y2 = location.Y;
 
@@ -1087,7 +1087,7 @@ namespace org.pdfclown.documents.contents.composition
                   spacing adjustment.
                 */
                 var wordSpaceAdjust = (font is fonts::CompositeFont)
-                    ? (((-state.WordSpace) * 1000 * state.Scale) / fontSize)
+                    ? ((-state.WordSpace) * 1000 * state.Scale / fontSize)
                     : 0;
 
                 // Vertical alignment.
@@ -1186,8 +1186,8 @@ namespace org.pdfclown.documents.contents.composition
                     textToDeviceMatrix.Transform(new PointF((float)minX, (float)(y + ascent))),
                     textToDeviceMatrix.Transform(new PointF((float)(minX + maxLineWidth), (float)(y + ascent))),
                     textToDeviceMatrix.Transform(
-                        new PointF((float)(minX + maxLineWidth), (float)((y + ascent) - textHeight))),
-                    textToDeviceMatrix.Transform(new PointF((float)minX, (float)((y + ascent) - textHeight))));
+                        new PointF((float)(minX + maxLineWidth), (float)(y + ascent - textHeight))),
+                    textToDeviceMatrix.Transform(new PointF((float)minX, (float)(y + ascent - textHeight))));
             }
             finally
             {

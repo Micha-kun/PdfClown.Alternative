@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Graphics state parameter resources collection [PDF:1.6:3.7.2].</summary>
     */
@@ -36,27 +35,19 @@ namespace org.pdfclown.documents.contents
     public sealed class ExtGStateResources
       : ResourceItems<ExtGState>
     {
-        #region dynamic
-        #region constructors
-        public ExtGStateResources(
-          Document context
-          ) : base(context)
-        { }
 
         internal ExtGStateResources(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public ExtGStateResources(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override ExtGState Wrap(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return ExtGState.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

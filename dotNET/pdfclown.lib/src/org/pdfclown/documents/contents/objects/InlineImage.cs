@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Drawing;
-using org.pdfclown.bytes;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Drawing;
+    using org.pdfclown.bytes;
+    using org.pdfclown.objects;
+
     /**
       <summary>Inline image object [PDF:1.6:4.8.6].</summary>
     */
@@ -36,60 +36,18 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class InlineImage
       : GraphicsObject
     {
-        #region static
-        #region fields
+
+        private static readonly string DataOperatorKeyword = "ID";
         public static readonly string BeginOperatorKeyword = BeginInlineImage.OperatorKeyword;
         public static readonly string EndOperatorKeyword = EndInlineImage.OperatorKeyword;
 
-        private static readonly string DataOperatorKeyword = "ID";
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         public InlineImage(
-          InlineImageHeader header,
-          InlineImageBody body
-          )
+InlineImageHeader header,
+InlineImageBody body
+)
         {
-            objects.Add(header);
-            objects.Add(body);
-        }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets the image body.</summary>
-        */
-        public Operation Body
-        {
-            get
-            { return (Operation)Objects[1]; }
-        }
-
-        /**
-          <summary>Gets the image header.</summary>
-        */
-        public override Operation Header
-        {
-            get
-            { return (Operation)Objects[0]; }
-        }
-
-        /**
-          <summary>Gets the image size.</summary>
-        */
-        public Size Size
-        {
-            get
-            {
-                InlineImageHeader header = (InlineImageHeader)Header;
-                return new Size(
-                  (int)((IPdfNumber)header[header.ContainsKey(PdfName.W) ? PdfName.W : PdfName.Width]).Value,
-                  (int)((IPdfNumber)header[header.ContainsKey(PdfName.H) ? PdfName.H : PdfName.Height]).Value
-                  );
-            }
+            this.objects.Add(header);
+            this.objects.Add(body);
         }
 
         public override void WriteTo(
@@ -99,15 +57,37 @@ namespace org.pdfclown.documents.contents.objects
         {
             stream.Write(BeginOperatorKeyword);
             stream.Write("\n");
-            Header.WriteTo(stream, context);
+            this.Header.WriteTo(stream, context);
             stream.Write(DataOperatorKeyword);
             stream.Write("\n");
-            Body.WriteTo(stream, context);
+            this.Body.WriteTo(stream, context);
             stream.Write("\n");
             stream.Write(EndOperatorKeyword);
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+<summary>Gets the image body.</summary>
+*/
+        public Operation Body => (Operation)this.Objects[1];
+
+        /**
+          <summary>Gets the image header.</summary>
+        */
+        public override Operation Header => (Operation)this.Objects[0];
+
+        /**
+          <summary>Gets the image size.</summary>
+        */
+        public Size Size
+        {
+            get
+            {
+                var header = (InlineImageHeader)this.Header;
+                return new Size(
+                  (int)((IPdfNumber)header[header.ContainsKey(PdfName.W) ? PdfName.W : PdfName.Width]).Value,
+                  (int)((IPdfNumber)header[header.ContainsKey(PdfName.H) ? PdfName.H : PdfName.Height]).Value
+                  );
+            }
+        }
     }
 }

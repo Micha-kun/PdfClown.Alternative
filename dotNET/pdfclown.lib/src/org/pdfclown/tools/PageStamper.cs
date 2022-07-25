@@ -23,42 +23,48 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.objects;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.tools
 {
+    using org.pdfclown.documents;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.objects;
+    using org.pdfclown.objects;
+
     /**
       <summary>Tool for content insertion into existing pages.</summary>
     */
     public sealed class PageStamper
     {
-        #region dynamic
-        #region fields
-        private Page page;
 
         private PrimitiveComposer background;
         private PrimitiveComposer foreground;
-        #endregion
+        private Page page;
 
-        #region constructors
         public PageStamper(
-          ) : this(null)
+  ) : this(null)
         { }
 
         public PageStamper(
           Page page
           )
-        { Page = page; }
-        #endregion
+        { this.Page = page; }
 
-        #region interface
-        #region public
+        private PrimitiveComposer CreateFilter(
+  )
+        {
+            return new PrimitiveComposer(
+              new ContentScanner(
+                Contents.Wrap(
+                  this.page.File.Register(new PdfStream()),
+                  this.page
+                  )
+                )
+              );
+        }
+
         public void Flush(
-          )
+)
         {
             // Ensuring that there's room for the new content chunks inside the page's content stream...
             /*
@@ -67,98 +73,69 @@ namespace org.pdfclown.tools
               to express their content streams as arrays of data streams.
             */
             PdfArray streams;
+            var contentsObject = this.page.BaseDataObject[PdfName.Contents];
+            var contentsDataObject = PdfObject.Resolve(contentsObject);
+            // Single data stream?
+            if (contentsDataObject is PdfStream)
             {
-                PdfDirectObject contentsObject = page.BaseDataObject[PdfName.Contents];
-                PdfDataObject contentsDataObject = PdfObject.Resolve(contentsObject);
-                // Single data stream?
-                if (contentsDataObject is PdfStream)
-                {
-                    /*
-                      NOTE: Content stream MUST be expressed as an array of data streams in order to host
-                      background- and foreground-stamped contents.
-                    */
-                    streams = new PdfArray();
-                    streams.Add(contentsObject);
-                    page.BaseDataObject[PdfName.Contents] = streams;
-                }
-                else
-                { streams = (PdfArray)contentsDataObject; }
+                /*
+                  NOTE: Content stream MUST be expressed as an array of data streams in order to host
+                  background- and foreground-stamped contents.
+                */
+                streams = new PdfArray();
+                streams.Add(contentsObject);
+                this.page.BaseDataObject[PdfName.Contents] = streams;
             }
+            else
+            { streams = (PdfArray)contentsDataObject; }
 
             // Background.
             // Serialize the content!
-            background.Flush();
+            this.background.Flush();
             // Insert the serialized content into the page's content stream!
-            streams.Insert(0, background.Scanner.Contents.BaseObject);
+            streams.Insert(0, this.background.Scanner.Contents.BaseObject);
 
             // Foreground.
             // Serialize the content!
-            foreground.Flush();
+            this.foreground.Flush();
             // Append the serialized content into the page's content stream!
-            streams.Add(foreground.Scanner.Contents.BaseObject);
+            streams.Add(this.foreground.Scanner.Contents.BaseObject);
         }
 
-        public PrimitiveComposer Background
-        {
-            get
-            { return background; }
-        }
+        public PrimitiveComposer Background => this.background;
 
-        public PrimitiveComposer Foreground
-        {
-            get
-            { return foreground; }
-        }
+        public PrimitiveComposer Foreground => this.foreground;
 
         public Page Page
         {
-            get
-            { return page; }
+            get => this.page;
             set
             {
-                page = value;
-                if (page == null)
+                this.page = value;
+                if (this.page == null)
                 {
-                    background = null;
-                    foreground = null;
+                    this.background = null;
+                    this.foreground = null;
                 }
                 else
                 {
                     // Background.
-                    background = CreateFilter();
+                    this.background = this.CreateFilter();
                     // Open the background local state!
-                    background.Add(SaveGraphicsState.Value);
+                    _ = this.background.Add(SaveGraphicsState.Value);
                     // Close the background local state!
-                    background.Add(RestoreGraphicsState.Value);
+                    _ = this.background.Add(RestoreGraphicsState.Value);
                     // Open the middleground local state!
-                    background.Add(SaveGraphicsState.Value);
+                    _ = this.background.Add(SaveGraphicsState.Value);
                     // Move into the background!
-                    background.Scanner.Move(1);
+                    _ = this.background.Scanner.Move(1);
 
                     // Foregrond.
-                    foreground = CreateFilter();
+                    this.foreground = this.CreateFilter();
                     // Close the middleground local state!
-                    foreground.Add(RestoreGraphicsState.Value);
+                    _ = this.foreground.Add(RestoreGraphicsState.Value);
                 }
             }
         }
-        #endregion
-
-        #region private
-        private PrimitiveComposer CreateFilter(
-          )
-        {
-            return new PrimitiveComposer(
-              new ContentScanner(
-                Contents.Wrap(
-                  page.File.Register(new PdfStream()),
-                  page
-                  )
-                )
-              );
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

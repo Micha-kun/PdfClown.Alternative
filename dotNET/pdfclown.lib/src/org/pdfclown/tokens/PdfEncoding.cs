@@ -23,8 +23,6 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.tokens
 {
     /**
@@ -37,17 +35,13 @@ namespace org.pdfclown.tokens
     public sealed class PdfEncoding
       : Encoding
     {
-        #region dynamic
-        #region constructors
         internal PdfEncoding(
-          )
+)
         { }
-        #endregion
 
-        #region interface
         public override string Decode(
-          byte[] value
-          )
+  byte[] value
+  )
         { return Charset.ISO88591.GetString(value); }
 
         public override string Decode(
@@ -61,7 +55,5 @@ namespace org.pdfclown.tokens
           string value
           )
         { return Charset.ISO88591.GetBytes(value); }
-        #endregion
-        #endregion
     }
 }

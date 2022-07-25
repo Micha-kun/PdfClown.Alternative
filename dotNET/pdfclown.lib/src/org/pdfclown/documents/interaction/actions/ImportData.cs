@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Import FDF (Forms Data Format) data into the document's interactive form
       from a specified file' action [PDF:1.6:8.6.4].</summary>
@@ -37,24 +36,18 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class ImportData
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public ImportData(
-          Document context
-          ) : base(context, PdfName.ImportData)
-        { }
 
         internal ImportData(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public ImportData(
+          Document context
+          ) : base(context, PdfName.ImportData)
+        { }
 
-        #region interface
-        #endregion
-        #endregion
     }
 }

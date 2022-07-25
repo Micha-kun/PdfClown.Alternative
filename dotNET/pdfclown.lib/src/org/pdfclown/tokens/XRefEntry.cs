@@ -23,42 +23,20 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+
     /**
       <summary>Cross-reference table entry [PDF:1.6:3.4.3].</summary>
     */
     public class XRefEntry
       : ICloneable
     {
-        #region types
-        /**
-          <summary>Cross-reference table entry usage [PDF:1.6:3.4.3].</summary>
-        */
-        public enum UsageEnum
-        {
-            /**
-              <summary>Free entry.</summary>
-            */
-            Free,
-            /**
-              <summary>Ordinary (uncompressed) object entry.</summary>
-            */
-            InUse,
-            /**
-              <summary>Compressed object entry [PDF:1.6:3.4.6].</summary>
-            */
-            InUseCompressed
-        }
-        #endregion
 
-        #region static
-        #region fields
         /**
-          <summary>Unreusable generation [PDF:1.6:3.4.3].</summary>
-        */
+<summary>Unreusable generation [PDF:1.6:3.4.3].</summary>
+*/
         public static readonly int GenerationUnreusable = 65535;
 
         /**
@@ -69,28 +47,51 @@ namespace org.pdfclown.tokens
           <summary>Undefined object stream number.</summary>
         */
         public static readonly int UndefinedStreamNumber = -1;
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        private int number;
         private int generation;
+
+        private int number;
         private int offset;
         private int streamNumber;
         private UsageEnum usage;
-        #endregion
 
-        #region constructors
+        private XRefEntry(
+          int number,
+          int generation,
+          int offset,
+          UsageEnum usage,
+          int streamNumber
+          )
+        {
+            this.number = number;
+            this.generation = generation;
+            this.offset = offset;
+            this.usage = usage;
+            this.streamNumber = streamNumber;
+        }
+
         /**
-          <summary>Instantiates a new in-use ordinary (uncompressed) object entry.</summary>
-          <param name="number">Object number.</param>
-          <param name="generation">Generation number.</param>
-        */
+  <summary>Instantiates a new in-use ordinary (uncompressed) object entry.</summary>
+  <param name="number">Object number.</param>
+  <param name="generation">Generation number.</param>
+*/
         public XRefEntry(
           int number,
           int generation
           ) : this(number, generation, UndefinedOffset, UsageEnum.InUse)
+        { }
+
+        /**
+          <summary>Instantiates a compressed object entry.</summary>
+          <param name="number">Object number.</param>
+          <param name="offset">Object index within its object stream.</param>
+          <param name="streamNumber">Object number of the object stream in which this object is stored.
+          </param>
+        */
+        public XRefEntry(
+          int number,
+          int offset,
+          int streamNumber
+          ) : this(number, 0, offset, UsageEnum.InUseCompressed, streamNumber)
         { }
 
         /**
@@ -109,47 +110,17 @@ namespace org.pdfclown.tokens
           ) : this(number, generation, offset, usage, UndefinedStreamNumber)
         { }
 
-        /**
-          <summary>Instantiates a compressed object entry.</summary>
-          <param name="number">Object number.</param>
-          <param name="offset">Object index within its object stream.</param>
-          <param name="streamNumber">Object number of the object stream in which this object is stored.
-          </param>
-        */
-        public XRefEntry(
-          int number,
-          int offset,
-          int streamNumber
-          ) : this(number, 0, offset, UsageEnum.InUseCompressed, streamNumber)
-        { }
+        public object Clone(
+  )
+        { return this.MemberwiseClone(); }
 
-        private XRefEntry(
-          int number,
-          int generation,
-          int offset,
-          UsageEnum usage,
-          int streamNumber
-          )
-        {
-            this.number = number;
-            this.generation = generation;
-            this.offset = offset;
-            this.usage = usage;
-            this.streamNumber = streamNumber;
-        }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets the generation number.</summary>
-        */
+<summary>Gets the generation number.</summary>
+*/
         public int Generation
         {
-            get
-            { return generation; }
-            internal set
-            { generation = value; }
+            get => this.generation;
+            internal set => this.generation = value;
         }
 
         /**
@@ -157,10 +128,8 @@ namespace org.pdfclown.tokens
         */
         public int Number
         {
-            get
-            { return number; }
-            internal set
-            { number = value; }
+            get => this.number;
+            internal set => this.number = value;
         }
 
         /**
@@ -170,10 +139,8 @@ namespace org.pdfclown.tokens
         */
         public int Offset
         {
-            get
-            { return offset; }
-            internal set
-            { offset = value; }
+            get => this.offset;
+            internal set => this.offset = value;
         }
 
         /**
@@ -185,10 +152,8 @@ namespace org.pdfclown.tokens
         */
         public int StreamNumber
         {
-            get
-            { return streamNumber; }
-            internal set
-            { streamNumber = value; }
+            get => this.streamNumber;
+            internal set => this.streamNumber = value;
         }
 
         /**
@@ -196,19 +161,26 @@ namespace org.pdfclown.tokens
         */
         public UsageEnum Usage
         {
-            get
-            { return usage; }
-            internal set
-            { usage = value; }
+            get => this.usage;
+            internal set => this.usage = value;
         }
-
-        #region ICloneable
-        public object Clone(
-          )
-        { return MemberwiseClone(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        /**
+  <summary>Cross-reference table entry usage [PDF:1.6:3.4.3].</summary>
+*/
+        public enum UsageEnum
+        {
+            /**
+              <summary>Free entry.</summary>
+            */
+            Free,
+            /**
+              <summary>Ordinary (uncompressed) object entry.</summary>
+            */
+            InUse,
+            /**
+              <summary>Compressed object entry [PDF:1.6:3.4.6].</summary>
+            */
+            InUseCompressed
+        }
     }
 }

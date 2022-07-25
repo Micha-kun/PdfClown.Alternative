@@ -23,17 +23,16 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-
-using System.Drawing.Drawing2D;
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.objects;
-using org.pdfclown.util.math.geom;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Collections.Generic;
+    using System.Drawing;
+
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.objects;
+    using org.pdfclown.util.math.geom;
+
     /**
       <summary>Rubber stamp annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It displays text or graphics intended to look as if they were stamped
@@ -43,10 +42,150 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Stamp
       : Markup
     {
-        #region types
+
+        private static readonly string CustomTypeName = "Custom";
+
+        internal Stamp(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         /**
-          <summary>Predefined stamp type [PDF:1.6:8.4.5].</summary>
+          <summary>Creates a new custom stamp on the specified page.</summary>
+          <param name="page">Page where this stamp has to be placed.</param>
+          <param name="location">Position where this stamp has to be centered.</param>
+          <param name="text">Annotation text.</param>
+          <param name="appearance">Custom appearance.</param>
         */
+        public Stamp(
+          Page page,
+          PointF location,
+          string text,
+          FormXObject appearance
+        ) : base(
+          page,
+          PdfName.Stamp,
+          GeomUtils.Align(
+            appearance.Box.ToPath().GetBounds(appearance.Matrix),
+            location,
+            new Point(0, 0)
+            ),
+          text
+          )
+        {
+            this.Appearance.Normal[null] = appearance;
+            this.TypeName = CustomTypeName;
+        }
+
+        /**
+<summary>Creates a new predefined stamp on the specified page.</summary>
+<param name="page">Page where this stamp has to be placed.</param>
+<param name="location">Position where this stamp has to be centered.</param>
+<param name="size">Dimension of the stamp:
+<list type="bullet">
+<item><c>null</c> to apply the natural size</item>
+<item><c>SizeF(0, height)</c> to scale the width proportionally to the height</item>
+<item><c>SizeF(width, 0)</c> to scale the height proportionally to the width</item>
+</list>
+</param>
+<param name="text">Annotation text.</param>
+<param name="type">Predefined stamp type.</param>
+*/
+        public Stamp(
+          Page page,
+          PointF location,
+          SizeF? size,
+          string text,
+          StandardTypeEnum type
+        ) : base(
+          page,
+          PdfName.Stamp,
+          GeomUtils.Align(
+            size.HasValue
+              ? new RectangleF(0, 0,
+                (size.Value.Width > 0) ? size.Value.Width : (size.Value.Height * type.GetAspect()),
+                (size.Value.Height > 0) ? size.Value.Height : (size.Value.Width / type.GetAspect())
+                )
+              : new RectangleF(0, 0, 40 * type.GetAspect(), 40),
+            location,
+            new Point(0, 0)
+            ),
+          text
+          )
+        { this.TypeName = type.GetName().StringValue; }
+
+        /**
+          <summary>Gets/Sets the rotation applied to the stamp.</summary>
+        */
+        public int Rotation
+        {
+            get
+            {
+                var rotationObject = (IPdfNumber)this.BaseDataObject[PdfName.Rotate];
+                return (rotationObject != null) ? rotationObject.IntValue : 0;
+            }
+            set
+            {
+                this.BaseDataObject[PdfName.Rotate] = (value != 0) ? new PdfInteger(value) : null;
+
+                var appearance = this.Appearance.Normal[null];
+                // Custom appearance?
+                if (appearance != null)
+                {
+                    /*
+                      NOTE: Custom appearances are responsible of their proper rotation.
+                      NOTE: Rotation must preserve the original scale factor.
+                    */
+                    var oldBox = this.Box;
+                    var unscaledOldBox = appearance.Box.ToPath().GetBounds(appearance.Matrix);
+                    var scale = new SizeF(oldBox.Width / unscaledOldBox.Width, oldBox.Height / unscaledOldBox.Height);
+
+                    var matrix = new Matrix();
+                    matrix.Rotate(value);
+                    appearance.Matrix = matrix;
+
+                    var appearanceBox = appearance.Box;
+                    appearanceBox = new RectangleF(0, 0, appearanceBox.Width * scale.Width, appearanceBox.Height * scale.Height);
+                    this.Box = GeomUtils.Align(
+                      appearanceBox.ToPath().GetBounds(appearance.Matrix),
+                      oldBox.Center(),
+                      new Point(0, 0)
+                      );
+                }
+            }
+        }
+
+        /**
+<summary>Gets/Sets the type name of this stamp.</summary>
+<remarks>To ensure predictable rendering of the <see cref="StandardTypeEnum">standard stamp
+types</see> across the systems, <see cref="Document.Configuration.StampPath"/> must be defined
+so as to embed the corresponding templates.</remarks>
+*/
+        public string TypeName
+        {
+            get
+            {
+                var typeNameObject = (PdfName)this.BaseDataObject[PdfName.Name];
+                return (typeNameObject != null) ? typeNameObject.StringValue : DefaultType.GetName().StringValue;
+            }
+            set
+            {
+                var typeNameObject = PdfName.Get(value);
+                this.BaseDataObject[PdfName.Name] = ((typeNameObject != null) && !typeNameObject.Equals(DefaultType.GetName())) ? typeNameObject : null;
+
+                var standardType = StampStandardTypeEnumExtension.Get(typeNameObject);
+                if (standardType.HasValue)
+                {
+                    /*
+                      NOTE: Standard stamp types leverage predefined appearances.
+                    */
+                    this.Appearance.Normal[null] = this.Document.Configuration.GetStamp(standardType.Value);
+                }
+            }
+        }
+        /**
+  <summary>Predefined stamp type [PDF:1.6:8.4.5].</summary>
+*/
         public enum StandardTypeEnum
         {
             Accepted,
@@ -81,179 +220,12 @@ namespace org.pdfclown.documents.interaction.annotations
             TopSecret,
             Witness
         }
-        #endregion
 
-        #region static
-        #region fields
-        private static readonly string CustomTypeName = "Custom";
         private static readonly StandardTypeEnum DefaultType = StandardTypeEnum.Draft;
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new predefined stamp on the specified page.</summary>
-          <param name="page">Page where this stamp has to be placed.</param>
-          <param name="location">Position where this stamp has to be centered.</param>
-          <param name="size">Dimension of the stamp:
-            <list type="bullet">
-              <item><c>null</c> to apply the natural size</item>
-              <item><c>SizeF(0, height)</c> to scale the width proportionally to the height</item>
-              <item><c>SizeF(width, 0)</c> to scale the height proportionally to the width</item>
-            </list>
-          </param>
-          <param name="text">Annotation text.</param>
-          <param name="type">Predefined stamp type.</param>
-        */
-        public Stamp(
-          Page page,
-          PointF location,
-          SizeF? size,
-          string text,
-          StandardTypeEnum type
-        ) : base(
-          page,
-          PdfName.Stamp,
-          GeomUtils.Align(
-            size.HasValue
-              ? new RectangleF(0, 0,
-                size.Value.Width > 0 ? size.Value.Width : size.Value.Height * type.GetAspect(),
-                size.Value.Height > 0 ? size.Value.Height : size.Value.Width / type.GetAspect()
-                )
-              : new RectangleF(0, 0, 40 * type.GetAspect(), 40),
-            location,
-            new Point(0, 0)
-            ),
-          text
-          )
-        { TypeName = type.GetName().StringValue; }
-
-        /**
-          <summary>Creates a new custom stamp on the specified page.</summary>
-          <param name="page">Page where this stamp has to be placed.</param>
-          <param name="location">Position where this stamp has to be centered.</param>
-          <param name="text">Annotation text.</param>
-          <param name="appearance">Custom appearance.</param>
-        */
-        public Stamp(
-          Page page,
-          PointF location,
-          string text,
-          FormXObject appearance
-        ) : base(
-          page,
-          PdfName.Stamp,
-          GeomUtils.Align(
-            appearance.Box.ToPath().GetBounds(appearance.Matrix),
-            location,
-            new Point(0, 0)
-            ),
-          text
-          )
-        {
-            Appearance.Normal[null] = appearance;
-            TypeName = CustomTypeName;
-        }
-
-        internal Stamp(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the type name of this stamp.</summary>
-          <remarks>To ensure predictable rendering of the <see cref="StandardTypeEnum">standard stamp
-          types</see> across the systems, <see cref="Document.Configuration.StampPath"/> must be defined
-          so as to embed the corresponding templates.</remarks>
-        */
-        public string TypeName
-        {
-            get
-            {
-                PdfName typeNameObject = (PdfName)BaseDataObject[PdfName.Name];
-                return typeNameObject != null ? typeNameObject.StringValue : DefaultType.GetName().StringValue;
-            }
-            set
-            {
-                PdfName typeNameObject = PdfName.Get(value);
-                BaseDataObject[PdfName.Name] = (typeNameObject != null && !typeNameObject.Equals(DefaultType.GetName()) ? typeNameObject : null);
-
-                StandardTypeEnum? standardType = StampStandardTypeEnumExtension.Get(typeNameObject);
-                if (standardType.HasValue)
-                {
-                    /*
-                      NOTE: Standard stamp types leverage predefined appearances.
-                    */
-                    Appearance.Normal[null] = Document.Configuration.GetStamp(standardType.Value);
-                }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the rotation applied to the stamp.</summary>
-        */
-        public int Rotation
-        {
-            get
-            {
-                IPdfNumber rotationObject = (IPdfNumber)BaseDataObject[PdfName.Rotate];
-                return rotationObject != null ? rotationObject.IntValue : 0;
-            }
-            set
-            {
-                BaseDataObject[PdfName.Rotate] = (value != 0 ? new PdfInteger(value) : null);
-
-                FormXObject appearance = Appearance.Normal[null];
-                // Custom appearance?
-                if (appearance != null)
-                {
-                    /*
-                      NOTE: Custom appearances are responsible of their proper rotation.
-                      NOTE: Rotation must preserve the original scale factor.
-                    */
-                    RectangleF oldBox = Box;
-                    RectangleF unscaledOldBox = appearance.Box.ToPath().GetBounds(appearance.Matrix);
-                    SizeF scale = new SizeF(oldBox.Width / unscaledOldBox.Width, oldBox.Height / unscaledOldBox.Height);
-
-                    Matrix matrix = new Matrix();
-                    matrix.Rotate(value);
-                    appearance.Matrix = matrix;
-
-                    RectangleF appearanceBox = appearance.Box;
-                    appearanceBox = new RectangleF(0, 0, appearanceBox.Width * scale.Width, appearanceBox.Height * scale.Height);
-                    Box = GeomUtils.Align(
-                      appearanceBox.ToPath().GetBounds(appearance.Matrix),
-                      oldBox.Center(),
-                      new Point(0, 0)
-                      );
-                }
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 
     internal static class StampStandardTypeEnumExtension
     {
-        private class TypeItem
-        {
-            public readonly float Aspect;
-            public readonly PdfName Code;
-
-            internal TypeItem(
-              PdfName code,
-              float aspect
-              )
-            {
-                Code = code;
-                Aspect = aspect;
-            }
-        }
 
         private static readonly Dictionary<Stamp.StandardTypeEnum, TypeItem> codes;
 
@@ -297,10 +269,12 @@ namespace org.pdfclown.documents.interaction.annotations
           PdfName name
           )
         {
-            foreach (KeyValuePair<Stamp.StandardTypeEnum, TypeItem> entry in codes)
+            foreach (var entry in codes)
             {
                 if (entry.Value.Code.Equals(name))
+                {
                     return entry.Key;
+                }
             }
             return null;
         }
@@ -317,5 +291,20 @@ namespace org.pdfclown.documents.interaction.annotations
           this Stamp.StandardTypeEnum type
           )
         { return codes[type].Code; }
+
+        private class TypeItem
+        {
+            public readonly float Aspect;
+            public readonly PdfName Code;
+
+            internal TypeItem(
+              PdfName code,
+              float aspect
+              )
+            {
+                this.Code = code;
+                this.Aspect = aspect;
+            }
+        }
     }
 }

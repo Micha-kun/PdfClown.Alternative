@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Appearance [PDF:1.6:8.4.4].</summary>
     */
@@ -36,60 +35,35 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Appearance
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        public static Appearance Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Appearance(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Appearance(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         private Appearance(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public Appearance(
+Document context
+) : base(context, new PdfDictionary())
+        { }
+
+        public static Appearance Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Appearance(baseObject) : null; }
+
         /**
-          <summary>Gets the annotation's down appearance.</summary>
-        */
-        public AppearanceStates Down
-        {
-            get
-            { return new AppearanceStates(PdfName.D, this); }
-        }
+<summary>Gets the annotation's down appearance.</summary>
+*/
+        public AppearanceStates Down => new AppearanceStates(PdfName.D, this);
 
         /**
           <summary>Gets the annotation's normal appearance.</summary>
         */
-        public AppearanceStates Normal
-        {
-            get
-            { return new AppearanceStates(PdfName.N, this); }
-        }
+        public AppearanceStates Normal => new AppearanceStates(PdfName.N, this);
 
         /**
           <summary>Gets the annotation's rollover appearance.</summary>
         */
-        public AppearanceStates Rollover
-        {
-            get
-            { return new AppearanceStates(PdfName.R, this); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public AppearanceStates Rollover => new AppearanceStates(PdfName.R, this);
     }
 }

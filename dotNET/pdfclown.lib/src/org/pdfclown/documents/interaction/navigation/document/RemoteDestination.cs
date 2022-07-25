@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.navigation.document
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Remote interaction target [PDF:1.6:8.2.1].</summary>
     */
@@ -36,18 +36,21 @@ namespace org.pdfclown.documents.interaction.navigation.document
     public sealed class RemoteDestination
       : Destination
     {
-        #region dynamic
-        #region constructors
+
+        internal RemoteDestination(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         public RemoteDestination(
-          Document context,
-          int pageIndex
-          ) : this(
-            context,
-            pageIndex,
-            ModeEnum.Fit,
-            null,
-            null
-            )
+Document context,
+int pageIndex
+) : this(
+context,
+pageIndex,
+ModeEnum.Fit,
+null,
+null
+)
         { }
 
         public RemoteDestination(
@@ -65,31 +68,21 @@ namespace org.pdfclown.documents.interaction.navigation.document
             )
         { }
 
-        internal RemoteDestination(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the index of the target page.</summary>
-        */
+<summary>Gets/Sets the index of the target page.</summary>
+*/
         public override object Page
         {
-            get
-            { return ((PdfInteger)BaseDataObject[0]).IntValue; }
+            get => ((PdfInteger)this.BaseDataObject[0]).IntValue;
             set
             {
-                if (!(value is Int32))
+                if (!(value is int))
+                {
                     throw new ArgumentException("It MUST be an integer number.");
+                }
 
-                BaseDataObject[0] = PdfInteger.Get((int)value);
+                this.BaseDataObject[0] = PdfInteger.Get((int)value);
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

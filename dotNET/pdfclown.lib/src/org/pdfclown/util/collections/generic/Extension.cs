@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
 namespace org.pdfclown.util.collections.generic
 {
+    using System.Collections.Generic;
+
     public static class Extension
     {
         public static void AddAll<T>(
@@ -35,7 +34,7 @@ namespace org.pdfclown.util.collections.generic
           IEnumerable<T> enumerable
           )
         {
-            foreach (T item in enumerable)
+            foreach (var item in enumerable)
             { collection.Add(item); }
         }
 
@@ -44,8 +43,8 @@ namespace org.pdfclown.util.collections.generic
           IEnumerable<T> enumerable
           )
         {
-            foreach (T item in enumerable)
-            { collection.Remove(item); }
+            foreach (var item in enumerable)
+            { _ = collection.Remove(item); }
         }
 
         /**
@@ -58,7 +57,7 @@ namespace org.pdfclown.util.collections.generic
           IEnumerable<KeyValuePair<TKey, TValue>> enumerable
           )
         {
-            foreach (KeyValuePair<TKey, TValue> entry in enumerable)
+            foreach (var entry in enumerable)
             { dictionary[entry.Key] = entry.Value; }
         }
     }

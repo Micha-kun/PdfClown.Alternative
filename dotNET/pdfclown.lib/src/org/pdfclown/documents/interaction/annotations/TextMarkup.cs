@@ -23,19 +23,19 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.documents.contents.composition;
-
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.objects;
-using org.pdfclown.util.math.geom;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Drawing;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.documents.contents.composition;
+
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.objects;
+    using org.pdfclown.util.math.geom;
+
     /**
       <summary>Text markup annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It displays highlights, underlines, strikeouts, or jagged ("squiggly") underlines in
@@ -45,41 +45,11 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class TextMarkup
       : Markup
     {
-        #region types
-        /**
-          <summary>Markup type [PDF:1.6:8.4.5].</summary>
-        */
-        public enum MarkupTypeEnum
-        {
-            /**
-              <summary>Highlight.</summary>
-            */
-            [PDF(VersionEnum.PDF13)]
-            Highlight,
-            /**
-              <summary>Squiggly.</summary>
-            */
-            [PDF(VersionEnum.PDF14)]
-            Squiggly,
-            /**
-              <summary>StrikeOut.</summary>
-            */
-            [PDF(VersionEnum.PDF13)]
-            StrikeOut,
-            /**
-              <summary>Underline.</summary>
-            */
-            [PDF(VersionEnum.PDF13)]
-            Underline
-        };
-        #endregion
 
-        #region static
-        #region fields
+        private static readonly PdfName HighlightExtGStateName = new PdfName("highlight");
+
         private static readonly Dictionary<MarkupTypeEnum, PdfName> MarkupTypeEnumCodes;
-        #endregion
 
-        #region constructors
         static TextMarkup()
         {
             MarkupTypeEnumCodes = new Dictionary<MarkupTypeEnum, PdfName>();
@@ -88,66 +58,27 @@ namespace org.pdfclown.documents.interaction.annotations
             MarkupTypeEnumCodes[MarkupTypeEnum.StrikeOut] = PdfName.StrikeOut;
             MarkupTypeEnumCodes[MarkupTypeEnum.Underline] = PdfName.Underline;
         }
-        #endregion
 
-        #region interface
-        #region private
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          MarkupTypeEnum value
-          )
-        { return MarkupTypeEnumCodes[value]; }
+        internal TextMarkup(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
 
         /**
-          <summary>Gets the markup type corresponding to the given value.</summary>
-        */
-        private static MarkupTypeEnum ToMarkupTypeEnum(
-          PdfName value
-          )
-        {
-            foreach (KeyValuePair<MarkupTypeEnum, PdfName> markupType in MarkupTypeEnumCodes)
-            {
-                if (markupType.Value.Equals(value))
-                    return markupType.Key;
-            }
-            throw new Exception("Invalid markup type.");
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly PdfName HighlightExtGStateName = new PdfName("highlight");
-        #endregion
-
-        #region interface
-        private static float GetMarkupBoxMargin(
-          float boxHeight
-          )
-        { return boxHeight * .25f; }
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new text markup on the specified page, making it printable by default.
-          </summary>
-          <param name="page">Page to annotate.</param>
-          <param name="markupBox">Quadrilateral encompassing a word or group of contiguous words in the
-          text underlying the annotation.</param>
-          <param name="text">Annotation text.</param>
-          <param name="markupType">Markup type.</param>
-        */
+<summary>Creates a new text markup on the specified page, making it printable by default.
+</summary>
+<param name="page">Page to annotate.</param>
+<param name="markupBox">Quadrilateral encompassing a word or group of contiguous words in the
+text underlying the annotation.</param>
+<param name="text">Annotation text.</param>
+<param name="markupType">Markup type.</param>
+*/
         public TextMarkup(
           Page page,
           Quad markupBox,
           string text,
           MarkupTypeEnum markupType
-          ) : this(page, new List<Quad>() { markupBox }, text, markupType)
+          ) : this(page, new List<Quad> { markupBox }, text, markupType)
         { }
 
         /**
@@ -171,26 +102,169 @@ namespace org.pdfclown.documents.interaction.annotations
             text
             )
         {
-            MarkupType = markupType;
-            MarkupBoxes = markupBoxes;
-            Printable = true;
+            this.MarkupType = markupType;
+            this.MarkupBoxes = markupBoxes;
+            this.Printable = true;
         }
 
-        internal TextMarkup(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
+        private static float GetMarkupBoxMargin(
+  float boxHeight
+  )
+        { return boxHeight * .25f; }
 
-        #region interface
-        #region public
+        /*
+  TODO: refresh should happen just before serialization, on document event (e.g. OnWrite())
+*/
+        private void RefreshAppearance(
+          )
+        {
+            FormXObject normalAppearance;
+            var box = org.pdfclown.objects.Rectangle.Wrap(this.BaseDataObject[PdfName.Rect]).ToRectangleF();
+            var normalAppearances = this.Appearance.Normal;
+            normalAppearance = normalAppearances[null];
+            if (normalAppearance != null)
+            {
+                normalAppearance.Box = box;
+                normalAppearance.BaseDataObject.Body.SetLength(0);
+            }
+            else
+            { normalAppearances[null] = normalAppearance = new FormXObject(this.Document, box); }
+
+            var composer = new PrimitiveComposer(normalAppearance);
+            var yOffset = box.Height - this.Page.Box.Height;
+            var markupType = this.MarkupType;
+            switch (markupType)
+            {
+                case MarkupTypeEnum.Highlight:
+                    ExtGState defaultExtGState;
+                    var extGStates = normalAppearance.Resources.ExtGStates;
+                    defaultExtGState = extGStates[HighlightExtGStateName];
+                    if (defaultExtGState == null)
+                    {
+                        if (extGStates.Count > 0)
+                        { extGStates.Clear(); }
+
+                        extGStates[HighlightExtGStateName] = defaultExtGState = new ExtGState(this.Document);
+                        defaultExtGState.AlphaShape = false;
+                        defaultExtGState.BlendMode = new List<BlendModeEnum>(new BlendModeEnum[] { BlendModeEnum.Multiply });
+                    }
+
+                    composer.ApplyState(defaultExtGState);
+                    composer.SetFillColor(this.Color);
+                    foreach (var markupBox in this.MarkupBoxes)
+                    {
+                        var points = markupBox.Points;
+                        var markupBoxHeight = points[3].Y - points[0].Y;
+                        var markupBoxMargin = GetMarkupBoxMargin(markupBoxHeight);
+                        composer.DrawCurve(
+                          new PointF(points[3].X, points[3].Y + yOffset),
+                          new PointF(points[0].X, points[0].Y + yOffset),
+                          new PointF(points[3].X - markupBoxMargin, points[3].Y - markupBoxMargin + yOffset),
+                          new PointF(points[0].X - markupBoxMargin, points[0].Y + markupBoxMargin + yOffset)
+                          );
+                        composer.DrawLine(
+                          new PointF(points[1].X, points[1].Y + yOffset)
+                          );
+                        composer.DrawCurve(
+                          new PointF(points[2].X, points[2].Y + yOffset),
+                          new PointF(points[1].X + markupBoxMargin, points[1].Y + markupBoxMargin + yOffset),
+                          new PointF(points[2].X + markupBoxMargin, points[2].Y - markupBoxMargin + yOffset)
+                          );
+                        composer.Fill();
+                    }
+                    break;
+                case MarkupTypeEnum.Squiggly:
+                    composer.SetStrokeColor(this.Color);
+                    composer.SetLineCap(LineCapEnum.Round);
+                    composer.SetLineJoin(LineJoinEnum.Round);
+                    foreach (var markupBox in this.MarkupBoxes)
+                    {
+                        var points = markupBox.Points;
+                        var markupBoxHeight = points[3].Y - points[0].Y;
+                        var lineWidth = markupBoxHeight * .05f;
+                        var step = markupBoxHeight * .125f;
+                        var boxXOffset = points[3].X;
+                        var boxYOffset = points[3].Y + yOffset - lineWidth;
+                        var phase = false;
+                        composer.SetLineWidth(lineWidth);
+                        for (float x = 0, xEnd = points[2].X - boxXOffset; (x < xEnd) || !phase; x += step)
+                        {
+                            var point = new PointF(x + boxXOffset, (phase ? (-step) : 0) + boxYOffset);
+                            if (x == 0)
+                            { composer.StartPath(point); }
+                            else
+                            { composer.DrawLine(point); }
+                            phase = !phase;
+                        }
+                    }
+                    composer.Stroke();
+                    break;
+                case MarkupTypeEnum.StrikeOut:
+                case MarkupTypeEnum.Underline:
+                    composer.SetStrokeColor(this.Color);
+                    float lineYRatio;
+                    switch (markupType)
+                    {
+                        case MarkupTypeEnum.StrikeOut:
+                            lineYRatio = .5f;
+                            break;
+                        case MarkupTypeEnum.Underline:
+                            lineYRatio = .9f;
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                    foreach (var markupBox in this.MarkupBoxes)
+                    {
+                        var points = markupBox.Points;
+                        var markupBoxHeight = points[3].Y - points[0].Y;
+                        var boxYOffset = (markupBoxHeight * lineYRatio) + yOffset;
+                        composer.SetLineWidth(markupBoxHeight * .065);
+                        composer.DrawLine(
+                          new PointF(points[3].X, points[0].Y + boxYOffset),
+                          new PointF(points[2].X, points[1].Y + boxYOffset)
+                          );
+                    }
+                    composer.Stroke();
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+            composer.Flush();
+        }
+
+        /**
+<summary>Gets the code corresponding to the given value.</summary>
+*/
+        private static PdfName ToCode(
+          MarkupTypeEnum value
+          )
+        { return MarkupTypeEnumCodes[value]; }
+
+        /**
+          <summary>Gets the markup type corresponding to the given value.</summary>
+        */
+        private static MarkupTypeEnum ToMarkupTypeEnum(
+          PdfName value
+          )
+        {
+            foreach (var markupType in MarkupTypeEnumCodes)
+            {
+                if (markupType.Value.Equals(value))
+                {
+                    return markupType.Key;
+                }
+            }
+            throw new Exception("Invalid markup type.");
+        }
+
         public override DeviceColor Color
         {
             set
             {
                 base.Color = value;
-                if (Appearance.Normal[null] != null)
-                { RefreshAppearance(); }
+                if (this.Appearance.Normal[null] != null)
+                { this.RefreshAppearance(); }
             }
         }
 
@@ -203,10 +277,10 @@ namespace org.pdfclown.documents.interaction.annotations
             get
             {
                 IList<Quad> markupBoxes = new List<Quad>();
-                PdfArray quadPointsObject = (PdfArray)BaseDataObject[PdfName.QuadPoints];
+                var quadPointsObject = (PdfArray)this.BaseDataObject[PdfName.QuadPoints];
                 if (quadPointsObject != null)
                 {
-                    float pageHeight = Page.Box.Height;
+                    var pageHeight = this.Page.Box.Height;
                     for (
                       int index = 0,
                         length = quadPointsObject.Count;
@@ -243,15 +317,15 @@ namespace org.pdfclown.documents.interaction.annotations
             }
             set
             {
-                PdfArray quadPointsObject = new PdfArray();
-                float pageHeight = Page.Box.Height;
-                RectangleF box = RectangleF.Empty;
-                foreach (Quad markupBox in value)
+                var quadPointsObject = new PdfArray();
+                var pageHeight = this.Page.Box.Height;
+                var box = RectangleF.Empty;
+                foreach (var markupBox in value)
                 {
                     /*
                       NOTE: Despite the spec prescription, Point 3 and Point 4 MUST be inverted.
                     */
-                    PointF[] markupBoxPoints = markupBox.Points;
+                    var markupBoxPoints = markupBox.Points;
                     quadPointsObject.Add(PdfReal.Get(markupBoxPoints[0].X)); // x1.
                     quadPointsObject.Add(PdfReal.Get(pageHeight - markupBoxPoints[0].Y)); // y1.
                     quadPointsObject.Add(PdfReal.Get(markupBoxPoints[1].X)); // x2.
@@ -265,17 +339,17 @@ namespace org.pdfclown.documents.interaction.annotations
                     else
                     { box = RectangleF.Union(box, markupBox.GetBounds()); }
                 }
-                BaseDataObject[PdfName.QuadPoints] = quadPointsObject;
+                this.BaseDataObject[PdfName.QuadPoints] = quadPointsObject;
 
                 /*
                   NOTE: Box width is expanded to make room for end decorations (e.g. rounded highlight caps).
                 */
-                float markupBoxMargin = GetMarkupBoxMargin(box.Height);
+                var markupBoxMargin = GetMarkupBoxMargin(box.Height);
                 box.X -= markupBoxMargin;
                 box.Width += markupBoxMargin * 2;
-                Box = box;
+                this.Box = box;
 
-                RefreshAppearance();
+                this.RefreshAppearance();
             }
         }
 
@@ -284,168 +358,49 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public MarkupTypeEnum MarkupType
         {
-            get
-            { return ToMarkupTypeEnum((PdfName)BaseDataObject[PdfName.Subtype]); }
+            get => ToMarkupTypeEnum((PdfName)this.BaseDataObject[PdfName.Subtype]);
             set
             {
-                BaseDataObject[PdfName.Subtype] = ToCode(value);
+                this.BaseDataObject[PdfName.Subtype] = ToCode(value);
                 switch (value)
                 {
                     case MarkupTypeEnum.Highlight:
-                        Color = new DeviceRGBColor(1, 1, 0);
+                        this.Color = new DeviceRGBColor(1, 1, 0);
                         break;
                     case MarkupTypeEnum.Squiggly:
-                        Color = new DeviceRGBColor(1, 0, 0);
+                        this.Color = new DeviceRGBColor(1, 0, 0);
                         break;
                     default:
-                        Color = new DeviceRGBColor(0, 0, 0);
+                        this.Color = new DeviceRGBColor(0, 0, 0);
                         break;
                 }
             }
         }
-        #endregion
-
-        #region private
-        /*
-          TODO: refresh should happen just before serialization, on document event (e.g. OnWrite())
-        */
-        private void RefreshAppearance(
-          )
+        /**
+  <summary>Markup type [PDF:1.6:8.4.5].</summary>
+*/
+        public enum MarkupTypeEnum
         {
-            FormXObject normalAppearance;
-            RectangleF box = org.pdfclown.objects.Rectangle.Wrap(BaseDataObject[PdfName.Rect]).ToRectangleF();
-            {
-                AppearanceStates normalAppearances = Appearance.Normal;
-                normalAppearance = normalAppearances[null];
-                if (normalAppearance != null)
-                {
-                    normalAppearance.Box = box;
-                    normalAppearance.BaseDataObject.Body.SetLength(0);
-                }
-                else
-                { normalAppearances[null] = normalAppearance = new FormXObject(Document, box); }
-            }
-
-            PrimitiveComposer composer = new PrimitiveComposer(normalAppearance);
-            {
-                float yOffset = box.Height - Page.Box.Height;
-                MarkupTypeEnum markupType = MarkupType;
-                switch (markupType)
-                {
-                    case MarkupTypeEnum.Highlight:
-                    {
-                        ExtGState defaultExtGState;
-                        {
-                            ExtGStateResources extGStates = normalAppearance.Resources.ExtGStates;
-                            defaultExtGState = extGStates[HighlightExtGStateName];
-                            if (defaultExtGState == null)
-                            {
-                                if (extGStates.Count > 0)
-                                { extGStates.Clear(); }
-
-                                extGStates[HighlightExtGStateName] = defaultExtGState = new ExtGState(Document);
-                                defaultExtGState.AlphaShape = false;
-                                defaultExtGState.BlendMode = new List<BlendModeEnum>(new BlendModeEnum[] { BlendModeEnum.Multiply });
-                            }
-                        }
-
-                        composer.ApplyState(defaultExtGState);
-                        composer.SetFillColor(Color);
-                        {
-                            foreach (Quad markupBox in MarkupBoxes)
-                            {
-                                PointF[] points = markupBox.Points;
-                                float markupBoxHeight = points[3].Y - points[0].Y;
-                                float markupBoxMargin = GetMarkupBoxMargin(markupBoxHeight);
-                                composer.DrawCurve(
-                                  new PointF(points[3].X, points[3].Y + yOffset),
-                                  new PointF(points[0].X, points[0].Y + yOffset),
-                                  new PointF(points[3].X - markupBoxMargin, points[3].Y - markupBoxMargin + yOffset),
-                                  new PointF(points[0].X - markupBoxMargin, points[0].Y + markupBoxMargin + yOffset)
-                                  );
-                                composer.DrawLine(
-                                  new PointF(points[1].X, points[1].Y + yOffset)
-                                  );
-                                composer.DrawCurve(
-                                  new PointF(points[2].X, points[2].Y + yOffset),
-                                  new PointF(points[1].X + markupBoxMargin, points[1].Y + markupBoxMargin + yOffset),
-                                  new PointF(points[2].X + markupBoxMargin, points[2].Y - markupBoxMargin + yOffset)
-                                  );
-                                composer.Fill();
-                            }
-                        }
-                    }
-                    break;
-                    case MarkupTypeEnum.Squiggly:
-                    {
-                        composer.SetStrokeColor(Color);
-                        composer.SetLineCap(LineCapEnum.Round);
-                        composer.SetLineJoin(LineJoinEnum.Round);
-                        {
-                            foreach (Quad markupBox in MarkupBoxes)
-                            {
-                                PointF[] points = markupBox.Points;
-                                float markupBoxHeight = points[3].Y - points[0].Y;
-                                float lineWidth = markupBoxHeight * .05f;
-                                float step = markupBoxHeight * .125f;
-                                float boxXOffset = points[3].X;
-                                float boxYOffset = points[3].Y + yOffset - lineWidth;
-                                bool phase = false;
-                                composer.SetLineWidth(lineWidth);
-                                for (float x = 0, xEnd = points[2].X - boxXOffset; x < xEnd || !phase; x += step)
-                                {
-                                    PointF point = new PointF(x + boxXOffset, (phase ? -step : 0) + boxYOffset);
-                                    if (x == 0)
-                                    { composer.StartPath(point); }
-                                    else
-                                    { composer.DrawLine(point); }
-                                    phase = !phase;
-                                }
-                            }
-                            composer.Stroke();
-                        }
-                    }
-                    break;
-                    case MarkupTypeEnum.StrikeOut:
-                    case MarkupTypeEnum.Underline:
-                    {
-                        composer.SetStrokeColor(Color);
-                        {
-                            float lineYRatio = 0;
-                            switch (markupType)
-                            {
-                                case MarkupTypeEnum.StrikeOut:
-                                    lineYRatio = .5f;
-                                    break;
-                                case MarkupTypeEnum.Underline:
-                                    lineYRatio = .9f;
-                                    break;
-                                default:
-                                    throw new NotImplementedException();
-                            }
-                            foreach (Quad markupBox in MarkupBoxes)
-                            {
-                                PointF[] points = markupBox.Points;
-                                float markupBoxHeight = points[3].Y - points[0].Y;
-                                float boxYOffset = markupBoxHeight * lineYRatio + yOffset;
-                                composer.SetLineWidth(markupBoxHeight * .065);
-                                composer.DrawLine(
-                                  new PointF(points[3].X, points[0].Y + boxYOffset),
-                                  new PointF(points[2].X, points[1].Y + boxYOffset)
-                                  );
-                            }
-                            composer.Stroke();
-                        }
-                    }
-                    break;
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-            composer.Flush();
-        }
-        #endregion
-        #endregion
-        #endregion
+            /**
+              <summary>Highlight.</summary>
+            */
+            [PDF(VersionEnum.PDF13)]
+            Highlight,
+            /**
+              <summary>Squiggly.</summary>
+            */
+            [PDF(VersionEnum.PDF14)]
+            Squiggly,
+            /**
+              <summary>StrikeOut.</summary>
+            */
+            [PDF(VersionEnum.PDF13)]
+            StrikeOut,
+            /**
+              <summary>Underline.</summary>
+            */
+            [PDF(VersionEnum.PDF13)]
+            Underline
+        };
     }
 }

@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>Multiple Master Type 1 font [PDF:1.6:5.5.1].</summary>
     */
@@ -35,11 +35,9 @@ namespace org.pdfclown.documents.contents.fonts
       : Type1Font
     {
         //TODO
-        #region constructors
         internal MMType1Font(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
+  PdfDirectObject baseObject
+  ) : base(baseObject)
         { }
-        #endregion
     }
 }

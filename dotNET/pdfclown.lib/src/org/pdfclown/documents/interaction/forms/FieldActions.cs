@@ -23,13 +23,11 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.objects;
-
-using system = System;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.objects;
+
     /**
       <summary>Form field actions [PDF:1.6:8.5.2].</summary>
     */
@@ -37,31 +35,24 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class FieldActions
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region dynamic
-        #region constructors
-        public FieldActions(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         internal FieldActions(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public FieldActions(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets a JavaScript action to be performed to recalculate the value
-          of this field when that of another field changes.</summary>
-        */
+<summary>Gets/Sets a JavaScript action to be performed to recalculate the value
+of this field when that of another field changes.</summary>
+*/
         public JavaScript OnCalculate
         {
-            get
-            { return (JavaScript)Action.Wrap(BaseDataObject[PdfName.C]); }
-            set
-            { BaseDataObject[PdfName.C] = value.BaseObject; }
+            get => (JavaScript)Action.Wrap(this.BaseDataObject[PdfName.C]);
+            set => this.BaseDataObject[PdfName.C] = value.BaseObject;
         }
 
         /**
@@ -70,10 +61,8 @@ namespace org.pdfclown.documents.interaction.forms
         */
         public JavaScript OnChange
         {
-            get
-            { return (JavaScript)Action.Wrap(BaseDataObject[PdfName.K]); }
-            set
-            { BaseDataObject[PdfName.K] = value.BaseObject; }
+            get => (JavaScript)Action.Wrap(this.BaseDataObject[PdfName.K]);
+            set => this.BaseDataObject[PdfName.K] = value.BaseObject;
         }
 
         /**
@@ -83,10 +72,8 @@ namespace org.pdfclown.documents.interaction.forms
         */
         public JavaScript OnFormat
         {
-            get
-            { return (JavaScript)Action.Wrap(BaseDataObject[PdfName.F]); }
-            set
-            { BaseDataObject[PdfName.F] = value.BaseObject; }
+            get => (JavaScript)Action.Wrap(this.BaseDataObject[PdfName.F]);
+            set => this.BaseDataObject[PdfName.F] = value.BaseObject;
         }
 
         /**
@@ -95,13 +82,8 @@ namespace org.pdfclown.documents.interaction.forms
         */
         public JavaScript OnValidate
         {
-            get
-            { return (JavaScript)Action.Wrap(BaseDataObject[PdfName.V]); }
-            set
-            { BaseDataObject[PdfName.V] = value.BaseObject; }
+            get => (JavaScript)Action.Wrap(this.BaseDataObject[PdfName.V]);
+            set => this.BaseDataObject[PdfName.V] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

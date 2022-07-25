@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using org.pdfclown.bytes;
+
     /**
       <summary>Inline image data (anonymous) operation [PDF:1.6:4.8.6].</summary>
       <remarks>This is a figurative operation necessary to constrain the inline image data section
@@ -36,37 +36,23 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class InlineImageBody
       : Operation
     {
-        #region static
-        #region fields
         private IBuffer value;
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public InlineImageBody(
-          IBuffer value
-          ) : base(null)
+IBuffer value
+) : base(null)
         { this.value = value; }
-        #endregion
-
-        #region interface
-        #region public
-        public IBuffer Value
-        {
-            get
-            { return value; }
-            set
-            { this.value = value; }
-        }
 
         public override void WriteTo(
           IOutputStream stream,
           Document context
           )
-        { stream.Write(value); }
-        #endregion
-        #endregion
-        #endregion
+        { stream.Write(this.value); }
+
+        public IBuffer Value
+        {
+            get => this.value;
+            set => this.value = value;
+        }
     }
 }

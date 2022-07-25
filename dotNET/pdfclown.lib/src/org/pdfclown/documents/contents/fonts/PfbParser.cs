@@ -24,68 +24,64 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-
-using System.Text.RegularExpressions;
-using org.pdfclown.bytes;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+    using System.Collections.Generic;
+
+    using System.Text.RegularExpressions;
+    using org.pdfclown.bytes;
+    using org.pdfclown.util;
+
     /**
       <summary>Type 1 font parser.</summary>
     */
     internal sealed class PfbParser
     {
-        #region dynamic
-        #region fields
-        private IInputStream stream;
-        #endregion
+        private readonly IInputStream stream;
 
-        #region constructors
         internal PfbParser(
-          IInputStream stream
-          )
+  IInputStream stream
+  )
         { this.stream = stream; }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Parses the character-code-to-unicode mapping [PDF:1.6:5.9.1].</summary>
-        */
+<summary>Parses the character-code-to-unicode mapping [PDF:1.6:5.9.1].</summary>
+*/
         public Dictionary<ByteArray, int> Parse(
           )
         {
-            Dictionary<ByteArray, int> codes = new Dictionary<ByteArray, int>();
+            var codes = new Dictionary<ByteArray, int>();
 
             string line;
-            Regex linePattern = new Regex("(\\S+)\\s+(.+)");
-            while ((line = stream.ReadLine()) != null)
+            var linePattern = new Regex("(\\S+)\\s+(.+)");
+            while ((line = this.stream.ReadLine()) != null)
             {
-                MatchCollection lineMatches = linePattern.Matches(line);
+                var lineMatches = linePattern.Matches(line);
                 if (lineMatches.Count < 1)
+                {
                     continue;
+                }
 
-                Match lineMatch = lineMatches[0];
+                var lineMatch = lineMatches[0];
 
-                string key = lineMatch.Groups[1].Value;
+                var key = lineMatch.Groups[1].Value;
                 if (key.Equals("/Encoding"))
                 {
                     // Skip to the encoding array entries!
-                    stream.ReadLine();
+                    _ = this.stream.ReadLine();
                     string encodingLine;
-                    Regex encodingLinePattern = new Regex("dup (\\S+) (\\S+) put");
-                    while ((encodingLine = stream.ReadLine()) != null)
+                    var encodingLinePattern = new Regex("dup (\\S+) (\\S+) put");
+                    while ((encodingLine = this.stream.ReadLine()) != null)
                     {
-                        MatchCollection encodingLineMatches = encodingLinePattern.Matches(encodingLine);
+                        var encodingLineMatches = encodingLinePattern.Matches(encodingLine);
                         if (encodingLineMatches.Count < 1)
+                        {
                             break;
+                        }
 
-                        Match encodingLineMatch = encodingLineMatches[0];
-                        byte[] inputCode = new byte[] { (byte)Int32.Parse(encodingLineMatch.Groups[1].Value) };
-                        string name = encodingLineMatch.Groups[2].Value.Substring(1);
+                        var encodingLineMatch = encodingLineMatches[0];
+                        var inputCode = new byte[] { (byte)int.Parse(encodingLineMatch.Groups[1].Value) };
+                        var name = encodingLineMatch.Groups[2].Value.Substring(1);
                         codes[new ByteArray(inputCode)] = GlyphMapping.NameToCode(name).Value;
                     }
                     break;
@@ -93,8 +89,5 @@ namespace org.pdfclown.documents.contents.fonts
             }
             return codes;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

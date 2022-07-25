@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.layers
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>A collection of mutually-exclusive layers [PDF:1.7:4.10.3].</summary>
     */
@@ -37,30 +36,21 @@ namespace org.pdfclown.documents.contents.layers
     public sealed class OptionGroup
       : Array<Layer>
     {
-        #region static
-        #region interface
-        #region public
-        public static OptionGroup Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new OptionGroup(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public OptionGroup(
-          Document context
-          ) : base(context)
-        { }
 
         private OptionGroup(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-        #endregion
+
+        public OptionGroup(
+Document context
+) : base(context)
+        { }
+
+        public static OptionGroup Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new OptionGroup(baseObject) : null; }
     }
 }
 

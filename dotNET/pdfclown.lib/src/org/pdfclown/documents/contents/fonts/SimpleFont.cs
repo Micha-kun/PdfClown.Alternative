@@ -24,14 +24,13 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Simple font [PDF:1.6:5.5].</summary>
     */
@@ -39,27 +38,15 @@ namespace org.pdfclown.documents.contents.fonts
     public abstract class SimpleFont
       : Font
     {
-        #region constructors
         protected SimpleFont(
-          Document context
-          ) : base(context)
+  Document context
+  ) : base(context)
         { }
 
         protected SimpleFont(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region protected
-        protected override PdfDataObject GetDescriptorValue(
-          PdfName key
-          )
-        {
-            PdfDictionary fontDescriptor = (PdfDictionary)BaseDataObject.Resolve(PdfName.FontDescriptor);
-            return fontDescriptor != null ? fontDescriptor.Resolve(key) : null;
-        }
 
         protected virtual IDictionary<ByteArray, int> GetBaseEncoding(
           PdfName encodingName
@@ -67,34 +54,48 @@ namespace org.pdfclown.documents.contents.fonts
         {
             if (encodingName == null) // Default encoding.
             {
-                if (symbolic) // Built-in encoding.
+                if (this.symbolic) // Built-in encoding.
+                {
                     return Encoding.Get(PdfName.Identity).GetCodes();
+                }
                 else // Standard encoding.
+                {
                     return Encoding.Get(PdfName.StandardEncoding).GetCodes();
+                }
             }
             else // Predefined encoding.
+            {
                 return Encoding.Get(encodingName).GetCodes();
+            }
+        }
+
+        protected override PdfDataObject GetDescriptorValue(
+PdfName key
+)
+        {
+            var fontDescriptor = (PdfDictionary)this.BaseDataObject.Resolve(PdfName.FontDescriptor);
+            return (fontDescriptor != null) ? fontDescriptor.Resolve(key) : null;
         }
 
         protected void LoadEncoding(
           )
         {
             // Mapping character codes...
-            PdfDataObject encodingObject = BaseDataObject.Resolve(PdfName.Encoding);
-            FlagsEnum flags = Flags;
-            symbolic = (flags & FlagsEnum.Symbolic) != 0;
+            var encodingObject = this.BaseDataObject.Resolve(PdfName.Encoding);
+            var flags = this.Flags;
+            this.symbolic = (flags & FlagsEnum.Symbolic) != 0;
             if (this.codes == null)
             {
                 IDictionary<ByteArray, int> codes;
                 if (encodingObject is PdfDictionary) // Derived encoding.
                 {
-                    PdfDictionary encodingDictionary = (PdfDictionary)encodingObject;
+                    var encodingDictionary = (PdfDictionary)encodingObject;
 
                     // Base encoding.
-                    codes = GetBaseEncoding((PdfName)encodingDictionary[PdfName.BaseEncoding]);
+                    codes = this.GetBaseEncoding((PdfName)encodingDictionary[PdfName.BaseEncoding]);
 
                     // Differences.
-                    PdfArray differencesObject = (PdfArray)encodingDictionary.Resolve(PdfName.Differences);
+                    var differencesObject = (PdfArray)encodingDictionary.Resolve(PdfName.Differences);
                     if (differencesObject != null)
                     {
                         /*
@@ -102,21 +103,21 @@ namespace org.pdfclown.documents.contents.fonts
                           first character name after a code associates that character to that code; subsequent
                           names replace consecutive code indices until the next code appears in the array.
                         */
-                        byte[] charCodeData = new byte[1];
-                        foreach (PdfDirectObject differenceObject in differencesObject)
+                        var charCodeData = new byte[1];
+                        foreach (var differenceObject in differencesObject)
                         {
                             if (differenceObject is PdfInteger) // Subsequence initial code.
                             { charCodeData[0] = (byte)(((int)((PdfInteger)differenceObject).Value) & 0xFF); }
                             else // Character name.
                             {
-                                ByteArray charCode = new ByteArray(charCodeData);
-                                string charName = (string)((PdfName)differenceObject).Value;
+                                var charCode = new ByteArray(charCodeData);
+                                var charName = (string)((PdfName)differenceObject).Value;
                                 if (charName.Equals(".notdef"))
-                                { codes.Remove(charCode); }
+                                { _ = codes.Remove(charCode); }
                                 else
                                 {
-                                    int? code = GlyphMapping.NameToCode(charName);
-                                    codes[charCode] = (code ?? charCodeData[0]);
+                                    var code = GlyphMapping.NameToCode(charName);
+                                    codes[charCode] = code ?? charCodeData[0];
                                 }
                                 charCodeData[0]++;
                             }
@@ -124,70 +125,66 @@ namespace org.pdfclown.documents.contents.fonts
                     }
                 }
                 else // Predefined encoding.
-                { codes = GetBaseEncoding((PdfName)encodingObject); }
+                { codes = this.GetBaseEncoding((PdfName)encodingObject); }
                 this.codes = new BiDictionary<ByteArray, int>(codes);
             }
             // Purging unused character codes...
+
+            var glyphWidthObjects = (PdfArray)this.BaseDataObject.Resolve(PdfName.Widths);
+            if (glyphWidthObjects != null)
             {
-                PdfArray glyphWidthObjects = (PdfArray)BaseDataObject.Resolve(PdfName.Widths);
-                if (glyphWidthObjects != null)
+                var charCode = new ByteArray(new byte[] { (byte)((PdfInteger)this.BaseDataObject[PdfName.FirstChar]).IntValue });
+                foreach (var glyphWidthObject in glyphWidthObjects)
                 {
-                    ByteArray charCode = new ByteArray(new byte[] { (byte)((PdfInteger)BaseDataObject[PdfName.FirstChar]).IntValue });
-                    foreach (PdfDirectObject glyphWidthObject in glyphWidthObjects)
-                    {
-                        if (((PdfInteger)glyphWidthObject).IntValue == 0)
-                        { codes.Remove(charCode); }
-                        charCode.Data[0]++;
-                    }
+                    if (((PdfInteger)glyphWidthObject).IntValue == 0)
+                    { _ = this.codes.Remove(charCode); }
+                    charCode.Data[0]++;
                 }
             }
 
             // Mapping glyph indices...
-            glyphIndexes = new Dictionary<int, int>();
-            foreach (KeyValuePair<ByteArray, int> code in codes)
-            { glyphIndexes[code.Value] = (int)code.Key.Data[0] & 0xFF; }
+            this.glyphIndexes = new Dictionary<int, int>();
+            foreach (var code in this.codes)
+            { this.glyphIndexes[code.Value] = code.Key.Data[0] & 0xFF; }
         }
 
         protected override void OnLoad(
           )
         {
-            LoadEncoding();
+            this.LoadEncoding();
 
             // Glyph widths.
-            if (glyphWidths == null)
+            if (this.glyphWidths == null)
             {
-                glyphWidths = new Dictionary<int, int>();
-                PdfArray glyphWidthObjects = (PdfArray)BaseDataObject.Resolve(PdfName.Widths);
+                this.glyphWidths = new Dictionary<int, int>();
+                var glyphWidthObjects = (PdfArray)this.BaseDataObject.Resolve(PdfName.Widths);
                 if (glyphWidthObjects != null)
                 {
-                    ByteArray charCode = new ByteArray(
+                    var charCode = new ByteArray(
                       new byte[]
-                      {(byte)((PdfInteger)BaseDataObject[PdfName.FirstChar]).IntValue}
+                      {(byte)((PdfInteger)this.BaseDataObject[PdfName.FirstChar]).IntValue}
                       );
-                    foreach (PdfDirectObject glyphWidthObject in glyphWidthObjects)
+                    foreach (var glyphWidthObject in glyphWidthObjects)
                     {
-                        int glyphWidth = ((IPdfNumber)glyphWidthObject).IntValue;
+                        var glyphWidth = ((IPdfNumber)glyphWidthObject).IntValue;
                         if (glyphWidth > 0)
                         {
                             int code;
-                            if (codes.TryGetValue(charCode, out code))
-                            { glyphWidths[glyphIndexes[code]] = glyphWidth; }
+                            if (this.codes.TryGetValue(charCode, out code))
+                            { this.glyphWidths[this.glyphIndexes[code]] = glyphWidth; }
                         }
                         charCode.Data[0]++;
                     }
                 }
             }
             // Default glyph width.
-            {
-                IPdfNumber widthObject = (IPdfNumber)GetDescriptorValue(PdfName.AvgWidth);
-                if (widthObject != null)
-                { AverageWidth = widthObject.IntValue; }
-                widthObject = (IPdfNumber)GetDescriptorValue(PdfName.MissingWidth);
-                if (widthObject != null)
-                { DefaultWidth = widthObject.IntValue; }
-            }
+
+            var widthObject = (IPdfNumber)this.GetDescriptorValue(PdfName.AvgWidth);
+            if (widthObject != null)
+            { this.AverageWidth = widthObject.IntValue; }
+            widthObject = (IPdfNumber)this.GetDescriptorValue(PdfName.MissingWidth);
+            if (widthObject != null)
+            { this.DefaultWidth = widthObject.IntValue; }
         }
-        #endregion
-        #endregion
     }
 }

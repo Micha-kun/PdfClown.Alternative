@@ -34,8 +34,8 @@ namespace org.pdfclown.documents.contents.fonts
         public IdentityEncoding(
           )
         {
-            for (int index = 1; index < 256; index++)
-            { Put(index, index); }
+            for (var index = 1; index < 256; index++)
+            { this.Put(index, index); }
         }
     }
 }

@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using System.Linq;
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.layers
 {
+    using System;
+    using System.Collections.Generic;
+
+    using System.Linq;
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Optional content configuration [PDF:1.7:4.10.3].</summary>
     */
@@ -40,161 +40,40 @@ namespace org.pdfclown.documents.contents.layers
       : PdfObjectWrapper<PdfDictionary>,
         ILayerConfiguration
     {
-        #region types
-        /**
-          <summary>Base state used to initialize the states of all the layers in a document when this
-          configuration is applied.</summary>
-        */
-        internal enum BaseStateEnum
-        {
-            /**
-              <summary>All the layers are visible.</summary>
-            */
-            On,
-            /**
-              <summary>All the layers are invisible.</summary>
-            */
-            Off,
-            /**
-              <summary>All the layers are left unchanged.</summary>
-            */
-            Unchanged
-        }
-        #endregion
 
-        #region static
-        #region interface
-        #region public
-        public static LayerConfiguration Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new LayerConfiguration(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         public LayerConfiguration(
-          Document context
-          ) : base(context, new PdfDictionary())
+Document context
+) : base(context, new PdfDictionary())
         { }
 
         public LayerConfiguration(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        #region ILayerConfiguration
-        public string Creator
-        {
-            get
-            { return (string)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.Creator]); }
-            set
-            { BaseDataObject[PdfName.Creator] = PdfTextString.Get(value); }
-        }
+        /**
+  <summary>Gets the collection of the layer objects whose state is set to OFF.</summary>
+*/
+        private PdfArray OffLayersObject => this.BaseDataObject.Resolve<PdfArray>(PdfName.OFF);
 
-        public ISet<PdfName> Intents
-        {
-            get
-            {
-                ISet<PdfName> intents = new HashSet<PdfName>();
-                PdfDataObject intentObject = BaseDataObject.Resolve(PdfName.Intent);
-                if (intentObject != null)
-                {
-                    if (intentObject is PdfArray) // Multiple intents.
-                    {
-                        foreach (PdfDirectObject intentItem in (PdfArray)intentObject)
-                        { intents.Add((PdfName)intentItem); }
-                    }
-                    else // Single intent.
-                    { intents.Add((PdfName)intentObject); }
-                }
-                else
-                { intents.Add(IntentEnum.View.Name()); }
-                return intents;
-            }
-            set
-            {
-                PdfDirectObject intentObject = null;
-                if (value != null
-                  && value.Count > 0)
-                {
-                    if (value.Count == 1) // Single intent.
-                    {
-                        intentObject = value.First();
-                        if (intentObject.Equals(IntentEnum.View.Name())) // Default.
-                        { intentObject = null; }
-                    }
-                    else // Multiple intents.
-                    {
-                        PdfArray intentArray = new PdfArray();
-                        foreach (PdfName valueItem in value)
-                        { intentArray.Add(valueItem); }
-                    }
-                }
-                BaseDataObject[PdfName.Intent] = intentObject;
-            }
-        }
+        /**
+          <summary>Gets the collection of the layer objects whose state is set to ON.</summary>
+        */
+        private PdfArray OnLayersObject => this.BaseDataObject.Resolve<PdfArray>(PdfName.ON);
 
-        public Array<OptionGroup> OptionGroups
-        {
-            get
-            { return Array<OptionGroup>.Wrap<OptionGroup>(BaseDataObject.Get<PdfArray>(PdfName.RBGroups)); }
-        }
-
-        public string Title
-        {
-            get
-            { return (string)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.Name]); }
-            set
-            { BaseDataObject[PdfName.Name] = PdfTextString.Get(value); }
-        }
-
-        public UILayers UILayers
-        {
-            get
-            { return UILayers.Wrap(BaseDataObject.Get<PdfArray>(PdfName.Order)); }
-        }
-
-        public UIModeEnum UIMode
-        {
-            get
-            { return UIModeEnumExtension.Get((PdfName)BaseDataObject[PdfName.ListMode]); }
-            set
-            { BaseDataObject[PdfName.ListMode] = value.GetName(); }
-        }
-
-        public bool? Visible
-        {
-            get
-            { return BaseStateEnumExtension.Get((PdfName)BaseDataObject[PdfName.BaseState]).IsEnabled(); }
-            set
-            {
-                /*
-                  NOTE: Base state can be altered only in case of alternate configuration; default ones MUST
-                  be set to default state (that is ON).
-                */
-                if (!(BaseObject.Parent is PdfDictionary)) // Not the default configuration?
-                { BaseDataObject[PdfName.BaseState] = BaseStateEnumExtension.Get(value).GetName(); }
-            }
-        }
-        #endregion
-        #endregion
-
-        #region internal
         internal bool IsVisible(
-          Layer layer
-          )
+  Layer layer
+  )
         {
-            bool? visible = Visible;
+            var visible = this.Visible;
             if (!visible.HasValue || visible.Value)
-                return !OffLayersObject.Contains(layer.BaseObject);
+            {
+                return !this.OffLayersObject.Contains(layer.BaseObject);
+            }
             else
-                return OnLayersObject.Contains(layer.BaseObject);
+            {
+                return this.OnLayersObject.Contains(layer.BaseObject);
+            }
         }
 
         /**
@@ -215,19 +94,19 @@ namespace org.pdfclown.documents.contents.layers
           bool retain
           )
         {
-            bool matched = false;
-            PdfArray usages = BaseDataObject.Resolve<PdfArray>(PdfName.AS);
-            foreach (PdfDirectObject usage in usages)
+            var matched = false;
+            var usages = this.BaseDataObject.Resolve<PdfArray>(PdfName.AS);
+            foreach (var usage in usages)
             {
-                PdfDictionary usageDictionary = (PdfDictionary)usage;
+                var usageDictionary = (PdfDictionary)usage;
                 if (usageDictionary[PdfName.Event].Equals(@event)
                   && ((PdfArray)usageDictionary[PdfName.Category]).Contains(category))
                 {
-                    PdfArray usageLayers = usageDictionary.Resolve<PdfArray>(PdfName.OCGs);
+                    var usageLayers = usageDictionary.Resolve<PdfArray>(PdfName.OCGs);
                     if (usageLayers.Contains(layer.BaseObject))
                     {
                         if (!retain)
-                        { usageLayers.Remove(layer.BaseObject); }
+                        { _ = usageLayers.Remove(layer.BaseObject); }
                     }
                     else
                     {
@@ -239,12 +118,10 @@ namespace org.pdfclown.documents.contents.layers
             }
             if (!matched && retain)
             {
-                PdfDictionary usageDictionary = new PdfDictionary();
-                {
-                    usageDictionary[PdfName.Event] = @event;
-                    usageDictionary.Resolve<PdfArray>(PdfName.Category).Add(category);
-                    usageDictionary.Resolve<PdfArray>(PdfName.OCGs).Add(layer.BaseObject);
-                }
+                var usageDictionary = new PdfDictionary();
+                usageDictionary[PdfName.Event] = @event;
+                usageDictionary.Resolve<PdfArray>(PdfName.Category).Add(category);
+                usageDictionary.Resolve<PdfArray>(PdfName.OCGs).Add(layer.BaseObject);
                 usages.Add(usageDictionary);
             }
         }
@@ -254,21 +131,21 @@ namespace org.pdfclown.documents.contents.layers
           bool value
           )
         {
-            PdfDirectObject layerObject = layer.BaseObject;
-            PdfArray offLayersObject = OffLayersObject;
-            PdfArray onLayersObject = OnLayersObject;
-            bool? visible = Visible;
+            var layerObject = layer.BaseObject;
+            var offLayersObject = this.OffLayersObject;
+            var onLayersObject = this.OnLayersObject;
+            var visible = this.Visible;
             if (!visible.HasValue)
             {
                 if (value && !onLayersObject.Contains(layerObject))
                 {
                     onLayersObject.Add(layerObject);
-                    offLayersObject.Remove(layerObject);
+                    _ = offLayersObject.Remove(layerObject);
                 }
                 else if (!value && !offLayersObject.Contains(layerObject))
                 {
                     offLayersObject.Add(layerObject);
-                    onLayersObject.Remove(layerObject);
+                    _ = onLayersObject.Remove(layerObject);
                 }
             }
             else if (!visible.Value)
@@ -282,29 +159,109 @@ namespace org.pdfclown.documents.contents.layers
                 { offLayersObject.Add(layerObject); }
             }
         }
-        #endregion
 
-        #region private
-        /**
-          <summary>Gets the collection of the layer objects whose state is set to OFF.</summary>
-        */
-        private PdfArray OffLayersObject
+        public static LayerConfiguration Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new LayerConfiguration(baseObject) : null; }
+
+        public string Creator
         {
-            get
-            { return BaseDataObject.Resolve<PdfArray>(PdfName.OFF); }
+            get => (string)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.Creator]);
+            set => this.BaseDataObject[PdfName.Creator] = PdfTextString.Get(value);
         }
 
-        /**
-          <summary>Gets the collection of the layer objects whose state is set to ON.</summary>
-        */
-        private PdfArray OnLayersObject
+        public ISet<PdfName> Intents
         {
             get
-            { return BaseDataObject.Resolve<PdfArray>(PdfName.ON); }
+            {
+                ISet<PdfName> intents = new HashSet<PdfName>();
+                var intentObject = this.BaseDataObject.Resolve(PdfName.Intent);
+                if (intentObject != null)
+                {
+                    if (intentObject is PdfArray) // Multiple intents.
+                    {
+                        foreach (var intentItem in (PdfArray)intentObject)
+                        { _ = intents.Add((PdfName)intentItem); }
+                    }
+                    else // Single intent.
+                    { _ = intents.Add((PdfName)intentObject); }
+                }
+                else
+                { _ = intents.Add(IntentEnum.View.Name()); }
+                return intents;
+            }
+            set
+            {
+                PdfDirectObject intentObject = null;
+                if ((value != null)
+                  && (value.Count > 0))
+                {
+                    if (value.Count == 1) // Single intent.
+                    {
+                        intentObject = value.First();
+                        if (intentObject.Equals(IntentEnum.View.Name())) // Default.
+                        { intentObject = null; }
+                    }
+                    else // Multiple intents.
+                    {
+                        var intentArray = new PdfArray();
+                        foreach (var valueItem in value)
+                        { intentArray.Add(valueItem); }
+                    }
+                }
+                this.BaseDataObject[PdfName.Intent] = intentObject;
+            }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public Array<OptionGroup> OptionGroups => Array<OptionGroup>.Wrap<OptionGroup>(this.BaseDataObject.Get<PdfArray>(PdfName.RBGroups));
+
+        public string Title
+        {
+            get => (string)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.Name]);
+            set => this.BaseDataObject[PdfName.Name] = PdfTextString.Get(value);
+        }
+
+        public UILayers UILayers => UILayers.Wrap(this.BaseDataObject.Get<PdfArray>(PdfName.Order));
+
+        public UIModeEnum UIMode
+        {
+            get => UIModeEnumExtension.Get((PdfName)this.BaseDataObject[PdfName.ListMode]);
+            set => this.BaseDataObject[PdfName.ListMode] = value.GetName();
+        }
+
+        public bool? Visible
+        {
+            get => BaseStateEnumExtension.Get((PdfName)this.BaseDataObject[PdfName.BaseState]).IsEnabled();
+            set
+            {
+                /*
+                  NOTE: Base state can be altered only in case of alternate configuration; default ones MUST
+                  be set to default state (that is ON).
+                */
+                if (!(this.BaseObject.Parent is PdfDictionary)) // Not the default configuration?
+                { this.BaseDataObject[PdfName.BaseState] = BaseStateEnumExtension.Get(value).GetName(); }
+            }
+        }
+        /**
+  <summary>Base state used to initialize the states of all the layers in a document when this
+  configuration is applied.</summary>
+*/
+        internal enum BaseStateEnum
+        {
+            /**
+              <summary>All the layers are visible.</summary>
+            */
+            On,
+            /**
+              <summary>All the layers are invisible.</summary>
+            */
+            Off,
+            /**
+              <summary>All the layers are left unchanged.</summary>
+            */
+            Unchanged
+        }
     }
 
     internal static class BaseStateEnumExtension
@@ -324,11 +281,15 @@ namespace org.pdfclown.documents.contents.layers
           )
         {
             if (name == null)
+            {
                 return LayerConfiguration.BaseStateEnum.On;
+            }
 
             LayerConfiguration.BaseStateEnum? baseState = codes.GetKey(name);
             if (!baseState.HasValue)
-                throw new NotSupportedException("Base state unknown: " + name);
+            {
+                throw new NotSupportedException($"Base state unknown: {name}");
+            }
 
             return baseState.Value;
         }

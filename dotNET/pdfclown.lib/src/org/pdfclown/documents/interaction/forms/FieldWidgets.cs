@@ -23,16 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.objects;
+
     /**
       <summary>Field widget annotations [PDF:1.6:8.6].</summary>
     */
@@ -47,62 +46,13 @@ namespace org.pdfclown.documents.interaction.forms
           This implementation hides such a complexity to the user, smoothly exposing just the most
           general case (array) yet preserving its internal state.
         */
-        #region dynamic
-        #region fields
-        private Field field;
-        #endregion
+        private readonly Field field;
 
-        #region constructors
         internal FieldWidgets(
-          PdfDirectObject baseObject,
-          Field field
-          ) : base(baseObject)
+  PdfDirectObject baseObject,
+  Field field
+  ) : base(baseObject)
         { this.field = field; }
-        #endregion
-
-        #region interface
-        #region public
-        public override object Clone(
-          Document context
-          )
-        { throw new NotImplementedException(); } // TODO:verify field reference.
-
-        /**
-          <summary>Gets the field associated to these widgets.</summary>
-        */
-        public Field Field
-        {
-            get
-            { return field; }
-        }
-
-        #region IList
-        public int IndexOf(
-          Widget value
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject is PdfDictionary) // Single annotation.
-            {
-                if (value.BaseObject.Equals(BaseObject))
-                    return 0;
-                else
-                    return -1;
-            }
-
-            return ((PdfArray)baseDataObject).IndexOf(value.BaseObject);
-        }
-
-        public void Insert(
-          int index,
-          Widget value
-          )
-        { EnsureArray().Insert(index, value.BaseObject); }
-
-        public void RemoveAt(
-          int index
-          )
-        { EnsureArray().RemoveAt(index); }
 
         public Widget this[
           int index
@@ -110,158 +60,95 @@ namespace org.pdfclown.documents.interaction.forms
         {
             get
             {
-                PdfDataObject baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 if (baseDataObject is PdfDictionary) // Single annotation.
                 {
                     if (index != 0)
-                        throw new ArgumentException("Index: " + index + ", Size: 1");
+                    {
+                        throw new ArgumentException($"Index: {index}, Size: 1");
+                    }
 
-                    return NewWidget(BaseObject);
+                    return this.NewWidget(this.BaseObject);
                 }
 
-                return NewWidget(((PdfArray)baseDataObject)[index]);
+                return this.NewWidget(((PdfArray)baseDataObject)[index]);
             }
-            set
-            { EnsureArray()[index] = value.BaseObject; }
+            set => this.EnsureArray()[index] = value.BaseObject;
         }
 
-        #region ICollection
-        public void Add(
-          Widget value
-          )
-        {
-            value.BaseDataObject[PdfName.Parent] = field.BaseObject;
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<Widget>)this).GetEnumerator(); }
 
-            EnsureArray().Add(value.BaseObject);
-        }
-
-        public void Clear(
-          )
-        { EnsureArray().Clear(); }
-
-        public bool Contains(
-          Widget value
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject is PdfDictionary) // Single annotation.
-                return value.BaseObject.Equals(BaseObject);
-
-            return ((PdfArray)baseDataObject).Contains(value.BaseObject);
-        }
-
-        public void CopyTo(
-          Widget[] values,
-          int index
-          )
-        { throw new NotImplementedException(); }
-
-        public int Count
-        {
-            get
-            {
-                PdfDataObject baseDataObject = BaseDataObject;
-                if (baseDataObject is PdfDictionary) // Single annotation.
-                    return 1;
-
-                return ((PdfArray)baseDataObject).Count;
-            }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          Widget value
-          )
-        { return EnsureArray().Remove(value.BaseObject); }
-
-        #region IEnumerable<Widget>
         IEnumerator<Widget> IEnumerable<Widget>.GetEnumerator(
-          )
+  )
         {
             for (
               int index = 0,
-                length = Count;
+                length = this.Count;
               index < length;
               index++
               )
             { yield return this[index]; }
         }
 
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<Widget>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
         private PdfArray EnsureArray(
-          )
+  )
         {
-            PdfDataObject baseDataObject = BaseDataObject;
+            var baseDataObject = this.BaseDataObject;
             if (baseDataObject is PdfDictionary) // Merged annotation.
             {
-                PdfArray widgetsArray = new PdfArray();
+                var widgetsArray = new PdfArray();
+                var fieldDictionary = (PdfDictionary)baseDataObject;
+                PdfDictionary widgetDictionary = null;
+                // Extracting widget entries from the field...
+                foreach (var key in new List<PdfName>(fieldDictionary.Keys))
                 {
-                    PdfDictionary fieldDictionary = (PdfDictionary)baseDataObject;
-                    PdfDictionary widgetDictionary = null;
-                    // Extracting widget entries from the field...
-                    foreach (PdfName key in new List<PdfName>(fieldDictionary.Keys))
+                    // Is it a widget entry?
+                    if (key.Equals(PdfName.Type)
+                      || key.Equals(PdfName.Subtype)
+                      || key.Equals(PdfName.Rect)
+                      || key.Equals(PdfName.Contents)
+                      || key.Equals(PdfName.P)
+                      || key.Equals(PdfName.NM)
+                      || key.Equals(PdfName.M)
+                      || key.Equals(PdfName.F)
+                      || key.Equals(PdfName.BS)
+                      || key.Equals(PdfName.AP)
+                      || key.Equals(PdfName.AS)
+                      || key.Equals(PdfName.Border)
+                      || key.Equals(PdfName.C)
+                      || key.Equals(PdfName.A)
+                      || key.Equals(PdfName.AA)
+                      || key.Equals(PdfName.StructParent)
+                      || key.Equals(PdfName.OC)
+                      || key.Equals(PdfName.H)
+                      || key.Equals(PdfName.MK))
                     {
-                        // Is it a widget entry?
-                        if (key.Equals(PdfName.Type)
-                          || key.Equals(PdfName.Subtype)
-                          || key.Equals(PdfName.Rect)
-                          || key.Equals(PdfName.Contents)
-                          || key.Equals(PdfName.P)
-                          || key.Equals(PdfName.NM)
-                          || key.Equals(PdfName.M)
-                          || key.Equals(PdfName.F)
-                          || key.Equals(PdfName.BS)
-                          || key.Equals(PdfName.AP)
-                          || key.Equals(PdfName.AS)
-                          || key.Equals(PdfName.Border)
-                          || key.Equals(PdfName.C)
-                          || key.Equals(PdfName.A)
-                          || key.Equals(PdfName.AA)
-                          || key.Equals(PdfName.StructParent)
-                          || key.Equals(PdfName.OC)
-                          || key.Equals(PdfName.H)
-                          || key.Equals(PdfName.MK))
+                        if (widgetDictionary == null)
                         {
-                            if (widgetDictionary == null)
-                            {
-                                widgetDictionary = new PdfDictionary();
-                                PdfReference widgetReference = File.Register(widgetDictionary);
+                            widgetDictionary = new PdfDictionary();
+                            var widgetReference = this.File.Register(widgetDictionary);
 
-                                // Remove the field from the page annotations (as the widget annotation is decoupled from it)!
-                                PdfArray pageAnnotationsArray = (PdfArray)((PdfDictionary)fieldDictionary.Resolve(PdfName.P)).Resolve(PdfName.Annots);
-                                pageAnnotationsArray.Remove(field.BaseObject);
+                            // Remove the field from the page annotations (as the widget annotation is decoupled from it)!
+                            var pageAnnotationsArray = (PdfArray)((PdfDictionary)fieldDictionary.Resolve(PdfName.P)).Resolve(PdfName.Annots);
+                            _ = pageAnnotationsArray.Remove(this.field.BaseObject);
 
-                                // Add the widget to the page annotations!
-                                pageAnnotationsArray.Add(widgetReference);
-                                // Add the widget to the field widgets!
-                                widgetsArray.Add(widgetReference);
-                                // Associate the field to the widget!
-                                widgetDictionary[PdfName.Parent] = field.BaseObject;
-                            }
-
-                            // Transfer the entry from the field to the widget!
-                            widgetDictionary[key] = fieldDictionary[key];
-                            fieldDictionary.Remove(key);
+                            // Add the widget to the page annotations!
+                            pageAnnotationsArray.Add(widgetReference);
+                            // Add the widget to the field widgets!
+                            widgetsArray.Add(widgetReference);
+                            // Associate the field to the widget!
+                            widgetDictionary[PdfName.Parent] = this.field.BaseObject;
                         }
+
+                        // Transfer the entry from the field to the widget!
+                        widgetDictionary[key] = fieldDictionary[key];
+                        _ = fieldDictionary.Remove(key);
                     }
                 }
-                BaseObject = widgetsArray;
-                field.BaseDataObject[PdfName.Kids] = widgetsArray;
+                this.BaseObject = widgetsArray;
+                this.field.BaseDataObject[PdfName.Kids] = widgetsArray;
 
                 baseDataObject = widgetsArray;
             }
@@ -273,8 +160,99 @@ namespace org.pdfclown.documents.interaction.forms
           PdfDirectObject baseObject
           )
         { return (Widget)Annotation.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
+
+        public void Add(
+  Widget value
+  )
+        {
+            value.BaseDataObject[PdfName.Parent] = this.field.BaseObject;
+
+            this.EnsureArray().Add(value.BaseObject);
+        }
+
+        public void Clear(
+          )
+        { this.EnsureArray().Clear(); }
+
+        public override object Clone(
+Document context
+)
+        { throw new NotImplementedException(); } // TODO:verify field reference.
+
+        public bool Contains(
+          Widget value
+          )
+        {
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject is PdfDictionary) // Single annotation.
+            {
+                return value.BaseObject.Equals(this.BaseObject);
+            }
+
+            return ((PdfArray)baseDataObject).Contains(value.BaseObject);
+        }
+
+        public void CopyTo(
+          Widget[] values,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public int IndexOf(
+  Widget value
+  )
+        {
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject is PdfDictionary) // Single annotation.
+            {
+                if (value.BaseObject.Equals(this.BaseObject))
+                {
+                    return 0;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+
+            return ((PdfArray)baseDataObject).IndexOf(value.BaseObject);
+        }
+
+        public void Insert(
+          int index,
+          Widget value
+          )
+        { this.EnsureArray().Insert(index, value.BaseObject); }
+
+        public bool Remove(
+          Widget value
+          )
+        { return this.EnsureArray().Remove(value.BaseObject); }
+
+        public void RemoveAt(
+          int index
+          )
+        { this.EnsureArray().RemoveAt(index); }
+
+        public int Count
+        {
+            get
+            {
+                var baseDataObject = this.BaseDataObject;
+                if (baseDataObject is PdfDictionary) // Single annotation.
+                {
+                    return 1;
+                }
+
+                return ((PdfArray)baseDataObject).Count;
+            }
+        }
+
+        /**
+          <summary>Gets the field associated to these widgets.</summary>
+        */
+        public Field Field => this.field;
+
+        public bool IsReadOnly => false;
     }
 }

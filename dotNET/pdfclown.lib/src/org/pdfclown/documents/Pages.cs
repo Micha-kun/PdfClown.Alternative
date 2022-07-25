@@ -41,256 +41,37 @@ namespace org.pdfclown.documents
         IExtList<Page>,
         IList<Page>
     {
-        #region types
-        private class Enumerator
-          : IEnumerator<Page>
-        {
-            /**
-              <summary>Collection size.</summary>
-            */
-            private readonly int count;
-            /**
-              <summary>Index of the next item.</summary>
-            */
-            private int index = 0;
-
-            /**
-              <summary>Current page.</summary>
-            */
-            private Page current;
-
-            /**
-              <summary>Current level index.</summary>
-            */
-            private int levelIndex = 0;
-            /**
-              <summary>Stacked level indexes.</summary>
-            */
-            private readonly Stack<int> levelIndexes = new Stack<int>();
-
-            /**
-              <summary>Current child tree nodes.</summary>
-            */
-            private PdfArray kids;
-            /**
-              <summary>Current parent tree node.</summary>
-            */
-            private PdfDictionary parent;
-
-            internal Enumerator(
-              Pages pages
-              )
-            {
-                this.count = pages.Count;
-                this.parent = pages.BaseDataObject;
-                this.kids = (PdfArray)this.parent.Resolve(PdfName.Kids);
-            }
-
-            Page IEnumerator<Page>.Current => this.current;
-
-            public object Current => ((IEnumerator<Page>)this).Current;
-
-            public bool MoveNext(
-              )
-            {
-                if (this.index == this.count)
-                {
-                    return false;
-                }
-
-                /*
-                  NOTE: As stated in [PDF:1.6:3.6.2], page retrieval is a matter of diving
-                  inside a B-tree.
-                  This is a special adaptation of the get() algorithm necessary to keep
-                  a low overhead throughout the page tree scan (using the get() method
-                  would have implied a nonlinear computational cost).
-                */
-                /*
-                  NOTE: Algorithm:
-                  1. [Vertical, down] We have to go downward the page tree till we reach
-                  a page (leaf node).
-                  2. [Horizontal] Then we iterate across the page collection it belongs to,
-                  repeating step 1 whenever we find a subtree.
-                  3. [Vertical, up] When leaf-nodes scan is complete, we go upward solving
-                  parent nodes, repeating step 2.
-                */
-                while (true)
-                {
-                    // Did we complete current page-tree-branch level?
-                    if (this.kids.Count == this.levelIndex) // Page subtree complete.
-                    {
-                        // 3. Go upward one level.
-                        // Restore node index at the current level!
-                        this.levelIndex = this.levelIndexes.Pop() + 1; // Next node (partially scanned level).
-                                                                       // Move upward!
-                        this.parent = (PdfDictionary)this.parent.Resolve(PdfName.Parent);
-                        this.kids = (PdfArray)this.parent.Resolve(PdfName.Kids);
-                    }
-                    else // Page subtree incomplete.
-                    {
-                        var kidReference = (PdfReference)this.kids[this.levelIndex];
-                        var kid = (PdfDictionary)kidReference.DataObject;
-                        // Is current kid a page object?
-                        if (kid[PdfName.Type].Equals(PdfName.Page)) // Page object.
-                        {
-                            // 2. Page found.
-                            this.index++; // Absolute page index.
-                            this.levelIndex++; // Current level node index.
-
-                            this.current = Page.Wrap(kidReference);
-                            return true;
-                        }
-                        else // Page tree node.
-                        {
-                            // 1. Go downward one level.
-                            // Save node index at the current level!
-                            this.levelIndexes.Push(this.levelIndex);
-                            // Move downward!
-                            this.parent = kid;
-                            this.kids = (PdfArray)this.parent.Resolve(PdfName.Kids);
-                            this.levelIndex = 0; // First node (new level).
-                        }
-                    }
-                }
-            }
-
-            public void Reset(
-              )
-            { throw new NotSupportedException(); }
-
-            public void Dispose(
-              )
-            { }
-        }
-        #endregion
 
         /*
           TODO:IMPL A B-tree algorithm should be implemented to optimize the inner layout
           of the page tree (better insertion/deletion performance). In this case, it would
           be necessary to keep track of the modified tree nodes for incremental update.
         */
-        #region dynamic
-        #region constructors
         internal Pages(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[3]
-              {
+Document context
+) : base(
+context,
+new PdfDictionary(
+new PdfName[3]
+{
             PdfName.Type,
             PdfName.Kids,
             PdfName.Count
-              },
-              new PdfDirectObject[3]
-              {
+},
+new PdfDirectObject[3]
+{
             PdfName.Pages,
             new PdfArray(),
             PdfInteger.Default
-              }
-              )
-            )
+}
+)
+)
         { }
 
         internal Pages(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
-        #region IExtList<Page>
-        public IList<Page> GetRange(
-          int index,
-          int count
-          )
-        {
-            return this.GetSlice(
-              index,
-              index + count
-              );
-        }
-
-        public IList<Page> GetSlice(
-          int fromIndex,
-          int toIndex
-          )
-        {
-            var pages = new List<Page>(toIndex - fromIndex);
-            var i = fromIndex;
-            while (i < toIndex)
-            { pages.Add(this[i++]); }
-
-            return pages;
-        }
-
-        public void InsertAll<TVar>(
-          int index,
-          ICollection<TVar> pages
-          )
-          where TVar : Page
-        { this.CommonAddAll(index, pages); }
-
-        #region IExtCollection<Page>
-        public void AddAll<TVar>(
-          ICollection<TVar> pages
-          )
-          where TVar : Page
-        { this.CommonAddAll(-1, pages); }
-
-        public void RemoveAll<TVar>(
-          ICollection<TVar> pages
-          )
-          where TVar : Page
-        {
-            /*
-              NOTE: The interface contract doesn't prescribe any relation among the removing-collection's
-              items, so we cannot adopt the optimized approach of the add*(...) methods family,
-              where adding-collection's items are explicitly ordered.
-            */
-            foreach (Page page in pages)
-            { _ = this.Remove(page); }
-        }
-
-        public int RemoveAll(
-          Predicate<Page> match
-          )
-        {
-            /*
-              NOTE: Removal is indirectly fulfilled through an intermediate collection
-              in order not to interfere with the enumerator execution.
-            */
-            var removingPages = new List<Page>();
-            foreach (var page in this)
-            {
-                if (match(page))
-                { removingPages.Add(page); }
-            }
-
-            this.RemoveAll(removingPages);
-
-            return removingPages.Count;
-        }
-        #endregion
-        #endregion
-
-        #region IList<Page>
-        public int IndexOf(
-          Page page
-          )
-        { return page.Index; }
-
-        public void Insert(
-          int index,
-          Page page
-          )
-        { this.CommonAddAll(index, new Page[] { page }); }
-
-        public void RemoveAt(
-          int index
-          )
-        { _ = this.Remove(this[index]); }
 
         public Page this[
           int index
@@ -357,85 +138,15 @@ namespace org.pdfclown.documents
             }
         }
 
-        #region ICollection<Page>
-        public void Add(
-          Page page
-          )
-        { this.CommonAddAll(-1, new Page[] { page }); }
-
-        public void Clear(
-          )
-        { throw new NotImplementedException(); }
-
-        public bool Contains(
-          Page page
-          )
-        { throw new NotImplementedException(); }
-
-        public void CopyTo(
-          Page[] pages,
-          int index
-          )
-        { throw new NotImplementedException(); }
-
-        public int Count => ((PdfInteger)this.BaseDataObject[PdfName.Count]).RawValue;
-
-        public bool IsReadOnly => false;
-
-        public bool Remove(
-          Page page
-          )
-        {
-            var pageData = page.BaseDataObject;
-            // Get the parent tree node!
-            var parent = pageData[PdfName.Parent];
-            var parentData = (PdfDictionary)parent.Resolve();
-            // Get the parent's page collection!
-            var kids = parentData[PdfName.Kids];
-            var kidsData = (PdfArray)kids.Resolve();
-            // Remove the page!
-            _ = kidsData.Remove(page.BaseObject);
-
-            // Unbind the page from its parent!
-            pageData[PdfName.Parent] = null;
-
-            // Decrementing the pages counters...
-            do
-            {
-                // Get the page collection counter!
-                var countObject = (PdfInteger)parentData[PdfName.Count];
-                // Decrement the counter at the current level!
-                parentData[PdfName.Count] = PdfInteger.Get(countObject.IntValue - 1);
-
-                // Iterate upward!
-                parent = parentData[PdfName.Parent];
-                parentData = (PdfDictionary)PdfObject.Resolve(parent);
-            } while (parent != null);
-
-            return true;
-        }
-
-        #region IEnumerable<Page>
-        public IEnumerator<Page> GetEnumerator(
-          )
-        { return new Enumerator(this); }
-
-        #region IEnumerable
         IEnumerator IEnumerable.GetEnumerator(
-          )
+  )
         { return this.GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
 
-        #region private
         /**
-          Add a collection of pages at the specified position.
-          <param name="index">Addition position. To append, use value -1.</param>
-          <param name="pages">Collection of pages to add.</param>
-        */
+  Add a collection of pages at the specified position.
+  <param name="index">Addition position. To append, use value -1.</param>
+  <param name="pages">Collection of pages to add.</param>
+*/
         private void CommonAddAll<TPage>(
           int index,
           ICollection<TPage> pages
@@ -505,8 +216,274 @@ namespace org.pdfclown.documents
                 parentData = (PdfDictionary)PdfObject.Resolve(parent);
             } while (parent != null);
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public void Add(
+  Page page
+  )
+        { this.CommonAddAll(-1, new Page[] { page }); }
+
+        public void AddAll<TVar>(
+  ICollection<TVar> pages
+  )
+  where TVar : Page
+        { this.CommonAddAll(-1, pages); }
+
+        public void Clear(
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Contains(
+          Page page
+          )
+        { throw new NotImplementedException(); }
+
+        public void CopyTo(
+          Page[] pages,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public IEnumerator<Page> GetEnumerator(
+  )
+        { return new Enumerator(this); }
+
+        public IList<Page> GetRange(
+int index,
+int count
+)
+        {
+            return this.GetSlice(
+              index,
+              index + count
+              );
+        }
+
+        public IList<Page> GetSlice(
+          int fromIndex,
+          int toIndex
+          )
+        {
+            var pages = new List<Page>(toIndex - fromIndex);
+            var i = fromIndex;
+            while (i < toIndex)
+            { pages.Add(this[i++]); }
+
+            return pages;
+        }
+
+        public int IndexOf(
+  Page page
+  )
+        { return page.Index; }
+
+        public void Insert(
+          int index,
+          Page page
+          )
+        { this.CommonAddAll(index, new Page[] { page }); }
+
+        public void InsertAll<TVar>(
+          int index,
+          ICollection<TVar> pages
+          )
+          where TVar : Page
+        { this.CommonAddAll(index, pages); }
+
+        public bool Remove(
+          Page page
+          )
+        {
+            var pageData = page.BaseDataObject;
+            // Get the parent tree node!
+            var parent = pageData[PdfName.Parent];
+            var parentData = (PdfDictionary)parent.Resolve();
+            // Get the parent's page collection!
+            var kids = parentData[PdfName.Kids];
+            var kidsData = (PdfArray)kids.Resolve();
+            // Remove the page!
+            _ = kidsData.Remove(page.BaseObject);
+
+            // Unbind the page from its parent!
+            pageData[PdfName.Parent] = null;
+
+            // Decrementing the pages counters...
+            do
+            {
+                // Get the page collection counter!
+                var countObject = (PdfInteger)parentData[PdfName.Count];
+                // Decrement the counter at the current level!
+                parentData[PdfName.Count] = PdfInteger.Get(countObject.IntValue - 1);
+
+                // Iterate upward!
+                parent = parentData[PdfName.Parent];
+                parentData = (PdfDictionary)PdfObject.Resolve(parent);
+            } while (parent != null);
+
+            return true;
+        }
+
+        public void RemoveAll<TVar>(
+          ICollection<TVar> pages
+          )
+          where TVar : Page
+        {
+            /*
+              NOTE: The interface contract doesn't prescribe any relation among the removing-collection's
+              items, so we cannot adopt the optimized approach of the add*(...) methods family,
+              where adding-collection's items are explicitly ordered.
+            */
+            foreach (Page page in pages)
+            { _ = this.Remove(page); }
+        }
+
+        public int RemoveAll(
+          Predicate<Page> match
+          )
+        {
+            /*
+              NOTE: Removal is indirectly fulfilled through an intermediate collection
+              in order not to interfere with the enumerator execution.
+            */
+            var removingPages = new List<Page>();
+            foreach (var page in this)
+            {
+                if (match(page))
+                { removingPages.Add(page); }
+            }
+
+            this.RemoveAll(removingPages);
+
+            return removingPages.Count;
+        }
+
+        public void RemoveAt(
+          int index
+          )
+        { _ = this.Remove(this[index]); }
+
+        public int Count => ((PdfInteger)this.BaseDataObject[PdfName.Count]).RawValue;
+
+        public bool IsReadOnly => false;
+
+        private class Enumerator
+  : IEnumerator<Page>
+        {
+            /**
+              <summary>Collection size.</summary>
+            */
+            private readonly int count;
+
+            /**
+              <summary>Current page.</summary>
+            */
+            private Page current;
+            /**
+              <summary>Index of the next item.</summary>
+            */
+            private int index = 0;
+
+            /**
+              <summary>Current child tree nodes.</summary>
+            */
+            private PdfArray kids;
+
+            /**
+              <summary>Current level index.</summary>
+            */
+            private int levelIndex = 0;
+            /**
+              <summary>Stacked level indexes.</summary>
+            */
+            private readonly Stack<int> levelIndexes = new Stack<int>();
+            /**
+              <summary>Current parent tree node.</summary>
+            */
+            private PdfDictionary parent;
+
+            internal Enumerator(
+              Pages pages
+              )
+            {
+                this.count = pages.Count;
+                this.parent = pages.BaseDataObject;
+                this.kids = (PdfArray)this.parent.Resolve(PdfName.Kids);
+            }
+
+            Page IEnumerator<Page>.Current => this.current;
+
+            public void Dispose(
+              )
+            { }
+
+            public bool MoveNext(
+              )
+            {
+                if (this.index == this.count)
+                {
+                    return false;
+                }
+
+                /*
+                  NOTE: As stated in [PDF:1.6:3.6.2], page retrieval is a matter of diving
+                  inside a B-tree.
+                  This is a special adaptation of the get() algorithm necessary to keep
+                  a low overhead throughout the page tree scan (using the get() method
+                  would have implied a nonlinear computational cost).
+                */
+                /*
+                  NOTE: Algorithm:
+                  1. [Vertical, down] We have to go downward the page tree till we reach
+                  a page (leaf node).
+                  2. [Horizontal] Then we iterate across the page collection it belongs to,
+                  repeating step 1 whenever we find a subtree.
+                  3. [Vertical, up] When leaf-nodes scan is complete, we go upward solving
+                  parent nodes, repeating step 2.
+                */
+                while (true)
+                {
+                    // Did we complete current page-tree-branch level?
+                    if (this.kids.Count == this.levelIndex) // Page subtree complete.
+                    {
+                        // 3. Go upward one level.
+                        // Restore node index at the current level!
+                        this.levelIndex = this.levelIndexes.Pop() + 1; // Next node (partially scanned level).
+                                                                       // Move upward!
+                        this.parent = (PdfDictionary)this.parent.Resolve(PdfName.Parent);
+                        this.kids = (PdfArray)this.parent.Resolve(PdfName.Kids);
+                    }
+                    else // Page subtree incomplete.
+                    {
+                        var kidReference = (PdfReference)this.kids[this.levelIndex];
+                        var kid = (PdfDictionary)kidReference.DataObject;
+                        // Is current kid a page object?
+                        if (kid[PdfName.Type].Equals(PdfName.Page)) // Page object.
+                        {
+                            // 2. Page found.
+                            this.index++; // Absolute page index.
+                            this.levelIndex++; // Current level node index.
+
+                            this.current = Page.Wrap(kidReference);
+                            return true;
+                        }
+                        else // Page tree node.
+                        {
+                            // 1. Go downward one level.
+                            // Save node index at the current level!
+                            this.levelIndexes.Push(this.levelIndex);
+                            // Move downward!
+                            this.parent = kid;
+                            this.kids = (PdfArray)this.parent.Resolve(PdfName.Kids);
+                            this.levelIndex = 0; // First node (new level).
+                        }
+                    }
+                }
+            }
+
+            public void Reset(
+              )
+            { throw new NotSupportedException(); }
+
+            public object Current => ((IEnumerator<Page>)this).Current;
+        }
     }
 }

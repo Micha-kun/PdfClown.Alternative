@@ -1,15 +1,10 @@
-
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using org.pdfclown.documents;
-
-using org.pdfclown.documents.contents;
-using org.pdfclown.files;
-using org.pdfclown.tools;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System;
+    using org.pdfclown.files;
+    using org.pdfclown.tools;
+
     /**
       <summary>This sample demonstrates how to retrieve text content along with its graphic attributes
       (font, font size, text color, text rendering mode, text bounding box, and so on) from a PDF document;
@@ -22,32 +17,27 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Opening the PDF file...
-            string filePath = PromptFileChoice("Please select a PDF file");
+            var filePath = this.PromptFileChoice("Please select a PDF file");
             using (var file = new File(filePath))
             {
-                Document document = file.Document;
+                var document = file.Document;
 
                 // 2. Text extraction from the document pages.
-                TextExtractor extractor = new TextExtractor();
-                foreach (Page page in document.Pages)
+                var extractor = new TextExtractor();
+                foreach (var page in document.Pages)
                 {
-                    if (!PromptNextPage(page, false))
+                    if (!this.PromptNextPage(page, false))
                     {
-                        Quit();
+                        this.Quit();
                         break;
                     }
 
-                    IList<ITextString> textStrings = extractor.Extract(page)[TextExtractor.DefaultArea];
-                    foreach (ITextString textString in textStrings)
+                    var textStrings = extractor.Extract(page)[TextExtractor.DefaultArea];
+                    foreach (var textString in textStrings)
                     {
-                        RectangleF textStringBox = textString.Box.Value;
+                        var textStringBox = textString.Box.Value;
                         Console.WriteLine(
-                          "Text ["
-                            + "x:" + Math.Round(textStringBox.X) + ","
-                            + "y:" + Math.Round(textStringBox.Y) + ","
-                            + "w:" + Math.Round(textStringBox.Width) + ","
-                            + "h:" + Math.Round(textStringBox.Height)
-                            + "]: " + textString.Text
+                          $"Text [x:{Math.Round(textStringBox.X)},y:{Math.Round(textStringBox.Y)},w:{Math.Round(textStringBox.Width)},h:{Math.Round(textStringBox.Height)}]: {textString.Text}"
                             );
                     }
                 }

@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using org.pdfclown.documents.contents.colorSpaces;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.documents.contents.colorSpaces;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the current color space to use for stroking operations' operation [PDF:1.6:4.5.7].
       </summary>
@@ -39,42 +39,65 @@ namespace org.pdfclown.documents.contents.objects
       : Operation,
         IResourceReference<ColorSpace>
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "CS";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public SetStrokeColorSpace(
-          PdfName name
-          ) : base(OperatorKeyword, name)
+PdfName name
+) : base(OperatorKeyword, name)
         { }
 
         public SetStrokeColorSpace(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Gets the <see cref="ColorSpace">color space</see> resource to be set.</summary>
-          <param name="context">Content context.</param>
-        */
+<summary>Gets the <see cref="ColorSpace">color space</see> resource to be set.</summary>
+<param name="context">Content context.</param>
+*/
         public ColorSpace GetColorSpace(
           IContentContext context
           )
-        { return GetResource(context); }
+        { return this.GetResource(context); }
+
+        public ColorSpace GetResource(
+  IContentContext context
+  )
+        {
+            /*
+              NOTE: The names DeviceGray, DeviceRGB, DeviceCMYK, and Pattern always identify
+              the corresponding color spaces directly; they never refer to resources in the
+              ColorSpace subdictionary [PDF:1.6:4.5.7].
+            */
+            var name = this.Name;
+            if (name.Equals(PdfName.DeviceGray))
+            {
+                return DeviceGrayColorSpace.Default;
+            }
+            else if (name.Equals(PdfName.DeviceRGB))
+            {
+                return DeviceRGBColorSpace.Default;
+            }
+            else if (name.Equals(PdfName.DeviceCMYK))
+            {
+                return DeviceCMYKColorSpace.Default;
+            }
+            else if (name.Equals(PdfName.Pattern))
+            {
+                return PatternColorSpace.Default;
+            }
+            else
+            {
+                return context.Resources.ColorSpaces[name];
+            }
+        }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
             // 1. Color space.
-            state.StrokeColorSpace = GetColorSpace(state.Scanner.ContentContext);
+            state.StrokeColorSpace = this.GetColorSpace(state.Scanner.ContentContext);
 
             // 2. Initial color.
             /*
@@ -84,39 +107,10 @@ namespace org.pdfclown.documents.contents.objects
             state.StrokeColor = state.StrokeColorSpace.DefaultColor;
         }
 
-        #region IResourceReference
-        public ColorSpace GetResource(
-          IContentContext context
-          )
-        {
-            /*
-              NOTE: The names DeviceGray, DeviceRGB, DeviceCMYK, and Pattern always identify
-              the corresponding color spaces directly; they never refer to resources in the
-              ColorSpace subdictionary [PDF:1.6:4.5.7].
-            */
-            PdfName name = Name;
-            if (name.Equals(PdfName.DeviceGray))
-                return DeviceGrayColorSpace.Default;
-            else if (name.Equals(PdfName.DeviceRGB))
-                return DeviceRGBColorSpace.Default;
-            else if (name.Equals(PdfName.DeviceCMYK))
-                return DeviceCMYKColorSpace.Default;
-            else if (name.Equals(PdfName.Pattern))
-                return PatternColorSpace.Default;
-            else
-                return context.Resources.ColorSpaces[name];
-        }
-
         public PdfName Name
         {
-            get
-            { return (PdfName)operands[0]; }
-            set
-            { operands[0] = value; }
+            get => (PdfName)this.operands[0];
+            set => this.operands[0] = value;
         }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

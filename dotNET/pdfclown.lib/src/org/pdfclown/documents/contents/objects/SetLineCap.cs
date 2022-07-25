@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the line cap style' operation [PDF:1.6:4.3.3].</summary>
     */
@@ -36,41 +36,27 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class SetLineCap
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "J";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public SetLineCap(
-          LineCapEnum value
-          ) : base(OperatorKeyword, PdfInteger.Get((int)value))
+LineCapEnum value
+) : base(OperatorKeyword, PdfInteger.Get((int)value))
         { }
 
         public SetLineCap(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
-        { state.LineCap = Value; }
+ContentScanner.GraphicsState state
+)
+        { state.LineCap = this.Value; }
 
         public LineCapEnum Value
         {
-            get
-            { return (LineCapEnum)((IPdfNumber)operands[0]).Value; }
-            set
-            { operands[0] = PdfInteger.Get((int)value); }
+            get => (LineCapEnum)((IPdfNumber)this.operands[0]).Value;
+            set => this.operands[0] = PdfInteger.Get((int)value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Page elements.</summary>
     */
@@ -36,16 +36,12 @@ namespace org.pdfclown.documents
       : Array<TItem>
       where TItem : PdfObjectWrapper<PdfDictionary>
     {
-        #region dynamic
-        #region fields
-        private Page page;
-        #endregion
+        private readonly Page page;
 
-        #region constructors
         internal PageElements(
-          PdfDirectObject baseObject,
-          Page page
-          ) : base(baseObject)
+  PdfDirectObject baseObject,
+  Page page
+  ) : base(baseObject)
         { this.page = page; }
 
         internal PageElements(
@@ -54,15 +50,28 @@ namespace org.pdfclown.documents
           Page page
         ) : base(itemWrapper, baseObject)
         { this.page = page; }
-        #endregion
 
-        #region interface
-        #region public
-        public override void Add(
+        private void DoAdd(
+  TItem @object
+  )
+        {
+            // Link the element to its page!
+            @object.BaseDataObject[PdfName.P] = this.page.BaseObject;
+        }
+
+        private void DoRemove(
           TItem @object
           )
         {
-            DoAdd(@object);
+            // Unlink the element from its page!
+            _ = @object.BaseDataObject.Remove(PdfName.P);
+        }
+
+        public override void Add(
+TItem @object
+)
+        {
+            this.DoAdd(@object);
             base.Add(@object);
         }
 
@@ -76,26 +85,8 @@ namespace org.pdfclown.documents
           TItem @object
           )
         {
-            DoAdd(@object);
+            this.DoAdd(@object);
             base.Insert(index, @object);
-        }
-
-        /**
-          <summary>Gets the page associated to these elements.</summary>
-        */
-        public Page Page
-        {
-            get
-            { return page; }
-        }
-
-        public override void RemoveAt(
-          int index
-          )
-        {
-            TItem @object = this[index];
-            base.RemoveAt(index);
-            DoRemove(@object);
         }
 
         public override bool Remove(
@@ -103,31 +94,26 @@ namespace org.pdfclown.documents
           )
         {
             if (!base.Remove(@object))
+            {
                 return false;
+            }
 
-            DoRemove(@object);
+            this.DoRemove(@object);
             return true;
         }
-        #endregion
 
-        #region private
-        private void DoAdd(
-          TItem @object
+        public override void RemoveAt(
+          int index
           )
         {
-            // Link the element to its page!
-            @object.BaseDataObject[PdfName.P] = page.BaseObject;
+            var @object = this[index];
+            base.RemoveAt(index);
+            this.DoRemove(@object);
         }
 
-        private void DoRemove(
-          TItem @object
-          )
-        {
-            // Unlink the element from its page!
-            @object.BaseDataObject.Remove(PdfName.P);
-        }
-        #endregion
-        #endregion
-        #endregion
+        /**
+          <summary>Gets the page associated to these elements.</summary>
+        */
+        public Page Page => this.page;
     }
 }

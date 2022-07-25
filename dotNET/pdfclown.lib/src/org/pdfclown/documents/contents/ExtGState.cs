@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using org.pdfclown.documents.contents.fonts;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.documents.contents.fonts;
+    using org.pdfclown.objects;
+
     /**
       <summary>Graphics state parameters [PDF:1.6:4.3.4].</summary>
     */
@@ -38,80 +37,65 @@ namespace org.pdfclown.documents.contents
     public sealed class ExtGState
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region fields
         internal static readonly IList<BlendModeEnum> DefaultBlendMode = new BlendModeEnum[0];
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Wraps the specified base object into a graphics state parameter dictionary object.
-          </summary>
-          <param name="baseObject">Base object of a graphics state parameter dictionary object.</param>
-          <returns>Graphics state parameter dictionary object corresponding to the base object.</returns>
-        */
-        public static ExtGState Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new ExtGState(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public ExtGState(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         internal ExtGState(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets whether the current soft mask and alpha constant are to be interpreted as
-          shape values instead of opacity values.</summary>
-        */
-        [PDF(VersionEnum.PDF14)]
-        public bool AlphaShape
-        {
-            get
-            { return (bool)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.AIS], false); }
-            set
-            { BaseDataObject[PdfName.AIS] = PdfBoolean.Get(value); }
-        }
+        public ExtGState(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
         public void ApplyTo(
           ContentScanner.GraphicsState state
           )
         {
-            foreach (PdfName parameterName in BaseDataObject.Keys)
+            foreach (var parameterName in this.BaseDataObject.Keys)
             {
                 if (parameterName.Equals(PdfName.Font))
                 {
-                    state.Font = Font;
-                    state.FontSize = FontSize.Value;
+                    state.Font = this.Font;
+                    state.FontSize = this.FontSize.Value;
                 }
                 else if (parameterName.Equals(PdfName.LC))
-                { state.LineCap = LineCap.Value; }
+                { state.LineCap = this.LineCap.Value; }
                 else if (parameterName.Equals(PdfName.D))
-                { state.LineDash = LineDash; }
+                { state.LineDash = this.LineDash; }
                 else if (parameterName.Equals(PdfName.LJ))
-                { state.LineJoin = LineJoin.Value; }
+                { state.LineJoin = this.LineJoin.Value; }
                 else if (parameterName.Equals(PdfName.LW))
-                { state.LineWidth = LineWidth.Value; }
+                { state.LineWidth = this.LineWidth.Value; }
                 else if (parameterName.Equals(PdfName.ML))
-                { state.MiterLimit = MiterLimit.Value; }
+                { state.MiterLimit = this.MiterLimit.Value; }
                 else if (parameterName.Equals(PdfName.BM))
-                { state.BlendMode = BlendMode; }
+                { state.BlendMode = this.BlendMode; }
                 //TODO:extend supported parameters!!!
             }
+        }
+
+        /**
+<summary>Wraps the specified base object into a graphics state parameter dictionary object.
+</summary>
+<param name="baseObject">Base object of a graphics state parameter dictionary object.</param>
+<returns>Graphics state parameter dictionary object corresponding to the base object.</returns>
+*/
+        public static ExtGState Wrap(
+          PdfDirectObject baseObject
+          )
+        { return (baseObject != null) ? new ExtGState(baseObject) : null; }
+
+        /**
+<summary>Gets/Sets whether the current soft mask and alpha constant are to be interpreted as
+shape values instead of opacity values.</summary>
+*/
+        [PDF(VersionEnum.PDF14)]
+        public bool AlphaShape
+        {
+            get => (bool)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.AIS], false);
+            set => this.BaseDataObject[PdfName.AIS] = PdfBoolean.Get(value);
         }
 
         /**
@@ -123,16 +107,18 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                PdfDirectObject blendModeObject = BaseDataObject[PdfName.BM];
+                var blendModeObject = this.BaseDataObject[PdfName.BM];
                 if (blendModeObject == null)
+                {
                     return DefaultBlendMode;
+                }
 
                 IList<BlendModeEnum> blendMode = new List<BlendModeEnum>();
                 if (blendModeObject is PdfName)
                 { blendMode.Add(BlendModeEnumExtension.Get((PdfName)blendModeObject).Value); }
                 else // MUST be an array.
                 {
-                    foreach (PdfDirectObject alternateBlendModeObject in (PdfArray)blendModeObject)
+                    foreach (var alternateBlendModeObject in (PdfArray)blendModeObject)
                     { blendMode.Add(BlendModeEnumExtension.Get((PdfName)alternateBlendModeObject).Value); }
                 }
                 return blendMode;
@@ -140,18 +126,18 @@ namespace org.pdfclown.documents.contents
             set
             {
                 PdfDirectObject blendModeObject;
-                if (value == null || value.Count == 0)
+                if ((value == null) || (value.Count == 0))
                 { blendModeObject = null; }
                 else if (value.Count == 1)
                 { blendModeObject = value[0].GetName(); }
                 else
                 {
-                    PdfArray blendModeArray = new PdfArray();
-                    foreach (BlendModeEnum blendMode in value)
+                    var blendModeArray = new PdfArray();
+                    foreach (var blendMode in value)
                     { blendModeArray.Add(blendMode.GetName()); }
                     blendModeObject = blendModeArray;
                 }
-                BaseDataObject[PdfName.BM] = blendModeObject;
+                this.BaseDataObject[PdfName.BM] = blendModeObject;
             }
         }
 
@@ -163,10 +149,8 @@ namespace org.pdfclown.documents.contents
         [PDF(VersionEnum.PDF14)]
         public double? FillAlpha
         {
-            get
-            { return (double?)PdfSimpleObject<PdfObject>.GetValue(BaseDataObject[PdfName.ca]); }
-            set
-            { BaseDataObject[PdfName.ca] = PdfReal.Get(value); }
+            get => (double?)PdfSimpleObject<PdfObject>.GetValue(this.BaseDataObject[PdfName.ca]);
+            set => this.BaseDataObject[PdfName.ca] = PdfReal.Get(value);
         }
 
         [PDF(VersionEnum.PDF13)]
@@ -174,17 +158,17 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                PdfArray fontObject = (PdfArray)BaseDataObject[PdfName.Font];
-                return fontObject != null ? Font.Wrap(fontObject[0]) : null;
+                var fontObject = (PdfArray)this.BaseDataObject[PdfName.Font];
+                return (fontObject != null) ? Font.Wrap(fontObject[0]) : null;
             }
             set
             {
-                PdfArray fontObject = (PdfArray)BaseDataObject[PdfName.Font];
+                var fontObject = (PdfArray)this.BaseDataObject[PdfName.Font];
                 if (fontObject == null)
                 { fontObject = new PdfArray(PdfObjectWrapper.GetBaseObject(value), PdfInteger.Default); }
                 else
                 { fontObject[0] = PdfObjectWrapper.GetBaseObject(value); }
-                BaseDataObject[PdfName.Font] = fontObject;
+                this.BaseDataObject[PdfName.Font] = fontObject;
             }
         }
 
@@ -193,17 +177,17 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                PdfArray fontObject = (PdfArray)BaseDataObject[PdfName.Font];
-                return fontObject != null ? ((IPdfNumber)fontObject[1]).RawValue : (double?)null;
+                var fontObject = (PdfArray)this.BaseDataObject[PdfName.Font];
+                return (fontObject != null) ? ((IPdfNumber)fontObject[1]).RawValue : ((double?)null);
             }
             set
             {
-                PdfArray fontObject = (PdfArray)BaseDataObject[PdfName.Font];
+                var fontObject = (PdfArray)this.BaseDataObject[PdfName.Font];
                 if (fontObject == null)
                 { fontObject = new PdfArray(null, PdfReal.Get(value)); }
                 else
                 { fontObject[1] = PdfReal.Get(value); }
-                BaseDataObject[PdfName.Font] = fontObject;
+                this.BaseDataObject[PdfName.Font] = fontObject;
             }
         }
 
@@ -212,11 +196,10 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                PdfInteger lineCapObject = (PdfInteger)BaseDataObject[PdfName.LC];
-                return lineCapObject != null ? (LineCapEnum)lineCapObject.RawValue : (LineCapEnum?)null;
+                var lineCapObject = (PdfInteger)this.BaseDataObject[PdfName.LC];
+                return (lineCapObject != null) ? ((LineCapEnum)lineCapObject.RawValue) : ((LineCapEnum?)null);
             }
-            set
-            { BaseDataObject[PdfName.LC] = value.HasValue ? PdfInteger.Get(value.Value) : null; }
+            set => this.BaseDataObject[PdfName.LC] = value.HasValue ? PdfInteger.Get(value.Value) : null;
         }
 
         [PDF(VersionEnum.PDF13)]
@@ -224,20 +207,18 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                PdfArray lineDashObject = (PdfArray)BaseDataObject[PdfName.D];
-                return lineDashObject != null ? LineDash.Get((PdfArray)lineDashObject[0], (IPdfNumber)lineDashObject[1]) : null;
+                var lineDashObject = (PdfArray)this.BaseDataObject[PdfName.D];
+                return (lineDashObject != null) ? LineDash.Get((PdfArray)lineDashObject[0], (IPdfNumber)lineDashObject[1]) : null;
             }
             set
             {
-                PdfArray lineDashObject = new PdfArray();
-                {
-                    PdfArray dashArrayObject = new PdfArray();
-                    foreach (double dashArrayItem in value.DashArray)
-                    { dashArrayObject.Add(PdfReal.Get(dashArrayItem)); }
-                    lineDashObject.Add(dashArrayObject);
-                    lineDashObject.Add(PdfReal.Get(value.DashPhase));
-                }
-                BaseDataObject[PdfName.D] = lineDashObject;
+                var lineDashObject = new PdfArray();
+                var dashArrayObject = new PdfArray();
+                foreach (var dashArrayItem in value.DashArray)
+                { dashArrayObject.Add(PdfReal.Get(dashArrayItem)); }
+                lineDashObject.Add(dashArrayObject);
+                lineDashObject.Add(PdfReal.Get(value.DashPhase));
+                this.BaseDataObject[PdfName.D] = lineDashObject;
             }
         }
 
@@ -246,11 +227,10 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                PdfInteger lineJoinObject = (PdfInteger)BaseDataObject[PdfName.LJ];
-                return lineJoinObject != null ? (LineJoinEnum)lineJoinObject.RawValue : (LineJoinEnum?)null;
+                var lineJoinObject = (PdfInteger)this.BaseDataObject[PdfName.LJ];
+                return (lineJoinObject != null) ? ((LineJoinEnum)lineJoinObject.RawValue) : ((LineJoinEnum?)null);
             }
-            set
-            { BaseDataObject[PdfName.LJ] = value.HasValue ? PdfInteger.Get(value.Value) : null; }
+            set => this.BaseDataObject[PdfName.LJ] = value.HasValue ? PdfInteger.Get(value.Value) : null;
         }
 
         [PDF(VersionEnum.PDF13)]
@@ -258,11 +238,10 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                IPdfNumber lineWidthObject = (IPdfNumber)BaseDataObject[PdfName.LW];
-                return lineWidthObject != null ? lineWidthObject.RawValue : (double?)null;
+                var lineWidthObject = (IPdfNumber)this.BaseDataObject[PdfName.LW];
+                return (lineWidthObject != null) ? lineWidthObject.RawValue : ((double?)null);
             }
-            set
-            { BaseDataObject[PdfName.LW] = PdfReal.Get(value); }
+            set => this.BaseDataObject[PdfName.LW] = PdfReal.Get(value);
         }
 
         [PDF(VersionEnum.PDF13)]
@@ -270,11 +249,10 @@ namespace org.pdfclown.documents.contents
         {
             get
             {
-                IPdfNumber miterLimitObject = (IPdfNumber)BaseDataObject[PdfName.ML];
-                return miterLimitObject != null ? miterLimitObject.RawValue : (double?)null;
+                var miterLimitObject = (IPdfNumber)this.BaseDataObject[PdfName.ML];
+                return (miterLimitObject != null) ? miterLimitObject.RawValue : ((double?)null);
             }
-            set
-            { BaseDataObject[PdfName.ML] = PdfReal.Get(value); }
+            set => this.BaseDataObject[PdfName.ML] = PdfReal.Get(value);
         }
 
         /**
@@ -285,13 +263,8 @@ namespace org.pdfclown.documents.contents
         [PDF(VersionEnum.PDF14)]
         public double? StrokeAlpha
         {
-            get
-            { return (double?)PdfSimpleObject<PdfObject>.GetValue(BaseDataObject[PdfName.CA]); }
-            set
-            { BaseDataObject[PdfName.CA] = PdfReal.Get(value); }
+            get => (double?)PdfSimpleObject<PdfObject>.GetValue(this.BaseDataObject[PdfName.CA]);
+            set => this.BaseDataObject[PdfName.CA] = PdfReal.Get(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-
-using System.Collections.Generic;
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Collections;
+
+    using System.Collections.Generic;
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.objects;
+
     /**
       <summary>Appearance states [PDF:1.6:8.4.4].</summary>
     */
@@ -40,36 +40,126 @@ namespace org.pdfclown.documents.interaction.annotations
       : PdfObjectWrapper<PdfDataObject>,
         IDictionary<PdfName, FormXObject>
     {
-        #region dynamic
-        #region fields
-        private Appearance appearance;
+        private readonly Appearance appearance;
 
-        private PdfName statesKey;
-        #endregion
+        private readonly PdfName statesKey;
 
-        #region constructors
         internal AppearanceStates(
-          PdfName statesKey,
-          Appearance appearance
-          ) : base(appearance.BaseDataObject[statesKey])
+  PdfName statesKey,
+  Appearance appearance
+  ) : base(appearance.BaseDataObject[statesKey])
         {
             this.appearance = appearance;
             this.statesKey = statesKey;
         }
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets the appearance associated to these states.</summary>
-        */
-        public Appearance Appearance
-        { get { return appearance; } }
+        public FormXObject this[
+          PdfName key
+          ]
+        {
+            get
+            {
+                var baseDataObject = this.BaseDataObject;
+                if (baseDataObject == null) // No state.
+                {
+                    return null;
+                }
+                else if (key == null)
+                {
+                    if (baseDataObject is PdfStream) // Single state.
+                    {
+                        return FormXObject.Wrap(this.BaseObject);
+                    }
+                    else // Multiple state, but invalid key.
+                    {
+                        return null;
+                    }
+                }
+                else // Multiple state.
+                {
+                    return FormXObject.Wrap(((PdfDictionary)baseDataObject)[key]);
+                }
+            }
+            set
+            {
+                if (key == null) // Single state.
+                {
+                    this.BaseObject = value.BaseObject;
+                    this.appearance.BaseDataObject[this.statesKey] = this.BaseObject;
+                }
+                else // Multiple state.
+                { this.EnsureDictionary()[key] = value.BaseObject; }
+            }
+        }
 
-        public override object Clone(
-          Document context
+        void ICollection<KeyValuePair<PdfName, FormXObject>>.Add(
+  KeyValuePair<PdfName, FormXObject> entry
+  )
+        { this.Add(entry.Key, entry.Value); }
+
+        bool ICollection<KeyValuePair<PdfName, FormXObject>>.Contains(
+          KeyValuePair<PdfName, FormXObject> entry
           )
-        { throw new NotImplementedException(); } // TODO: verify appearance reference.
+        {
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject == null) // No state.
+            {
+                return false;
+            }
+            else if (baseDataObject is PdfStream) // Single state.
+            {
+                return entry.Value.BaseObject.Equals(this.BaseObject);
+            }
+            else // Multiple state.
+            {
+                return entry.Value.Equals(this[entry.Key]);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<PdfName, FormXObject>>)this).GetEnumerator(); }
+
+        IEnumerator<KeyValuePair<PdfName, FormXObject>> IEnumerable<KeyValuePair<PdfName, FormXObject>>.GetEnumerator(
+  )
+        {
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject == null) // No state.
+            { /* NOOP. */ }
+            else if (baseDataObject is PdfStream) // Single state.
+            {
+                yield return new KeyValuePair<PdfName, FormXObject>(
+                  null,
+                  FormXObject.Wrap(this.BaseObject)
+                  );
+            }
+            else // Multiple state.
+            {
+                foreach (var entry in (PdfDictionary)baseDataObject)
+                {
+                    yield return new KeyValuePair<PdfName, FormXObject>(
+                      entry.Key,
+                      FormXObject.Wrap(entry.Value)
+                      );
+                }
+            }
+        }
+
+        private PdfDictionary EnsureDictionary(
+  )
+        {
+            var baseDataObject = this.BaseDataObject;
+            if (!(baseDataObject is PdfDictionary))
+            {
+                /*
+                  NOTE: Single states are erased as they have no valid key
+                  to be consistently integrated within the dictionary.
+                */
+                this.BaseObject = (PdfDirectObject)(baseDataObject = new PdfDictionary());
+                this.appearance.BaseDataObject[this.statesKey] = (PdfDictionary)baseDataObject;
+            }
+            return (PdfDictionary)baseDataObject;
+        }
 
         //TODO
         /**
@@ -80,115 +170,38 @@ namespace org.pdfclown.documents.interaction.annotations
         //     )
         //   {return BaseDataObject.GetKey(value.BaseObject);}
 
-        #region IDictionary
         public void Add(
-          PdfName key,
-          FormXObject value
+  PdfName key,
+  FormXObject value
+  )
+        { this.EnsureDictionary()[key] = value.BaseObject; }
+
+        public void Clear(
           )
-        { EnsureDictionary()[key] = value.BaseObject; }
+        { this.EnsureDictionary().Clear(); }
+
+        public override object Clone(
+          Document context
+          )
+        { throw new NotImplementedException(); } // TODO: verify appearance reference.
 
         public bool ContainsKey(
           PdfName key
           )
         {
-            PdfDataObject baseDataObject = BaseDataObject;
+            var baseDataObject = this.BaseDataObject;
             if (baseDataObject == null) // No state.
+            {
                 return false;
+            }
             else if (baseDataObject is PdfStream) // Single state.
-                return (key == null);
+            {
+                return key == null;
+            }
             else // Multiple state.
+            {
                 return ((PdfDictionary)baseDataObject).ContainsKey(key);
-        }
-
-        public ICollection<PdfName> Keys
-        { get { throw new NotImplementedException(); } }
-
-        public bool Remove(
-          PdfName key
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject == null) // No state.
-                return false;
-            else if (baseDataObject is PdfStream) // Single state.
-            {
-                if (key == null)
-                {
-                    BaseObject = null;
-                    appearance.BaseDataObject.Remove(statesKey);
-                    return true;
-                }
-                else // Invalid key.
-                    return false;
             }
-            else // Multiple state.
-                return ((PdfDictionary)baseDataObject).Remove(key);
-        }
-
-        public FormXObject this[
-          PdfName key
-          ]
-        {
-            get
-            {
-                PdfDataObject baseDataObject = BaseDataObject;
-                if (baseDataObject == null) // No state.
-                    return null;
-                else if (key == null)
-                {
-                    if (baseDataObject is PdfStream) // Single state.
-                        return FormXObject.Wrap(BaseObject);
-                    else // Multiple state, but invalid key.
-                        return null;
-                }
-                else // Multiple state.
-                    return FormXObject.Wrap(((PdfDictionary)baseDataObject)[key]);
-            }
-            set
-            {
-                if (key == null) // Single state.
-                {
-                    BaseObject = value.BaseObject;
-                    appearance.BaseDataObject[statesKey] = BaseObject;
-                }
-                else // Multiple state.
-                { EnsureDictionary()[key] = value.BaseObject; }
-            }
-        }
-
-        public bool TryGetValue(
-          PdfName key,
-          out FormXObject value
-          )
-        {
-            value = this[key];
-            return (value != null || ContainsKey(key));
-        }
-
-        public ICollection<FormXObject> Values
-        { get { throw new NotImplementedException(); } }
-
-        #region ICollection
-        void ICollection<KeyValuePair<PdfName, FormXObject>>.Add(
-          KeyValuePair<PdfName, FormXObject> entry
-          )
-        { Add(entry.Key, entry.Value); }
-
-        public void Clear(
-          )
-        { EnsureDictionary().Clear(); }
-
-        bool ICollection<KeyValuePair<PdfName, FormXObject>>.Contains(
-          KeyValuePair<PdfName, FormXObject> entry
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject == null) // No state.
-                return false;
-            else if (baseDataObject is PdfStream) // Single state.
-                return entry.Value.BaseObject.Equals(BaseObject);
-            else // Multiple state.
-                return entry.Value.Equals(this[entry.Key]);
         }
 
         public void CopyTo(
@@ -197,82 +210,77 @@ namespace org.pdfclown.documents.interaction.annotations
           )
         { throw new NotImplementedException(); }
 
-        public int Count
+        public bool Remove(
+          PdfName key
+          )
         {
-            get
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject == null) // No state.
             {
-                PdfDataObject baseDataObject = BaseDataObject;
-                if (baseDataObject == null) // No state.
-                    return 0;
-                else if (baseDataObject is PdfStream) // Single state.
-                    return 1;
-                else // Multiple state.
-                    return ((PdfDictionary)baseDataObject).Count;
+                return false;
+            }
+            else if (baseDataObject is PdfStream) // Single state.
+            {
+                if (key == null)
+                {
+                    this.BaseObject = null;
+                    _ = this.appearance.BaseDataObject.Remove(this.statesKey);
+                    return true;
+                }
+                else // Invalid key.
+                {
+                    return false;
+                }
+            }
+            else // Multiple state.
+            {
+                return ((PdfDictionary)baseDataObject).Remove(key);
             }
         }
-
-        public bool IsReadOnly
-        { get { return false; } }
 
         public bool Remove(
           KeyValuePair<PdfName, FormXObject> entry
           )
         { throw new NotImplementedException(); }
 
-        #region IEnumerable<KeyValuePair<PdfName,FormXObject>>
-        IEnumerator<KeyValuePair<PdfName, FormXObject>> IEnumerable<KeyValuePair<PdfName, FormXObject>>.GetEnumerator(
+        public bool TryGetValue(
+          PdfName key,
+          out FormXObject value
           )
         {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject == null) // No state.
-            { /* NOOP. */ }
-            else if (baseDataObject is PdfStream) // Single state.
+            value = this[key];
+            return (value != null) || this.ContainsKey(key);
+        }
+
+        /**
+<summary>Gets the appearance associated to these states.</summary>
+*/
+        public Appearance Appearance => this.appearance;
+
+        public int Count
+        {
+            get
             {
-                yield return new KeyValuePair<PdfName, FormXObject>(
-                  null,
-                  FormXObject.Wrap(BaseObject)
-                  );
-            }
-            else // Multiple state.
-            {
-                foreach (KeyValuePair<PdfName, PdfDirectObject> entry in ((PdfDictionary)baseDataObject))
+                var baseDataObject = this.BaseDataObject;
+                if (baseDataObject == null) // No state.
                 {
-                    yield return new KeyValuePair<PdfName, FormXObject>(
-                      entry.Key,
-                      FormXObject.Wrap(entry.Value)
-                      );
+                    return 0;
+                }
+                else if (baseDataObject is PdfStream) // Single state.
+                {
+                    return 1;
+                }
+                else // Multiple state.
+                {
+                    return ((PdfDictionary)baseDataObject).Count;
                 }
             }
         }
 
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<KeyValuePair<PdfName, FormXObject>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        public bool IsReadOnly => false;
 
-        #region private
-        private PdfDictionary EnsureDictionary(
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (!(baseDataObject is PdfDictionary))
-            {
-                /*
-                  NOTE: Single states are erased as they have no valid key
-                  to be consistently integrated within the dictionary.
-                */
-                BaseObject = ((PdfDirectObject)(baseDataObject = new PdfDictionary()));
-                appearance.BaseDataObject[statesKey] = (PdfDictionary)baseDataObject;
-            }
-            return (PdfDictionary)baseDataObject;
-        }
-        #endregion
-        #endregion
+        public ICollection<PdfName> Keys => throw new NotImplementedException();
+
+        public ICollection<FormXObject> Values => throw new NotImplementedException();
     }
 }

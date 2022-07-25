@@ -24,19 +24,19 @@
 */
 
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-using org.pdfclown.util.io;
-using org.pdfclown.util.parsers;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+    using org.pdfclown.util.io;
+    using org.pdfclown.util.parsers;
+
     /**
       <summary>Cross-reference stream containing cross-reference information [PDF:1.6:3.4.7].</summary>
       <remarks>It is alternative to the classic cross-reference table.</remarks>
@@ -45,24 +45,144 @@ namespace org.pdfclown.tokens
       : PdfStream,
         IDictionary<int, XRefEntry>
     {
-        #region static
-        #region fields
         private const int FreeEntryType = 0;
-        private const int InUseEntryType = 1;
         private const int InUseCompressedEntryType = 2;
+        private const int InUseEntryType = 1;
 
         private static readonly double ByteBaseLog = Math.Log(256);
 
         private static readonly int EntryField0Size = 1;
-        private static readonly int EntryField2Size = GetFieldSize(XRefEntry.GenerationUnreusable);
-        #endregion
 
-        #region interface
-        #region private
+        private SortedDictionary<int, XRefEntry> entries;
+
+        public XRefStream(
+  File file
+  ) : this(
+    new PdfDictionary(
+      new PdfName[]
+        {PdfName.Type},
+      new PdfDirectObject[]
+        {PdfName.XRef}
+      ),
+    new bytes.Buffer()
+    )
+        {
+            var header = this.Header;
+            foreach (var entry in file.Trailer)
+            {
+                var key = entry.Key;
+                if (key.Equals(PdfName.Root)
+                  || key.Equals(PdfName.Info)
+                  || key.Equals(PdfName.ID))
+                { header[key] = entry.Value; }
+            }
+        }
+
+        public XRefStream(
+          PdfDictionary header,
+          IBuffer body
+          ) : base(header, body)
+        { }
+
+        public XRefEntry this[
+          int key
+          ]
+        {
+            get => this.Entries[key];
+            set => this.Entries[key] = value;
+        }
+
+        void ICollection<KeyValuePair<int, XRefEntry>>.Add(
+  KeyValuePair<int, XRefEntry> entry
+  )
+        { this.Add(entry.Key, entry.Value); }
+
+        bool ICollection<KeyValuePair<int, XRefEntry>>.Contains(
+          KeyValuePair<int, XRefEntry> entry
+          )
+        { return ((ICollection<KeyValuePair<int, XRefEntry>>)this.Entries).Contains(entry); }
+
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<int, XRefEntry>>)this).GetEnumerator(); }
+
+        IEnumerator<KeyValuePair<int, XRefEntry>> IEnumerable<KeyValuePair<int, XRefEntry>>.GetEnumerator(
+  )
+        { return this.Entries.GetEnumerator(); }
+
         /**
-          <summary>Gets the number of bytes needed to store the specified value.</summary>
-          <param name="maxValue">Maximum storable value.</param>
+          <summary>Serializes the xref stream entries into the stream body.</summary>
         */
+        private void Flush(
+          IOutputStream stream
+          )
+        {
+            // 1. Body.
+            var indexArray = new PdfArray();
+            var entryFieldSizes = new int[]
+              {
+          EntryField0Size,
+          GetFieldSize((int)stream.Length), // NOTE: We assume this xref stream is the last indirect object.
+          EntryField2Size
+              };
+            // Get the stream buffer!
+            var body = this.Body;
+
+            // Delete the old entries!
+            body.SetLength(0);
+
+            // Serializing the entries into the stream buffer...
+            var prevObjectNumber = -2; // Previous-entry object number.
+            foreach (var entry in this.entries.Values)
+            {
+                var entryNumber = entry.Number;
+                if (entryNumber - prevObjectNumber != 1) // Current subsection terminated.
+                {
+                    if (indexArray.Count > 0)
+                    { indexArray.Add(PdfInteger.Get(prevObjectNumber - ((PdfInteger)indexArray[indexArray.Count - 1]).IntValue + 1)); } // Number of entries in the previous subsection.
+                    indexArray.Add(PdfInteger.Get(entryNumber)); // First object number in the next subsection.
+                }
+                prevObjectNumber = entryNumber;
+
+                switch (entry.Usage)
+                {
+                    case XRefEntry.UsageEnum.Free:
+                        _ = body.Append(FreeEntryType);
+                        _ = body.Append(NumberToByteArray(entry.Offset, entryFieldSizes[1]));
+                        _ = body.Append(NumberToByteArray(entry.Generation, entryFieldSizes[2]));
+                        break;
+                    case XRefEntry.UsageEnum.InUse:
+                        _ = body.Append(InUseEntryType);
+                        _ = body.Append(NumberToByteArray(entry.Offset, entryFieldSizes[1]));
+                        _ = body.Append(NumberToByteArray(entry.Generation, entryFieldSizes[2]));
+                        break;
+                    case XRefEntry.UsageEnum.InUseCompressed:
+                        _ = body.Append(InUseCompressedEntryType);
+                        _ = body.Append(NumberToByteArray(entry.StreamNumber, entryFieldSizes[1]));
+                        _ = body.Append(NumberToByteArray(entry.Offset, entryFieldSizes[2]));
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+            indexArray.Add(PdfInteger.Get(prevObjectNumber - ((PdfInteger)indexArray[indexArray.Count - 1]).IntValue + 1)); // Number of entries in the previous subsection.
+
+            // 2. Header.
+
+            var header = this.Header;
+            header[PdfName.Index] = indexArray;
+            header[PdfName.Size] = PdfInteger.Get(this.File.IndirectObjects.Count + 1);
+            header[PdfName.W] = new PdfArray(
+              PdfInteger.Get(entryFieldSizes[0]),
+              PdfInteger.Get(entryFieldSizes[1]),
+              PdfInteger.Get(entryFieldSizes[2])
+              );
+        }
+
+        /**
+<summary>Gets the number of bytes needed to store the specified value.</summary>
+<param name="maxValue">Maximum storable value.</param>
+*/
         private static int GetFieldSize(
           int maxValue
           )
@@ -78,221 +198,25 @@ namespace org.pdfclown.tokens
           int length
           )
         { return ConvertUtils.NumberToByteArray(value, length, ByteOrderEnum.BigEndian); }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region fields
-        private SortedDictionary<int, XRefEntry> entries;
-        #endregion
-
-        #region constructors
-        public XRefStream(
-          File file
-          ) : this(
-            new PdfDictionary(
-              new PdfName[]
-                {PdfName.Type},
-              new PdfDirectObject[]
-                {PdfName.XRef}
-              ),
-            new bytes.Buffer()
-            )
-        {
-            PdfDictionary header = Header;
-            foreach (KeyValuePair<PdfName, PdfDirectObject> entry in file.Trailer)
-            {
-                PdfName key = entry.Key;
-                if (key.Equals(PdfName.Root)
-                  || key.Equals(PdfName.Info)
-                  || key.Equals(PdfName.ID))
-                { header[key] = entry.Value; }
-            }
-        }
-
-        public XRefStream(
-          PdfDictionary header,
-          IBuffer body
-          ) : base(header, body)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
-        { return visitor.Visit(this, data); }
-
-        /**
-          <summary>Gets the byte offset from the beginning of the file
-          to the beginning of the previous cross-reference stream.</summary>
-          <returns>-1 in case no linked stream exists.</returns>
-        */
-        public int LinkedStreamOffset
-        {
-            get
-            {
-                PdfInteger linkedStreamOffsetObject = (PdfInteger)Header[PdfName.Prev];
-                return (linkedStreamOffsetObject != null ? (int)linkedStreamOffsetObject.Value : -1);
-            }
-        }
-
-        public override void WriteTo(
-          IOutputStream stream,
-          File context
-          )
-        {
-            if (entries != null)
-            { Flush(stream); }
-
-            base.WriteTo(stream, context);
-        }
-
-        #region IDictionary
-        public void Add(
-          int key,
-          XRefEntry value
-          )
-        { Entries.Add(key, value); }
-
-        public bool ContainsKey(
-          int key
-          )
-        { return Entries.ContainsKey(key); }
-
-        public ICollection<int> Keys
-        {
-            get
-            { return Entries.Keys; }
-        }
-
-        public bool Remove(
-          int key
-          )
-        { return Entries.Remove(key); }
-
-        public XRefEntry this[
-          int key
-          ]
-        {
-            get
-            { return Entries[key]; }
-            set
-            { Entries[key] = value; }
-        }
-
-        public bool TryGetValue(
-          int key,
-          out XRefEntry value
-          )
-        {
-            if (ContainsKey(key))
-            {
-                value = this[key];
-                return true;
-            }
-            else
-            {
-                value = default(XRefEntry);
-                return false;
-            }
-        }
-
-        public ICollection<XRefEntry> Values
-        {
-            get
-            { return Entries.Values; }
-        }
-
-        #region ICollection
-        void ICollection<KeyValuePair<int, XRefEntry>>.Add(
-          KeyValuePair<int, XRefEntry> entry
-          )
-        { Add(entry.Key, entry.Value); }
-
-        public void Clear(
-          )
-        {
-            if (entries == null)
-            { entries = new SortedDictionary<int, XRefEntry>(); }
-            else
-            { entries.Clear(); }
-        }
-
-        bool ICollection<KeyValuePair<int, XRefEntry>>.Contains(
-          KeyValuePair<int, XRefEntry> entry
-          )
-        { return ((ICollection<KeyValuePair<int, XRefEntry>>)Entries).Contains(entry); }
-
-        public void CopyTo(
-          KeyValuePair<int, XRefEntry>[] entries,
-          int index
-          )
-        { Entries.CopyTo(entries, index); }
-
-        public int Count
-        {
-            get
-            { return Entries.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          KeyValuePair<int, XRefEntry> entry
-          )
-        {
-            XRefEntry value;
-            if (TryGetValue(entry.Key, out value)
-              && value.Equals(entry.Value))
-                return Entries.Remove(entry.Key);
-            else
-                return false;
-        }
-
-        #region IEnumerable<KeyValuePair<int,XRefEntry>>
-        IEnumerator<KeyValuePair<int, XRefEntry>> IEnumerable<KeyValuePair<int, XRefEntry>>.GetEnumerator(
-          )
-        { return Entries.GetEnumerator(); }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<KeyValuePair<int, XRefEntry>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
         private SortedDictionary<int, XRefEntry> Entries
         {
             get
             {
-                if (entries == null)
+                if (this.entries == null)
                 {
-                    entries = new SortedDictionary<int, XRefEntry>();
+                    this.entries = new SortedDictionary<int, XRefEntry>();
 
-                    IBuffer body = Body;
+                    var body = this.Body;
                     if (body.Length > 0)
                     {
-                        PdfDictionary header = Header;
-                        int size = (int)((PdfInteger)header[PdfName.Size]).Value;
+                        var header = this.Header;
+                        var size = (int)((PdfInteger)header[PdfName.Size]).Value;
                         int[] entryFieldSizes;
-                        {
-                            PdfArray entryFieldSizesObject = (PdfArray)header[PdfName.W];
-                            entryFieldSizes = new int[entryFieldSizesObject.Count];
-                            for (int index = 0, length = entryFieldSizes.Length; index < length; index++)
-                            { entryFieldSizes[index] = (int)((PdfInteger)entryFieldSizesObject[index]).Value; }
-                        }
+                        var entryFieldSizesObject = (PdfArray)header[PdfName.W];
+                        entryFieldSizes = new int[entryFieldSizesObject.Count];
+                        for (int index = 0, length = entryFieldSizes.Length; index < length; index++)
+                        { entryFieldSizes[index] = (int)((PdfInteger)entryFieldSizesObject[index]).Value; }
 
                         PdfArray subsectionBounds;
                         if (header.ContainsKey(PdfName.Index))
@@ -307,14 +231,14 @@ namespace org.pdfclown.tokens
                         body.ByteOrder = ByteOrderEnum.BigEndian;
                         body.Seek(0);
 
-                        IEnumerator<PdfDirectObject> subsectionBoundIterator = subsectionBounds.GetEnumerator();
+                        var subsectionBoundIterator = subsectionBounds.GetEnumerator();
                         while (subsectionBoundIterator.MoveNext())
                         {
                             try
                             {
-                                int start = ((PdfInteger)subsectionBoundIterator.Current).IntValue;
-                                subsectionBoundIterator.MoveNext();
-                                int count = ((PdfInteger)subsectionBoundIterator.Current).IntValue;
+                                var start = ((PdfInteger)subsectionBoundIterator.Current).IntValue;
+                                _ = subsectionBoundIterator.MoveNext();
+                                var count = ((PdfInteger)subsectionBoundIterator.Current).IntValue;
                                 for (
                                   int entryIndex = start,
                                     length = start + count;
@@ -322,14 +246,14 @@ namespace org.pdfclown.tokens
                                   entryIndex++
                                   )
                                 {
-                                    int entryFieldType = (entryFieldSizes[0] == 0 ? 1 : body.ReadInt(entryFieldSizes[0]));
+                                    var entryFieldType = (entryFieldSizes[0] == 0) ? 1 : body.ReadInt(entryFieldSizes[0]);
                                     switch (entryFieldType)
                                     {
                                         case FreeEntryType:
                                         {
-                                            int nextFreeObjectNumber = body.ReadInt(entryFieldSizes[1]);
-                                            int generation = body.ReadInt(entryFieldSizes[2]);
-                                            entries[entryIndex] = new XRefEntry(
+                                            var nextFreeObjectNumber = body.ReadInt(entryFieldSizes[1]);
+                                            var generation = body.ReadInt(entryFieldSizes[2]);
+                                            this.entries[entryIndex] = new XRefEntry(
                                               entryIndex,
                                               generation,
                                               nextFreeObjectNumber,
@@ -339,9 +263,9 @@ namespace org.pdfclown.tokens
                                         }
                                         case InUseEntryType:
                                         {
-                                            int offset = body.ReadInt(entryFieldSizes[1]);
-                                            int generation = body.ReadInt(entryFieldSizes[2]);
-                                            entries[entryIndex] = new XRefEntry(
+                                            var offset = body.ReadInt(entryFieldSizes[1]);
+                                            var generation = body.ReadInt(entryFieldSizes[2]);
+                                            this.entries[entryIndex] = new XRefEntry(
                                               entryIndex,
                                               generation,
                                               offset,
@@ -350,18 +274,16 @@ namespace org.pdfclown.tokens
                                             break;
                                         }
                                         case InUseCompressedEntryType:
-                                        {
-                                            int streamNumber = body.ReadInt(entryFieldSizes[1]);
-                                            int innerNumber = body.ReadInt(entryFieldSizes[2]);
-                                            entries[entryIndex] = new XRefEntry(
+                                            var streamNumber = body.ReadInt(entryFieldSizes[1]);
+                                            var innerNumber = body.ReadInt(entryFieldSizes[2]);
+                                            this.entries[entryIndex] = new XRefEntry(
                                               entryIndex,
                                               innerNumber,
                                               streamNumber
                                               );
                                             break;
-                                        }
                                         default:
-                                            throw new NotSupportedException("Unknown xref entry type '" + entryFieldType + "'.");
+                                            throw new NotSupportedException($"Unknown xref entry type '{entryFieldType}'.");
                                     }
                                 }
                             }
@@ -370,83 +292,113 @@ namespace org.pdfclown.tokens
                         }
                     }
                 }
-                return entries;
+                return this.entries;
             }
         }
 
-        /**
-          <summary>Serializes the xref stream entries into the stream body.</summary>
-        */
-        private void Flush(
-          IOutputStream stream
+        public override PdfObject Accept(
+IVisitor visitor,
+object data
+)
+        { return visitor.Visit(this, data); }
+
+        public void Add(
+  int key,
+  XRefEntry value
+  )
+        { this.Entries.Add(key, value); }
+
+        public void Clear(
           )
         {
-            // 1. Body.
-            PdfArray indexArray = new PdfArray();
-            int[] entryFieldSizes = new int[]
-              {
-          EntryField0Size,
-          GetFieldSize((int)stream.Length), // NOTE: We assume this xref stream is the last indirect object.
-          EntryField2Size
-              };
+            if (this.entries == null)
+            { this.entries = new SortedDictionary<int, XRefEntry>(); }
+            else
+            { this.entries.Clear(); }
+        }
+
+        public bool ContainsKey(
+          int key
+          )
+        { return this.Entries.ContainsKey(key); }
+
+        public void CopyTo(
+          KeyValuePair<int, XRefEntry>[] entries,
+          int index
+          )
+        { this.Entries.CopyTo(entries, index); }
+
+        public bool Remove(
+          int key
+          )
+        { return this.Entries.Remove(key); }
+
+        public bool Remove(
+          KeyValuePair<int, XRefEntry> entry
+          )
+        {
+            XRefEntry value;
+            if (this.TryGetValue(entry.Key, out value)
+              && value.Equals(entry.Value))
             {
-                // Get the stream buffer!
-                IBuffer body = Body;
-
-                // Delete the old entries!
-                body.SetLength(0);
-
-                // Serializing the entries into the stream buffer...
-                int prevObjectNumber = -2; // Previous-entry object number.
-                foreach (XRefEntry entry in entries.Values)
-                {
-                    int entryNumber = entry.Number;
-                    if (entryNumber - prevObjectNumber != 1) // Current subsection terminated.
-                    {
-                        if (indexArray.Count > 0)
-                        { indexArray.Add(PdfInteger.Get(prevObjectNumber - ((PdfInteger)indexArray[indexArray.Count - 1]).IntValue + 1)); } // Number of entries in the previous subsection.
-                        indexArray.Add(PdfInteger.Get(entryNumber)); // First object number in the next subsection.
-                    }
-                    prevObjectNumber = entryNumber;
-
-                    switch (entry.Usage)
-                    {
-                        case XRefEntry.UsageEnum.Free:
-                            body.Append((byte)FreeEntryType);
-                            body.Append(NumberToByteArray(entry.Offset, entryFieldSizes[1]));
-                            body.Append(NumberToByteArray(entry.Generation, entryFieldSizes[2]));
-                            break;
-                        case XRefEntry.UsageEnum.InUse:
-                            body.Append((byte)InUseEntryType);
-                            body.Append(NumberToByteArray(entry.Offset, entryFieldSizes[1]));
-                            body.Append(NumberToByteArray(entry.Generation, entryFieldSizes[2]));
-                            break;
-                        case XRefEntry.UsageEnum.InUseCompressed:
-                            body.Append((byte)InUseCompressedEntryType);
-                            body.Append(NumberToByteArray(entry.StreamNumber, entryFieldSizes[1]));
-                            body.Append(NumberToByteArray(entry.Offset, entryFieldSizes[2]));
-                            break;
-                        default:
-                            throw new NotSupportedException();
-                    }
-                }
-                indexArray.Add(PdfInteger.Get(prevObjectNumber - ((PdfInteger)indexArray[indexArray.Count - 1]).IntValue + 1)); // Number of entries in the previous subsection.
+                return this.Entries.Remove(entry.Key);
             }
-
-            // 2. Header.
+            else
             {
-                PdfDictionary header = Header;
-                header[PdfName.Index] = indexArray;
-                header[PdfName.Size] = PdfInteger.Get(File.IndirectObjects.Count + 1);
-                header[PdfName.W] = new PdfArray(
-                  PdfInteger.Get(entryFieldSizes[0]),
-                  PdfInteger.Get(entryFieldSizes[1]),
-                  PdfInteger.Get(entryFieldSizes[2])
-                  );
+                return false;
             }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public bool TryGetValue(
+          int key,
+          out XRefEntry value
+          )
+        {
+            if (this.ContainsKey(key))
+            {
+                value = this[key];
+                return true;
+            }
+            else
+            {
+                value = default(XRefEntry);
+                return false;
+            }
+        }
+
+        public override void WriteTo(
+          IOutputStream stream,
+          File context
+          )
+        {
+            if (this.entries != null)
+            { this.Flush(stream); }
+
+            base.WriteTo(stream, context);
+        }
+
+        public int Count => this.Entries.Count;
+
+        public bool IsReadOnly => false;
+
+        public ICollection<int> Keys => this.Entries.Keys;
+
+        /**
+          <summary>Gets the byte offset from the beginning of the file
+          to the beginning of the previous cross-reference stream.</summary>
+          <returns>-1 in case no linked stream exists.</returns>
+        */
+        public int LinkedStreamOffset
+        {
+            get
+            {
+                var linkedStreamOffsetObject = (PdfInteger)this.Header[PdfName.Prev];
+                return (linkedStreamOffsetObject != null) ? ((int)linkedStreamOffsetObject.Value) : (-1);
+            }
+        }
+
+        public ICollection<XRefEntry> Values => this.Entries.Values;
+
+        private static readonly int EntryField2Size = GetFieldSize(XRefEntry.GenerationUnreusable);
     }
 }

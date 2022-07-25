@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Change the view to a specified 3D annotation' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,24 +36,18 @@ namespace org.pdfclown.documents.interaction.actions
       : Action,
         IGoToAction
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public GoTo3dView(
-          Document context
-          ) : base(context, PdfName.GoTo3DView)
-        { }
 
         internal GoTo3dView(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public GoTo3dView(
+          Document context
+          ) : base(context, PdfName.GoTo3DView)
+        { }
 
-        #region interface
-        #endregion
-        #endregion
     }
 }

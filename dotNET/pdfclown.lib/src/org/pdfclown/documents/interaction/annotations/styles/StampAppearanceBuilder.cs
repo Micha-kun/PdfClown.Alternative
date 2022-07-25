@@ -24,167 +24,145 @@
 */
 
 
-using System.Drawing;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.xObjects;
-using colors = org.pdfclown.documents.contents.colorSpaces;
-
-using fonts = org.pdfclown.documents.contents.fonts;
-
 namespace org.pdfclown.documents.interaction.annotations.styles
 {
+    using System.Drawing;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.xObjects;
+    using colors = org.pdfclown.documents.contents.colorSpaces;
+
+    using fonts = org.pdfclown.documents.contents.fonts;
+
     /**
       <summary>Appearance builder for rubber stamp annotations.</summary>
       <seealso cref="org.pdfclown.documents.interaction.annotations.Stamp"/>
     */
     public class StampAppearanceBuilder
     {
-        #region types
+
+        private static readonly Length DefaultBorderRadius = new Length(.05, Length.UnitModeEnum.Relative);
+        private static readonly Length DefaultBorderWidth = new Length(.025, Length.UnitModeEnum.Relative);
+        private static readonly colors::Color DefaultColor = colors::DeviceRGBColor.Get(System.Drawing.Color.Red);
+
+        private bool borderDoubled = true;
+
+        private readonly Document document;
+        private fonts::Font font;
+        private string text;
+        private readonly TypeEnum type;
+        private readonly float width;
+
+        public StampAppearanceBuilder(
+  Document document,
+  TypeEnum type,
+  string text,
+  float width,
+  fonts::Font font
+  )
+        {
+            this.document = document;
+            this.type = type;
+            this.width = width;
+            this.Text = text;
+            this.Font = font;
+        }
+
+        public FormXObject Build(
+          )
+        {
+            var isRound = this.type == TypeEnum.Round;
+            var isStriped = this.type == TypeEnum.Striped;
+            var textScale = .5;
+            var borderWidth = this.borderWidth.GetValue(this.width);
+            var doubleBorderGap = this.borderDoubled ? borderWidth : 0;
+            double fontSize = 10;
+            fontSize *= (this.width - (isStriped ? 2 : ((doubleBorderGap * 2) + (borderWidth * (this.borderDoubled ? 1.5 : 1) * 2) + (this.width * (isRound ? .15 : .05))))) / textScale / this.font.GetWidth(this.text, fontSize);
+            var height = (float)(isRound ? this.width : ((this.font.GetAscent(fontSize) * 1.2) + (doubleBorderGap * 2) + (borderWidth * (this.borderDoubled ? 1.5 : 1) * 2)));
+            var size = new SizeF(this.width, height);
+
+            var appearance = new FormXObject(this.document, size);
+            var composer = new PrimitiveComposer(appearance);
+            if (this.color != null)
+            {
+                composer.SetStrokeColor(this.color);
+                composer.SetFillColor(this.color);
+            }
+            composer.SetTextScale(textScale);
+            composer.SetFont(this.font, fontSize);
+            _ = composer.ShowText(this.text, new PointF(size.Width / 2, (float)((size.Height / 2) - (this.font.GetDescent(fontSize) * .4))), XAlignmentEnum.Center, YAlignmentEnum.Middle, 0);
+
+            var borderRadius = isRound ? 0 : this.borderRadius.GetValue((size.Width + size.Height) / 2);
+            var prevBorderBox = appearance.Box;
+            for (int borderStep = 0, borderStepLimit = this.borderDoubled ? 2 : 1; borderStep < borderStepLimit; borderStep++)
+            {
+                if (borderStep == 0)
+                { composer.SetLineWidth(borderWidth); }
+                else
+                { composer.SetLineWidth(composer.State.LineWidth / 2); }
+
+                var lineWidth = (float)((borderStep > 0) ? (composer.State.LineWidth / 2) : borderWidth);
+                var marginY = (float)((lineWidth / 2) + ((borderStep > 0) ? (composer.State.LineWidth + doubleBorderGap) : 0));
+                var marginX = isStriped ? 0 : marginY;
+                var borderBox = new RectangleF(prevBorderBox.X + marginX, prevBorderBox.Y + marginY, prevBorderBox.Width - (marginX * 2), prevBorderBox.Height - (marginY * 2));
+
+                if (isRound)
+                { composer.DrawEllipse(borderBox); }
+                else
+                {
+                    if (isStriped)
+                    {
+                        composer.DrawLine(new PointF(borderBox.Left, borderBox.Top), new PointF(borderBox.Right, borderBox.Top));
+                        composer.DrawLine(new PointF(borderBox.Left, borderBox.Bottom), new PointF(borderBox.Right, borderBox.Bottom));
+                    }
+                    else
+                    { composer.DrawRectangle(borderBox, borderRadius * (1 - (.5 * borderStep))); }
+                }
+                composer.Stroke();
+                prevBorderBox = borderBox;
+            }
+            composer.Flush();
+            return appearance;
+        }
+
+        public bool BorderDoubled
+        {
+            set => this.borderDoubled = value;
+        }
+
+        public Length BorderRadius
+        {
+            set => this.borderRadius = value;
+        }
+
+        public Length BorderWidth
+        {
+            set => this.borderWidth = value;
+        }
+
+        public colors::Color Color
+        {
+            set => this.color = value;
+        }
+
+        public fonts::Font Font
+        {
+            set => this.font = value;
+        }
+
+        public string Text
+        {
+            set => this.text = value.ToUpper();
+        }
+
         public enum TypeEnum
         {
             Round,
             Squared,
             Striped
         }
-        #endregion
 
-        #region static
-        #region fields
-        private static readonly Length DefaultBorderRadius = new Length(.05, Length.UnitModeEnum.Relative);
-        private static readonly Length DefaultBorderWidth = new Length(.025, Length.UnitModeEnum.Relative);
-        private static readonly colors::Color DefaultColor = colors::DeviceRGBColor.Get(System.Drawing.Color.Red);
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        private bool borderDoubled = true;
         private Length borderRadius = DefaultBorderRadius;
         private Length borderWidth = DefaultBorderWidth;
         private colors::Color color = DefaultColor;
-        private fonts::Font font;
-        private string text;
-        private TypeEnum type;
-        private float width;
-
-        private Document document;
-        #endregion
-
-        #region constructors
-        public StampAppearanceBuilder(
-          Document document,
-          TypeEnum type,
-          string text,
-          float width,
-          fonts::Font font
-          )
-        {
-            this.document = document;
-            this.type = type;
-            this.width = width;
-            Text = text;
-            Font = font;
-        }
-        #endregion
-
-        #region interface
-        #region public
-        public bool BorderDoubled
-        {
-            set
-            { borderDoubled = value; }
-        }
-
-        public Length BorderRadius
-        {
-            set
-            { borderRadius = value; }
-        }
-
-        public Length BorderWidth
-        {
-            set
-            { borderWidth = value; }
-        }
-
-        public FormXObject Build(
-          )
-        {
-            bool isRound = type == TypeEnum.Round;
-            bool isStriped = type == TypeEnum.Striped;
-            double textScale = .5;
-            double borderWidth = this.borderWidth.GetValue(width);
-            double doubleBorderGap = borderDoubled ? borderWidth : 0;
-            double fontSize = 10;
-            fontSize *= ((width - (isStriped ? 2 : doubleBorderGap * 2 + (borderWidth * (borderDoubled ? 1.5 : 1) * 2) + width * (isRound ? .15 : .05))) / textScale) / font.GetWidth(text, fontSize);
-            float height = (float)(isRound ? width : (font.GetAscent(fontSize) * 1.2 + doubleBorderGap * 2 + (borderWidth * (borderDoubled ? 1.5 : 1) * 2)));
-            SizeF size = new SizeF(width, height);
-
-            FormXObject appearance = new FormXObject(document, size);
-            {
-                PrimitiveComposer composer = new PrimitiveComposer(appearance);
-                if (color != null)
-                {
-                    composer.SetStrokeColor(color);
-                    composer.SetFillColor(color);
-                }
-                composer.SetTextScale(textScale);
-                composer.SetFont(font, fontSize);
-                composer.ShowText(text, new PointF(size.Width / 2, (float)(size.Height / 2 - font.GetDescent(fontSize) * .4)), XAlignmentEnum.Center, YAlignmentEnum.Middle, 0);
-
-                double borderRadius = isRound ? 0 : this.borderRadius.GetValue((size.Width + size.Height) / 2);
-                RectangleF prevBorderBox = appearance.Box;
-                for (int borderStep = 0, borderStepLimit = (borderDoubled ? 2 : 1); borderStep < borderStepLimit; borderStep++)
-                {
-                    if (borderStep == 0)
-                    { composer.SetLineWidth(borderWidth); }
-                    else
-                    { composer.SetLineWidth(composer.State.LineWidth / 2); }
-
-                    float lineWidth = (float)(borderStep > 0 ? composer.State.LineWidth / 2 : borderWidth);
-                    float marginY = (float)(lineWidth / 2 + (borderStep > 0 ? composer.State.LineWidth + doubleBorderGap : 0));
-                    float marginX = isStriped ? 0 : marginY;
-                    RectangleF borderBox = new RectangleF(prevBorderBox.X + marginX, prevBorderBox.Y + marginY, prevBorderBox.Width - marginX * 2, prevBorderBox.Height - marginY * 2);
-
-                    if (isRound)
-                    { composer.DrawEllipse(borderBox); }
-                    else
-                    {
-                        if (isStriped)
-                        {
-                            composer.DrawLine(new PointF(borderBox.Left, borderBox.Top), new PointF(borderBox.Right, borderBox.Top));
-                            composer.DrawLine(new PointF(borderBox.Left, borderBox.Bottom), new PointF(borderBox.Right, borderBox.Bottom));
-                        }
-                        else
-                        { composer.DrawRectangle(borderBox, borderRadius * (1 - .5 * borderStep)); }
-                    }
-                    composer.Stroke();
-                    prevBorderBox = borderBox;
-                }
-                composer.Flush();
-            }
-            return appearance;
-        }
-
-        public colors::Color Color
-        {
-            set
-            { color = value; }
-        }
-
-        public fonts::Font Font
-        {
-            set
-            { font = value; }
-        }
-
-        public string Text
-        {
-            set
-            { text = value.ToUpper(); }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

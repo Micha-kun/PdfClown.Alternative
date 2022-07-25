@@ -1,13 +1,12 @@
-
-using System;
-using org.pdfclown.documents;
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.files;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System;
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.files;
+
     /**
       <summary>This sample demonstrates how to apply actions to a document.</summary>
       <remarks>In this case, on document-opening a go-to-page-2 action is triggered;
@@ -20,11 +19,11 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Opening the PDF file...
-            string filePath = PromptFileChoice("Please select a PDF file");
+            var filePath = this.PromptFileChoice("Please select a PDF file");
             using (var file = new File(filePath))
             {
-                Document document = file.Document;
-                Page page = document.Pages[1]; // Page 2 (zero-based index).
+                var document = file.Document;
+                var page = document.Pages[1]; // Page 2 (zero-based index).
 
                 // 2. Applying actions...
                 // 2.1. Local go-to.
@@ -47,7 +46,7 @@ namespace org.pdfclown.samples.cli
                   );
 
                 // 3. Serialize the PDF file!
-                Serialize(file, "Actions", "applying actions", "actions, creation, local goto, remote goto");
+                _ = this.Serialize(file, "Actions", "applying actions", "actions, creation, local goto, remote goto");
             }
         }
     }

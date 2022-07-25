@@ -24,15 +24,14 @@
 */
 
 
-using System;
-
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using org.pdfclown.bytes;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System;
+
+    using System.Collections.Generic;
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.bytes;
+
     /**
       <summary>Composite object. It is made up of multiple content objects.</summary>
     */
@@ -40,26 +39,22 @@ namespace org.pdfclown.documents.contents.objects
     public abstract class CompositeObject
       : ContentObject
     {
-        #region dynamic
-        #region fields
         protected IList<ContentObject> objects;
-        #endregion
 
-        #region constructors
         protected CompositeObject(
-          )
+  )
         { this.objects = new List<ContentObject>(); }
 
         protected CompositeObject(
           ContentObject obj
           ) : this()
-        { objects.Add(obj); }
+        { this.objects.Add(obj); }
 
         protected CompositeObject(
           params ContentObject[] objects
           ) : this()
         {
-            foreach (ContentObject obj in objects)
+            foreach (var obj in objects)
             { this.objects.Add(obj); }
         }
 
@@ -67,60 +62,10 @@ namespace org.pdfclown.documents.contents.objects
           IList<ContentObject> objects
           )
         { this.objects = objects; }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the object header.</summary>
-        */
-        public virtual Operation Header
-        {
-            get
-            { return null; }
-            set
-            { throw new NotSupportedException(); }
-        }
 
         /**
-          <summary>Gets the list of inner objects.</summary>
-        */
-        public IList<ContentObject> Objects
-        {
-            get
-            { return objects; }
-        }
-
-        public override void Scan(
-          ContentScanner.GraphicsState state
-          )
-        {
-            ContentScanner childLevel = state.Scanner.ChildLevel;
-
-            if (!Render(state))
-            { childLevel.MoveEnd(); } // Forces the current object to its final graphics state.
-
-            childLevel.State.CopyTo(state); // Copies the current object's final graphics state to the current level's.
-        }
-
-        public override string ToString(
-          )
-        { return "{" + GetType().Name + " " + objects.ToString() + "}"; }
-
-        public override void WriteTo(
-          IOutputStream stream,
-          Document context
-          )
-        {
-            foreach (ContentObject obj in objects)
-            { obj.WriteTo(stream, context); }
-        }
-        #endregion
-
-        #region protected
-        /**
-          <summary>Creates the rendering object corresponding to this container.</summary>
-        */
+  <summary>Creates the rendering object corresponding to this container.</summary>
+*/
         protected virtual GraphicsPath CreateRenderObject(
           )
         { return null; }
@@ -134,21 +79,59 @@ namespace org.pdfclown.documents.contents.objects
           ContentScanner.GraphicsState state
           )
         {
-            ContentScanner scanner = state.Scanner;
-            Graphics context = scanner.RenderContext;
+            var scanner = state.Scanner;
+            var context = scanner.RenderContext;
             if (context == null)
+            {
                 return false;
+            }
 
             // Render the inner elements!
             scanner.ChildLevel.Render(
               context,
               scanner.CanvasSize,
-              CreateRenderObject()
+              this.CreateRenderObject()
               );
             return true;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public override void Scan(
+          ContentScanner.GraphicsState state
+          )
+        {
+            var childLevel = state.Scanner.ChildLevel;
+
+            if (!this.Render(state))
+            { childLevel.MoveEnd(); } // Forces the current object to its final graphics state.
+
+            childLevel.State.CopyTo(state); // Copies the current object's final graphics state to the current level's.
+        }
+
+        public override string ToString(
+          )
+        { return $"{{{this.GetType().Name} {this.objects}}}"; }
+
+        public override void WriteTo(
+          IOutputStream stream,
+          Document context
+          )
+        {
+            foreach (var obj in this.objects)
+            { obj.WriteTo(stream, context); }
+        }
+
+        /**
+<summary>Gets/Sets the object header.</summary>
+*/
+        public virtual Operation Header
+        {
+            get => null;
+            set => throw new NotSupportedException();
+        }
+
+        /**
+          <summary>Gets the list of inner objects.</summary>
+        */
+        public IList<ContentObject> Objects => this.objects;
     }
 }

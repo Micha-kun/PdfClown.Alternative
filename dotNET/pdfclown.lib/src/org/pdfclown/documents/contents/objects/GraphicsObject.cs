@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
     /**
       <summary>Graphics object [PDF:1.6:4.1].</summary>
     */
@@ -34,22 +34,18 @@ namespace org.pdfclown.documents.contents.objects
     public abstract class GraphicsObject
       : CompositeObject
     {
-        #region dynamic
-        #region constructors
         protected GraphicsObject(
-          )
+)
         { }
 
         protected GraphicsObject(
           ContentObject obj
           )
-        { objects.Add(obj); }
+        { this.objects.Add(obj); }
 
         protected GraphicsObject(
           IList<ContentObject> objects
           ) : base(objects)
         { }
-        #endregion
-        #endregion
     }
 }

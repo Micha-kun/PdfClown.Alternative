@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>'Move to the start of the next line' operation [PDF:1.6:5.3.1].</summary>
     */
@@ -35,32 +34,20 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class TranslateTextToNextLine
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "T*";
 
         public static readonly TranslateTextToNextLine Value = new TranslateTextToNextLine();
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         private TranslateTextToNextLine(
-          ) : base(OperatorKeyword)
+) : base(OperatorKeyword)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
+ContentScanner.GraphicsState state
+)
         {
             state.Tlm.Multiply(new Matrix(1, 0, 0, 1, 0, (float)-state.Lead));
             state.Tm = state.Tlm.Clone();
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

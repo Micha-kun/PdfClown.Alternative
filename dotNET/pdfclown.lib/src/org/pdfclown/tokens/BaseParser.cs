@@ -24,55 +24,52 @@
 */
 
 
-using System;
-using org.pdfclown.bytes;
-using org.pdfclown.objects;
-
-using org.pdfclown.util.parsers;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+    using org.pdfclown.bytes;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util.parsers;
+
     /**
       <summary>Base PDF parser [PDF:1.7:3.2].</summary>
     */
     public class BaseParser
       : PostScriptParser
     {
-        #region dynamic
-        #region constructors
         protected BaseParser(
-          IInputStream stream
-          ) : base(stream)
+IInputStream stream
+) : base(stream)
         { }
 
         protected BaseParser(
           byte[] data
           ) : base(data)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override bool MoveNext(
-          )
+)
         {
             bool moved;
             while (moved = base.MoveNext())
             {
-                TokenTypeEnum tokenType = TokenType;
+                var tokenType = this.TokenType;
                 if (tokenType == TokenTypeEnum.Comment)
+                {
                     continue; // Comments are ignored.
+                }
 
                 if (tokenType == TokenTypeEnum.Literal)
                 {
-                    string literalToken = (string)Token;
+                    var literalToken = (string)this.Token;
                     if (literalToken.StartsWith(Keyword.DatePrefix)) // Date.
                     {
                         /*
                           NOTE: Dates are a weak extension to the PostScript language.
                         */
                         try
-                        { Token = PdfDate.ToDate(literalToken); }
+                        { this.Token = PdfDate.ToDate(literalToken); }
                         catch (ParseException)
                         {/* NOOP: gently degrade to a common literal. */}
                     }
@@ -88,68 +85,74 @@ namespace org.pdfclown.tokens
         public virtual PdfDataObject ParsePdfObject(
           )
         {
-            switch (TokenType)
+            switch (this.TokenType)
             {
                 case TokenTypeEnum.Integer:
-                    return PdfInteger.Get((int)Token);
+                    return PdfInteger.Get((int)this.Token);
                 case TokenTypeEnum.Name:
-                    return new PdfName((string)Token, true);
+                    return new PdfName((string)this.Token, true);
                 case TokenTypeEnum.DictionaryBegin:
-                {
-                    PdfDictionary dictionary = new PdfDictionary();
+                    var dictionary = new PdfDictionary();
                     dictionary.Updateable = false;
                     while (true)
                     {
                         // Key.
-                        MoveNext();
-                        if (TokenType == TokenTypeEnum.DictionaryEnd)
+                        _ = this.MoveNext();
+                        if (this.TokenType == TokenTypeEnum.DictionaryEnd)
+                        {
                             break;
-                        PdfName key = (PdfName)ParsePdfObject();
+                        }
+
+                        var key = (PdfName)this.ParsePdfObject();
                         // Value.
-                        MoveNext();
-                        PdfDirectObject value = (PdfDirectObject)ParsePdfObject();
+                        _ = this.MoveNext();
+                        var value = (PdfDirectObject)this.ParsePdfObject();
                         // Add the current entry to the dictionary!
                         dictionary[key] = value;
                     }
                     dictionary.Updateable = true;
                     return dictionary;
-                }
                 case TokenTypeEnum.ArrayBegin:
-                {
-                    PdfArray array = new PdfArray();
+                    var array = new PdfArray();
                     array.Updateable = false;
                     while (true)
                     {
                         // Value.
-                        MoveNext();
-                        if (TokenType == TokenTypeEnum.ArrayEnd)
+                        _ = this.MoveNext();
+                        if (this.TokenType == TokenTypeEnum.ArrayEnd)
+                        {
                             break;
+                        }
                         // Add the current item to the array!
-                        array.Add((PdfDirectObject)ParsePdfObject());
+                        array.Add((PdfDirectObject)this.ParsePdfObject());
                     }
                     array.Updateable = true;
                     return array;
-                }
                 case TokenTypeEnum.Literal:
-                    if (Token is DateTime)
-                        return PdfDate.Get((DateTime)Token);
+                    if (this.Token is DateTime)
+                    {
+                        return PdfDate.Get((DateTime)this.Token);
+                    }
                     else
+                    {
                         return new PdfTextString(
-                          Encoding.Pdf.Encode((string)Token)
+                          Encoding.Pdf.Encode((string)this.Token)
                           );
+                    }
+
                 case TokenTypeEnum.Hex:
                     return new PdfTextString(
-                      (string)Token,
+                      (string)this.Token,
                       PdfString.SerializationModeEnum.Hex
                       );
                 case TokenTypeEnum.Real:
-                    return PdfReal.Get((double)Token);
+                    return PdfReal.Get((double)this.Token);
                 case TokenTypeEnum.Boolean:
-                    return PdfBoolean.Get((bool)Token);
+                    return PdfBoolean.Get((bool)this.Token);
                 case TokenTypeEnum.Null:
                     return null;
                 default:
-                    throw new PostScriptParseException(String.Format("Unknown type beginning: '{0}'", Token), this);
+                    throw new PostScriptParseException($"Unknown type beginning: '{this.Token}'", this);
             }
         }
 
@@ -162,12 +165,9 @@ namespace org.pdfclown.tokens
           int offset
           )
         {
-            MoveNext(offset);
-            return ParsePdfObject();
+            _ = this.MoveNext(offset);
+            return this.ParsePdfObject();
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }
 

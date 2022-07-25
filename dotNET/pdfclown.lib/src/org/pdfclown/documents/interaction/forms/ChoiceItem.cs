@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Field option [PDF:1.6:8.6.3].</summary>
     */
@@ -36,14 +36,17 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class ChoiceItem
       : PdfObjectWrapper<PdfDirectObject>
     {
-        #region fields
         private ChoiceItems items;
-        #endregion
 
-        #region constructors
+        internal ChoiceItem(
+          PdfDirectObject baseObject,
+          ChoiceItems items
+          ) : base(baseObject)
+        { this.Items = items; }
+
         public ChoiceItem(
-          string value
-          ) : base(new PdfTextString(value))
+  string value
+  ) : base(new PdfTextString(value))
         { }
 
         public ChoiceItem(
@@ -62,18 +65,22 @@ namespace org.pdfclown.documents.interaction.forms
             )
         { }
 
-        internal ChoiceItem(
-          PdfDirectObject baseObject,
-          ChoiceItems items
-          ) : base(baseObject)
-        { Items = items; }
-        #endregion
+        internal ChoiceItems Items
+        {
+            set
+            {
+                if (this.items != null)
+                {
+                    throw new ArgumentException("Item already associated to another choice field.");
+                }
 
-        #region interface
-        #region public
+                this.items = value;
+            }
+        }
+
         public override object Clone(
-          Document context
-          )
+Document context
+)
         { throw new NotImplementedException(); }
 
         //TODO:make the class immutable (to avoid needing wiring it up to its collection...)!!!
@@ -84,32 +91,36 @@ namespace org.pdfclown.documents.interaction.forms
         {
             get
             {
-                PdfDirectObject baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 if (baseDataObject is PdfArray) // <value,text> pair.
+                {
                     return (string)((PdfTextString)((PdfArray)baseDataObject)[1]).Value;
+                }
                 else // Single text string.
+                {
                     return (string)((PdfTextString)baseDataObject).Value;
+                }
             }
             set
             {
-                PdfDirectObject baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 if (baseDataObject is PdfTextString)
                 {
-                    PdfDirectObject oldBaseDataObject = baseDataObject;
+                    var oldBaseDataObject = baseDataObject;
 
-                    BaseObject = baseDataObject = new PdfArray(
+                    this.BaseObject = baseDataObject = new PdfArray(
                         new PdfDirectObject[] { oldBaseDataObject }
                         );
                     ((PdfArray)baseDataObject).Add(PdfTextString.Default);
 
-                    if (items != null)
+                    if (this.items != null)
                     {
                         // Force list update!
                         /*
                           NOTE: This operation is necessary in order to substitute
                           the previous base object with the new one within the list.
                         */
-                        PdfArray itemsObject = items.BaseDataObject;
+                        var itemsObject = this.items.BaseDataObject;
                         itemsObject[itemsObject.IndexOf(oldBaseDataObject)] = baseDataObject;
                     }
                 }
@@ -125,35 +136,24 @@ namespace org.pdfclown.documents.interaction.forms
         {
             get
             {
-                PdfDirectObject baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 if (baseDataObject is PdfArray) // <value,text> pair.
+                {
                     return (string)((PdfTextString)((PdfArray)baseDataObject)[0]).Value;
+                }
                 else // Single text string.
+                {
                     return (string)((PdfTextString)baseDataObject).Value;
+                }
             }
             set
             {
-                PdfDirectObject baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 if (baseDataObject is PdfArray) // <value,text> pair.
                 { ((PdfArray)baseDataObject)[0] = new PdfTextString(value); }
                 else // Single text string.
-                { BaseObject = new PdfTextString(value); }
+                { this.BaseObject = new PdfTextString(value); }
             }
         }
-        #endregion
-
-        #region internal
-        internal ChoiceItems Items
-        {
-            set
-            {
-                if (items != null)
-                    throw new ArgumentException("Item already associated to another choice field.");
-
-                items = value;
-            }
-        }
-        #endregion
-        #endregion
     }
 }

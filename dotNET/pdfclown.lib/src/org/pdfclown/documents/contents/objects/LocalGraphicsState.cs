@@ -24,15 +24,12 @@
 */
 
 
-using System.Collections.Generic;
-using System.Drawing;
-
-using System.Drawing.Drawing2D;
-using org.pdfclown.bytes;
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.bytes;
+    using org.pdfclown.tokens;
+
     /**
       <summary>Local graphics state [PDF:1.6:4.3.1].</summary>
     */
@@ -40,35 +37,26 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class LocalGraphicsState
       : ContainerObject
     {
-        #region static
-        #region fields
+
+        private static readonly byte[] BeginChunk = Encoding.Pdf.Encode($"{BeginOperatorKeyword}{Symbol.LineFeed}");
+        private static readonly byte[] EndChunk = Encoding.Pdf.Encode($"{EndOperatorKeyword}{Symbol.LineFeed}");
         public static readonly string BeginOperatorKeyword = SaveGraphicsState.OperatorKeyword;
         public static readonly string EndOperatorKeyword = RestoreGraphicsState.OperatorKeyword;
 
-        private static readonly byte[] BeginChunk = Encoding.Pdf.Encode(BeginOperatorKeyword + Symbol.LineFeed);
-        private static readonly byte[] EndChunk = Encoding.Pdf.Encode(EndOperatorKeyword + Symbol.LineFeed);
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         public LocalGraphicsState(
-          )
+)
         { }
 
         public LocalGraphicsState(
           IList<ContentObject> objects
           ) : base(objects)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
+ContentScanner.GraphicsState state
+)
         {
-            Graphics context = state.Scanner.RenderContext;
+            var context = state.Scanner.RenderContext;
             if (context != null)
             {
                 /*
@@ -76,9 +64,9 @@ namespace org.pdfclown.documents.contents.objects
                   so no inner operation can alter its subsequent scanning.
                 */
                 // Save outer graphics state!
-                GraphicsState contextState = context.Save();
+                var contextState = context.Save();
 
-                Render(state);
+                _ = this.Render(state);
 
                 // Restore outer graphics state!
                 context.Restore(contextState);
@@ -94,8 +82,5 @@ namespace org.pdfclown.documents.contents.objects
             base.WriteTo(stream, context);
             stream.Write(EndChunk);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

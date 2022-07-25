@@ -24,23 +24,217 @@
 */
 
 
-using System.Collections.Generic;
-using System.Drawing;
-using org.pdfclown.bytes;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.objects;
-
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.tools
 {
+    using System.Collections.Generic;
+    using System.Drawing;
+    using org.pdfclown.bytes;
+    using org.pdfclown.documents;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.objects;
+
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
     /**
       <summary>Tool for page management.</summary>
     */
     public sealed class PageManager
     {
+
+        private Document document;
+        private Pages pages;
+
+        public PageManager(
+  ) : this(null)
+        { }
+
+        public PageManager(
+          Document document
+          )
+        { this.Document = document; }
+
+        /**
+  <summary>Gets the data size of the specified object expressed in bytes.</summary>
+  <param name="object">Data object whose size has to be calculated.</param>
+  <param name="visitedReferences">References to data objects excluded from calculation.
+    This set is useful, for example, to avoid recalculating the data size of shared resources.
+    During the operation, this set is populated with references to visited data objects.</param>
+  <param name="isRoot">Whether this data object represents the page root.</param>
+*/
+        private static long GetSize(
+          PdfDirectObject obj,
+          HashSet<PdfReference> visitedReferences,
+          bool isRoot
+          )
+        {
+            long dataSize = 0;
+            var dataObject = PdfObject.Resolve(obj);
+
+            // 1. Evaluating the current object...
+            if (obj is PdfReference)
+            {
+                var reference = (PdfReference)obj;
+                if (visitedReferences.Contains(reference))
+                {
+                    return 0; // Avoids circular references.
+                }
+
+                if ((dataObject is PdfDictionary)
+                  && PdfName.Page.Equals(((PdfDictionary)dataObject)[PdfName.Type])
+                  && !isRoot)
+                {
+                    return 0; // Avoids references to other pages.
+                }
+
+                _ = visitedReferences.Add(reference);
+
+                // Calculate the data size of the current object!
+                IOutputStream buffer = new Buffer();
+                reference.IndirectObject.WriteTo(buffer, reference.File);
+                dataSize += buffer.Length;
+            }
+
+            // 2. Evaluating the current object's children...
+            ICollection<PdfDirectObject> values = null;
+            if (dataObject is PdfStream)
+            { dataObject = ((PdfStream)dataObject).Header; }
+            if (dataObject is PdfDictionary)
+            { values = ((PdfDictionary)dataObject).Values; }
+            else if (dataObject is PdfArray)
+            { values = (PdfArray)dataObject; }
+            if (values != null)
+            {
+                // Calculate the data size of the current object's children!
+                foreach (var value in values)
+                { dataSize += GetSize(value, visitedReferences, false); }
+            }
+            return dataSize;
+        }
+
+        /**
+          <summary>Gets whether the specified content stream part is blank.</summary>
+          <param name="level">Content stream part to evaluate.</param>
+          <param name="contentBox">Area to evaluate within the page.</param>
+        */
+        private static bool IsBlank(
+          ContentScanner level,
+          RectangleF contentBox
+          )
+        {
+            if (level == null)
+            {
+                return true;
+            }
+
+            while (level.MoveNext())
+            {
+                var content = level.Current;
+                if (content is ContainerObject)
+                {
+                    // Scan the inner level!
+                    if (!IsBlank(level.ChildLevel, contentBox))
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    var contentWrapper = level.CurrentWrapper;
+                    if (contentWrapper == null)
+                    {
+                        continue;
+                    }
+
+                    if (contentWrapper.Box.Value.IntersectsWith(contentBox))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /**
+<summary>Appends a document to the end of the document.</summary>
+<param name="document">Document to be added.</param>
+*/
+        public void Add(
+          Document document
+          )
+        { this.Add(document.Pages); }
+
+        /**
+          <summary>Appends a collection of pages to the end of the document.</summary>
+          <param name="pages">Pages to be added.</param>
+        */
+        public void Add(
+          ICollection<Page> pages
+          )
+        {
+            // Add the source pages to the document (deep level)!
+            var importedPages = this.document.Include(pages); // NOTE: Alien pages MUST be contextualized (i.e. imported).
+
+            // Add the imported pages to the pages collection (shallow level)!
+            this.pages.AddAll(importedPages);
+        }
+
+        /**
+          <summary>Inserts a document at the specified position in the document.</summary>
+          <param name="index">Position at which the document has to be inserted.</param>
+          <param name="document">Document to be inserted.</param>
+        */
+        public void Add(
+          int index,
+          Document document
+          )
+        { this.Add(index, document.Pages); }
+
+        /**
+          <summary>Inserts a collection of pages at the specified position in the document.</summary>
+          <param name="index">Position at which the pages have to be inserted.</param>
+          <param name="pages">Pages to be inserted.</param>
+        */
+        public void Add(
+          int index,
+          ICollection<Page> pages
+          )
+        {
+            // Add the source pages to the document (deep level)!
+            var importedPages = this.document.Include(pages); // NOTE: Alien pages MUST be contextualized (i.e. imported).
+
+            // Add the imported pages to the pages collection (shallow level)!
+            if (index >= this.pages.Count)
+            { this.pages.AddAll(importedPages); }
+            else
+            { this.pages.InsertAll(index, importedPages); }
+        }
+
+        /**
+          <summary>Extracts a page range from the document.</summary>
+          <param name="startIndex">The beginning index, inclusive.</param>
+          <param name="endIndex">The ending index, exclusive.</param>
+          <returns>Extracted page range.</returns>
+        */
+        public Document Extract(
+          int startIndex,
+          int endIndex
+          )
+        {
+            var extractedDocument = new File().Document;
+            // Add the pages to the target file!
+            /*
+              NOTE: To be added to an alien document,
+              pages MUST be contextualized within it first,
+              then added to the target pages collection.
+            */
+            extractedDocument.Pages.AddAll(
+    extractedDocument.Include(
+                this.pages.GetSlice(startIndex, endIndex)
+                )
+              );
+            return extractedDocument;
+        }
         /*
           NOTE: As you can read on the PDF Clown's User Guide, referential operations on high-level object such as pages
           can be done at two levels:
@@ -50,13 +244,10 @@ namespace org.pdfclown.tools
           the data of that page (deep level) are still within the document!
         */
 
-        #region static
-        #region interface
-        #region public
         /**
-          <summary>Gets the data size of the specified page expressed in bytes.</summary>
-          <param name="page">Page whose data size has to be calculated.</param>
-        */
+<summary>Gets the data size of the specified page expressed in bytes.</summary>
+<param name="page">Page whose data size has to be calculated.</param>
+*/
         public static long GetSize(
           Page page
           )
@@ -94,220 +285,6 @@ namespace org.pdfclown.tools
           RectangleF contentBox
           )
         { return IsBlank(new ContentScanner(page), contentBox); }
-        #endregion
-
-        #region private
-        /**
-          <summary>Gets the data size of the specified object expressed in bytes.</summary>
-          <param name="object">Data object whose size has to be calculated.</param>
-          <param name="visitedReferences">References to data objects excluded from calculation.
-            This set is useful, for example, to avoid recalculating the data size of shared resources.
-            During the operation, this set is populated with references to visited data objects.</param>
-          <param name="isRoot">Whether this data object represents the page root.</param>
-        */
-        private static long GetSize(
-          PdfDirectObject obj,
-          HashSet<PdfReference> visitedReferences,
-          bool isRoot
-          )
-        {
-            long dataSize = 0;
-            {
-                PdfDataObject dataObject = PdfObject.Resolve(obj);
-
-                // 1. Evaluating the current object...
-                if (obj is PdfReference)
-                {
-                    PdfReference reference = (PdfReference)obj;
-                    if (visitedReferences.Contains(reference))
-                        return 0; // Avoids circular references.
-
-                    if (dataObject is PdfDictionary
-                      && PdfName.Page.Equals(((PdfDictionary)dataObject)[PdfName.Type])
-                      && !isRoot)
-                        return 0; // Avoids references to other pages.
-
-                    visitedReferences.Add(reference);
-
-                    // Calculate the data size of the current object!
-                    IOutputStream buffer = new Buffer();
-                    reference.IndirectObject.WriteTo(buffer, reference.File);
-                    dataSize += buffer.Length;
-                }
-
-                // 2. Evaluating the current object's children...
-                ICollection<PdfDirectObject> values = null;
-                {
-                    if (dataObject is PdfStream)
-                    { dataObject = ((PdfStream)dataObject).Header; }
-                    if (dataObject is PdfDictionary)
-                    { values = ((PdfDictionary)dataObject).Values; }
-                    else if (dataObject is PdfArray)
-                    { values = (PdfArray)dataObject; }
-                }
-                if (values != null)
-                {
-                    // Calculate the data size of the current object's children!
-                    foreach (PdfDirectObject value in values)
-                    { dataSize += GetSize(value, visitedReferences, false); }
-                }
-            }
-            return dataSize;
-        }
-
-        /**
-          <summary>Gets whether the specified content stream part is blank.</summary>
-          <param name="level">Content stream part to evaluate.</param>
-          <param name="contentBox">Area to evaluate within the page.</param>
-        */
-        private static bool IsBlank(
-          ContentScanner level,
-          RectangleF contentBox
-          )
-        {
-            if (level == null)
-                return true;
-
-            while (level.MoveNext())
-            {
-                ContentObject content = level.Current;
-                if (content is ContainerObject)
-                {
-                    // Scan the inner level!
-                    if (!IsBlank(level.ChildLevel, contentBox))
-                        return false;
-                }
-                else
-                {
-                    ContentScanner.GraphicsObjectWrapper contentWrapper = level.CurrentWrapper;
-                    if (contentWrapper == null)
-                        continue;
-
-                    if (contentWrapper.Box.Value.IntersectsWith(contentBox))
-                        return false;
-                }
-            }
-            return true;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        private Document document;
-        private Pages pages;
-        #endregion
-
-        #region constructors
-        public PageManager(
-          ) : this(null)
-        { }
-
-        public PageManager(
-          Document document
-          )
-        { Document = document; }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Appends a document to the end of the document.</summary>
-          <param name="document">Document to be added.</param>
-        */
-        public void Add(
-          Document document
-          )
-        { Add((ICollection<Page>)document.Pages); }
-
-        /**
-          <summary>Inserts a document at the specified position in the document.</summary>
-          <param name="index">Position at which the document has to be inserted.</param>
-          <param name="document">Document to be inserted.</param>
-        */
-        public void Add(
-          int index,
-          Document document
-          )
-        { Add(index, (ICollection<Page>)document.Pages); }
-
-        /**
-          <summary>Appends a collection of pages to the end of the document.</summary>
-          <param name="pages">Pages to be added.</param>
-        */
-        public void Add(
-          ICollection<Page> pages
-          )
-        {
-            // Add the source pages to the document (deep level)!
-            ICollection<Page> importedPages = document.Include(pages); // NOTE: Alien pages MUST be contextualized (i.e. imported).
-
-            // Add the imported pages to the pages collection (shallow level)!
-            this.pages.AddAll(importedPages);
-        }
-
-        /**
-          <summary>Inserts a collection of pages at the specified position in the document.</summary>
-          <param name="index">Position at which the pages have to be inserted.</param>
-          <param name="pages">Pages to be inserted.</param>
-        */
-        public void Add(
-          int index,
-          ICollection<Page> pages
-          )
-        {
-            // Add the source pages to the document (deep level)!
-            ICollection<Page> importedPages = document.Include(pages); // NOTE: Alien pages MUST be contextualized (i.e. imported).
-
-            // Add the imported pages to the pages collection (shallow level)!
-            if (index >= this.pages.Count)
-            { this.pages.AddAll(importedPages); }
-            else
-            { this.pages.InsertAll(index, importedPages); }
-        }
-
-        /**
-          <summary>Gets/Sets the document being managed.</summary>
-        */
-        public Document Document
-        {
-            get
-            { return document; }
-            set
-            {
-                document = value;
-                pages = document.Pages;
-            }
-        }
-
-        /**
-          <summary>Extracts a page range from the document.</summary>
-          <param name="startIndex">The beginning index, inclusive.</param>
-          <param name="endIndex">The ending index, exclusive.</param>
-          <returns>Extracted page range.</returns>
-        */
-        public Document Extract(
-          int startIndex,
-          int endIndex
-          )
-        {
-            Document extractedDocument = new File().Document;
-            {
-                // Add the pages to the target file!
-                /*
-                  NOTE: To be added to an alien document,
-                  pages MUST be contextualized within it first,
-                  then added to the target pages collection.
-                */
-                extractedDocument.Pages.AddAll(
-        extractedDocument.Include(
-                    pages.GetSlice(startIndex, endIndex)
-                    )
-                  );
-            }
-            return extractedDocument;
-        }
 
         /**
           <summary>Moves a page range to a target position within the document.</summary>
@@ -321,15 +298,15 @@ namespace org.pdfclown.tools
           int targetIndex
           )
         {
-            int pageCount = pages.Count;
+            var pageCount = this.pages.Count;
 
-            IList<Page> movingPages = pages.GetSlice(startIndex, endIndex);
+            var movingPages = this.pages.GetSlice(startIndex, endIndex);
 
             // Temporarily remove the pages from the pages collection!
             /*
               NOTE: Shallow removal (only page references are removed, as their data are kept in the document).
             */
-            pages.RemoveAll(movingPages);
+            this.pages.RemoveAll(movingPages);
 
             // Adjust indexes!
             pageCount -= movingPages.Count;
@@ -341,9 +318,9 @@ namespace org.pdfclown.tools
               NOTE: Shallow addition (only page references are added, as their data are already in the document).
             */
             if (targetIndex >= pageCount)
-            { pages.AddAll(movingPages); }
+            { this.pages.AddAll(movingPages); }
             else
-            { pages.InsertAll(targetIndex, movingPages); }
+            { this.pages.InsertAll(targetIndex, movingPages); }
         }
 
         /**
@@ -356,15 +333,15 @@ namespace org.pdfclown.tools
           int endIndex
           )
         {
-            IList<Page> removingPages = pages.GetSlice(startIndex, endIndex);
+            var removingPages = this.pages.GetSlice(startIndex, endIndex);
 
             // Remove the pages from the pages collection!
             /* NOTE: Shallow removal. */
-            pages.RemoveAll(removingPages);
+            this.pages.RemoveAll(removingPages);
 
             // Remove the pages from the document (decontextualize)!
             /* NOTE: Deep removal. */
-            document.Exclude(removingPages);
+            this.document.Exclude(removingPages);
         }
 
         /**
@@ -375,9 +352,9 @@ namespace org.pdfclown.tools
           )
         {
             IList<Document> documents = new List<Document>();
-            foreach (Page page in pages)
+            foreach (var page in this.pages)
             {
-                Document pageDocument = new File().Document;
+                var pageDocument = new File().Document;
                 pageDocument.Pages.Add((Page)page.Clone(pageDocument));
                 documents.Add(pageDocument);
             }
@@ -394,15 +371,13 @@ namespace org.pdfclown.tools
           )
         {
             IList<Document> documents = new List<Document>();
+            var startIndex = 0;
+            foreach (var index in indexes)
             {
-                int startIndex = 0;
-                foreach (int index in indexes)
-                {
-                    documents.Add(Extract(startIndex, index));
-                    startIndex = index;
-                }
-                documents.Add(Extract(startIndex, pages.Count));
+                documents.Add(this.Extract(startIndex, index));
+                startIndex = index;
             }
+            documents.Add(this.Extract(startIndex, this.pages.Count));
             return documents;
         }
 
@@ -418,32 +393,40 @@ namespace org.pdfclown.tools
           )
         {
             IList<Document> documents = new List<Document>();
+            var startPageIndex = 0;
+            long incrementalDataSize = 0;
+            var visitedReferences = new HashSet<PdfReference>();
+            foreach (var page in this.pages)
             {
-                int startPageIndex = 0;
-                long incrementalDataSize = 0;
-                HashSet<PdfReference> visitedReferences = new HashSet<PdfReference>();
-                foreach (Page page in pages)
+                var pageDifferentialDataSize = GetSize(page, visitedReferences);
+                incrementalDataSize += pageDifferentialDataSize;
+                if (incrementalDataSize > maxDataSize) // Data size limit reached.
                 {
-                    long pageDifferentialDataSize = GetSize(page, visitedReferences);
-                    incrementalDataSize += pageDifferentialDataSize;
-                    if (incrementalDataSize > maxDataSize) // Data size limit reached.
-                    {
-                        int endPageIndex = page.Index;
+                    var endPageIndex = page.Index;
 
-                        // Split the current document page range!
-                        documents.Add(Extract(startPageIndex, endPageIndex));
+                    // Split the current document page range!
+                    documents.Add(this.Extract(startPageIndex, endPageIndex));
 
-                        startPageIndex = endPageIndex;
-                        incrementalDataSize = GetSize(page, visitedReferences = new HashSet<PdfReference>());
-                    }
+                    startPageIndex = endPageIndex;
+                    incrementalDataSize = GetSize(page, visitedReferences = new HashSet<PdfReference>());
                 }
-                // Split the last document page range!
-                documents.Add(Extract(startPageIndex, pages.Count));
             }
+            // Split the last document page range!
+            documents.Add(this.Extract(startPageIndex, this.pages.Count));
             return documents;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+          <summary>Gets/Sets the document being managed.</summary>
+        */
+        public Document Document
+        {
+            get => this.document;
+            set
+            {
+                this.document = value;
+                this.pages = this.document.Pages;
+            }
+        }
     }
 }

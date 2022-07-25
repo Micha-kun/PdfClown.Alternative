@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using System.Drawing.Drawing2D;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+
+    using System.Collections.Generic;
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Move to the start of the next line, offset from the start of the current line' operation
       [PDF:1.6:5.2].</summary>
@@ -39,25 +38,25 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class TranslateTextRelative
       : Operation
     {
-        #region static
-        #region fields
-        /**
-          <summary>No side effect.</summary>
-        */
-        public static readonly string SimpleOperatorKeyword = "Td";
         /**
           <summary>Lead parameter setting.</summary>
         */
         public static readonly string LeadOperatorKeyword = "TD";
-        #endregion
-        #endregion
+        /**
+<summary>No side effect.</summary>
+*/
+        public static readonly string SimpleOperatorKeyword = "Td";
 
-        #region dynamic
-        #region constructors
         public TranslateTextRelative(
-          double offsetX,
-          double offsetY
-          ) : this(offsetX, offsetY, false)
+double offsetX,
+double offsetY
+) : this(offsetX, offsetY, false)
+        { }
+
+        public TranslateTextRelative(
+          string @operator,
+          IList<PdfDirectObject> operands
+          ) : base(@operator, operands)
         { }
 
         public TranslateTextRelative(
@@ -71,53 +70,35 @@ namespace org.pdfclown.documents.contents.objects
             )
         { }
 
-        public TranslateTextRelative(
-          string @operator,
-          IList<PdfDirectObject> operands
-          ) : base(@operator, operands)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets whether this operation, as a side effect, sets the leading parameter in the text state.</summary>
-        */
-        public bool LeadSet
-        {
-            get
-            { return @operator.Equals(LeadOperatorKeyword); }
-            set
-            { @operator = (value ? LeadOperatorKeyword : SimpleOperatorKeyword); }
-        }
-
-        public double OffsetX
-        {
-            get
-            { return ((IPdfNumber)operands[0]).RawValue; }
-            set
-            { operands[0] = PdfReal.Get(value); }
-        }
-
-        public double OffsetY
-        {
-            get
-            { return ((IPdfNumber)operands[1]).RawValue; }
-            set
-            { operands[1] = PdfReal.Get(value); }
-        }
-
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            state.Tlm.Multiply(new Matrix(1, 0, 0, 1, (float)OffsetX, (float)OffsetY));
+            state.Tlm.Multiply(new Matrix(1, 0, 0, 1, (float)this.OffsetX, (float)this.OffsetY));
             state.Tm = state.Tlm.Clone();
-            if (LeadSet)
-            { state.Lead = -OffsetY; }
+            if (this.LeadSet)
+            { state.Lead = -this.OffsetY; }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+<summary>Gets/Sets whether this operation, as a side effect, sets the leading parameter in the text state.</summary>
+*/
+        public bool LeadSet
+        {
+            get => this.@operator.Equals(LeadOperatorKeyword);
+            set => this.@operator = value ? LeadOperatorKeyword : SimpleOperatorKeyword;
+        }
+
+        public double OffsetX
+        {
+            get => ((IPdfNumber)this.operands[0]).RawValue;
+            set => this.operands[0] = PdfReal.Get(value);
+        }
+
+        public double OffsetY
+        {
+            get => ((IPdfNumber)this.operands[1]).RawValue;
+            set => this.operands[1] = PdfReal.Get(value);
+        }
     }
 }

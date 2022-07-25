@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Media clip section [PDF:1.7:9.1.3].</summary>
     */
@@ -36,30 +36,20 @@ namespace org.pdfclown.documents.multimedia
     public sealed class MediaClipSection
       : MediaClip
     {
-        #region dynamic
-        #region constructors
-        public MediaClipSection(
-          Document context
-          ) : base(context, PdfName.MCS)
-        { }
 
         internal MediaClipSection(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public MediaClipSection(
+Document context
+) : base(context, PdfName.MCS)
+        { }
 
-        #region interface
-        #region public
         public override PdfObjectWrapper Data
         {
-            get
-            { return MediaClip.Wrap(BaseDataObject[PdfName.D]).Data; }
-            set
-            { throw new NotImplementedException(); }
+            get => MediaClip.Wrap(this.BaseDataObject[PdfName.D]).Data;
+            set => throw new NotImplementedException();
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

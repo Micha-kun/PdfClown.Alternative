@@ -24,14 +24,14 @@
 */
 
 
-using System;
-using org.pdfclown.objects;
-
-using bytes = org.pdfclown.bytes;
-using io = System.IO;
-
 namespace org.pdfclown.documents.files
 {
+    using System;
+    using org.pdfclown.objects;
+
+    using bytes = org.pdfclown.bytes;
+    using io = System.IO;
+
     /**
       <summary>Reference to the contents of another file (file specification) [PDF:1.6:3.10.2].</summary>
     */
@@ -40,35 +40,27 @@ namespace org.pdfclown.documents.files
       : PdfObjectWrapper<PdfDirectObject>,
         IPdfNamedObjectWrapper
     {
-        #region static
-        #region public
+
+        protected FileSpecification(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        protected FileSpecification(
+Document context,
+PdfDirectObject baseDataObject
+) : base(context, baseDataObject)
+        { }
         /**
-          <summary>Creates a new reference to an external file.</summary>
-          <param name="context">Document context.</param>
-          <param name="path">File path.</param>
-        */
+<summary>Creates a new reference to an external file.</summary>
+<param name="context">Document context.</param>
+<param name="path">File path.</param>
+*/
         public static SimpleFileSpecification Get(
           Document context,
           string path
           )
         { return (SimpleFileSpecification)Get(context, path, false); }
-
-        /**
-          <summary>Creates a new reference to a file.</summary>
-          <param name="context">Document context.</param>
-          <param name="path">File path.</param>
-          <param name="full">Whether the reference is able to support extended dependencies.</param>
-        */
-        public static FileSpecification Get(
-          Document context,
-          string path,
-          bool full
-          )
-        {
-            return full
-              ? (FileSpecification)new FullFileSpecification(context, path)
-              : (FileSpecification)new SimpleFileSpecification(context, path);
-        }
 
         /**
           <summary>Creates a new reference to an embedded file.</summary>
@@ -93,53 +85,32 @@ namespace org.pdfclown.documents.files
         { return new FullFileSpecification(context, url); }
 
         /**
-          <summary>Instantiates an existing file reference.</summary>
-          <param name="baseObject">Base object.</param>
+          <summary>Creates a new reference to a file.</summary>
+          <param name="context">Document context.</param>
+          <param name="path">File path.</param>
+          <param name="full">Whether the reference is able to support extended dependencies.</param>
         */
-        public static FileSpecification Wrap(
-          PdfDirectObject baseObject
+        public static FileSpecification Get(
+          Document context,
+          string path,
+          bool full
           )
         {
-            if (baseObject == null)
-                return null;
-
-            PdfDataObject baseDataObject = baseObject.Resolve();
-            if (baseDataObject is PdfString)
-                return new SimpleFileSpecification(baseObject);
-            else if (baseDataObject is PdfDictionary)
-                return new FullFileSpecification(baseObject);
-            else
-                return null;
+            return full
+              ? new FullFileSpecification(context, path)
+              : ((FileSpecification)new SimpleFileSpecification(context, path));
         }
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
-        protected FileSpecification(
-          Document context,
-          PdfDirectObject baseDataObject
-          ) : base(context, baseDataObject)
-        { }
-
-        protected FileSpecification(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets the file absolute path.</summary>
-        */
+<summary>Gets the file absolute path.</summary>
+*/
         public string GetAbsolutePath(
           )
         {
-            string path = Path;
+            var path = this.Path;
             if (!io::Path.IsPathRooted(path)) // Path needs to be resolved.
             {
-                string basePath = Document.File.Path;
+                var basePath = this.Document.File.Path;
                 if (basePath != null)
                 { path = io::Path.Combine(io::Path.GetDirectoryName(basePath), path); }
             }
@@ -154,7 +125,7 @@ namespace org.pdfclown.documents.files
         {
             return new bytes::Stream(
               new io::FileStream(
-                GetAbsolutePath(),
+                this.GetAbsolutePath(),
                 io::FileMode.Open,
                 io::FileAccess.Read
                 )
@@ -169,12 +140,44 @@ namespace org.pdfclown.documents.files
         {
             return new bytes::Stream(
               new io::FileStream(
-                GetAbsolutePath(),
+                this.GetAbsolutePath(),
                 io::FileMode.Create,
                 io::FileAccess.Write
                 )
               );
         }
+
+        /**
+          <summary>Instantiates an existing file reference.</summary>
+          <param name="baseObject">Base object.</param>
+        */
+        public static FileSpecification Wrap(
+          PdfDirectObject baseObject
+          )
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
+
+            var baseDataObject = baseObject.Resolve();
+            if (baseDataObject is PdfString)
+            {
+                return new SimpleFileSpecification(baseObject);
+            }
+            else if (baseDataObject is PdfDictionary)
+            {
+                return new FullFileSpecification(baseObject);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public PdfString Name => this.RetrieveName();
+
+        public PdfDirectObject NamedBaseObject => this.RetrieveNamedBaseObject();
 
         /**
           <summary>Gets the file path.</summary>
@@ -183,23 +186,6 @@ namespace org.pdfclown.documents.files
         {
             get;
         }
-
-        #region IPdfNamedObjectWrapper
-        public PdfString Name
-        {
-            get
-            { return RetrieveName(); }
-        }
-
-        public PdfDirectObject NamedBaseObject
-        {
-            get
-            { return RetrieveNamedBaseObject(); }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }
 

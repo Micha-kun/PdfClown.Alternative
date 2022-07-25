@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.util.math.geom
 {
+    using System.Drawing;
+    using System.Drawing.Drawing2D;
+
     public static class Extension
     {
         public static void Add(
@@ -38,14 +37,14 @@ namespace org.pdfclown.util.math.geom
         {
             if (point.X < rectangle.Left)
             {
-                rectangle.Width += (rectangle.X - point.X);
+                rectangle.Width += rectangle.X - point.X;
                 rectangle.X = point.X;
             }
             else if (point.X > rectangle.Right)
             { rectangle.Width = point.X - rectangle.X; }
             if (point.Y < rectangle.Top)
             {
-                rectangle.Height += (rectangle.Y - point.Y);
+                rectangle.Height += rectangle.Y - point.Y;
                 rectangle.Y = point.Y;
             }
             else if (point.Y > rectangle.Bottom)
@@ -60,12 +59,12 @@ namespace org.pdfclown.util.math.geom
         public static float CenterX(
           this RectangleF rectangle
           )
-        { return rectangle.Left + rectangle.Width / 2; }
+        { return rectangle.Left + (rectangle.Width / 2); }
 
         public static float CenterY(
           this RectangleF rectangle
           )
-        { return rectangle.Top + rectangle.Height / 2; }
+        { return rectangle.Top + (rectangle.Height / 2); }
 
         public static GraphicsPath ToPath(
           this RectangleF rectangle

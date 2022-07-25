@@ -24,13 +24,13 @@
 */
 
 
-using System;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.layers
 {
+    using System;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Intended use of layers [PDF:1.7:4.10.1].</summary>
     */
@@ -68,11 +68,15 @@ namespace org.pdfclown.documents.contents.layers
           )
         {
             if (name == null)
+            {
                 return IntentEnum.View;
+            }
 
             IntentEnum? intent = codes.GetKey(name);
             if (!intent.HasValue)
-                throw new NotSupportedException("Intent unknown: " + name);
+            {
+                throw new NotSupportedException($"Intent unknown: {name}");
+            }
 
             return intent.Value;
         }

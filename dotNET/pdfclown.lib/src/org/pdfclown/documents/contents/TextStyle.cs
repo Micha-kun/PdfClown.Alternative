@@ -23,18 +23,16 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.documents.contents.fonts;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.documents.contents.fonts;
+
     /**
       <summary>Text style.</summary>
     */
     public sealed class TextStyle
     {
-        #region dynamic
-        #region fields
         private readonly Color fillColor;
         private readonly ColorSpace fillColorSpace;
         private readonly Font font;
@@ -44,20 +42,18 @@ namespace org.pdfclown.documents.contents
         private readonly double scaleY;
         private readonly Color strokeColor;
         private readonly ColorSpace strokeColorSpace;
-        #endregion
 
-        #region constructors
         public TextStyle(
-          Font font,
-          double fontSize,
-          TextRenderModeEnum renderMode,
-          Color strokeColor,
-          ColorSpace strokeColorSpace,
-          Color fillColor,
-          ColorSpace fillColorSpace,
-          double scaleX,
-          double scaleY
-          )
+  Font font,
+  double fontSize,
+  TextRenderModeEnum renderMode,
+  Color strokeColor,
+  ColorSpace strokeColorSpace,
+  Color fillColor,
+  ColorSpace fillColorSpace,
+  double scaleX,
+  double scaleY
+  )
         {
             this.font = font;
             this.fontSize = fontSize;
@@ -69,21 +65,6 @@ namespace org.pdfclown.documents.contents
             this.scaleX = scaleX;
             this.scaleY = scaleY;
         }
-        #endregion
-
-        #region interface
-        #region public
-        public Color FillColor
-        { get { return fillColor; } }
-
-        public ColorSpace FillColorSpace
-        { get { return fillColorSpace; } }
-
-        public Font Font
-        { get { return font; } }
-
-        public double FontSize
-        { get { return fontSize; } }
 
         /**
           <exception cref="EncodeException"/>
@@ -91,24 +72,24 @@ namespace org.pdfclown.documents.contents
         public double GetWidth(
           char textChar
           )
-        { return font.GetWidth(textChar, fontSize) * scaleX / scaleY; }
+        { return this.font.GetWidth(textChar, this.fontSize) * this.scaleX / this.scaleY; }
 
-        public TextRenderModeEnum RenderMode
-        { get { return renderMode; } }
+        public Color FillColor => this.fillColor;
 
-        public double ScaleX
-        { get { return scaleX; } }
+        public ColorSpace FillColorSpace => this.fillColorSpace;
 
-        public double ScaleY
-        { get { return scaleY; } }
+        public Font Font => this.font;
 
-        public Color StrokeColor
-        { get { return strokeColor; } }
+        public double FontSize => this.fontSize;
 
-        public ColorSpace StrokeColorSpace
-        { get { return strokeColorSpace; } }
-        #endregion
-        #endregion
-        #endregion
+        public TextRenderModeEnum RenderMode => this.renderMode;
+
+        public double ScaleX => this.scaleX;
+
+        public double ScaleY => this.scaleY;
+
+        public Color StrokeColor => this.strokeColor;
+
+        public ColorSpace StrokeColorSpace => this.strokeColorSpace;
     }
 }

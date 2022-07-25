@@ -23,68 +23,46 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+
     /**
       <summary>Exception thrown in case of missing code-to-character mapping.</summary>
     */
     public class EncodeException
       : Exception
     {
-        #region dynamic
-        #region fields
-        private int index;
-        private string text;
-        #endregion
+        private readonly int index;
+        private readonly string text;
 
-        #region constructors
         public EncodeException(
-          char textChar
-        ) : this(new String(textChar, 1), 0)
+  char textChar
+) : this(new string(textChar, 1), 0)
         { }
 
         public EncodeException(
           string text,
           int index
-          ) : base(String.Format("Missing code mapping for character {0} ('{1}') at position {2} in \"{3}\"", (int)text[index], text[index], index, text))
+          ) : base($"Missing code mapping for character {(int)text[index]} ('{text[index]}') at position {index} in \"{text}\"")
         {
             this.text = text;
             this.index = index;
         }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Gets the position of the missing character in the string to encode.</summary>
-        */
-        public int Index
-        {
-            get
-            { return index; }
-        }
+<summary>Gets the position of the missing character in the string to encode.</summary>
+*/
+        public int Index => this.index;
 
         /**
           <summary>Gets the string to encode.</summary>
         */
-        public string Text
-        {
-            get
-            { return text; }
-        }
+        public string Text => this.text;
 
         /**
           <summary>Gets the missing character.</summary>
         */
-        public char UndefinedChar
-        {
-            get
-            { return text[index]; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public char UndefinedChar => this.text[this.index];
     }
 }

@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
 namespace org.pdfclown.util.math.geom
 {
+    using System.Drawing;
+
     /**
       <summary>Geometric utilities.</summary>
     */
@@ -40,8 +39,8 @@ namespace org.pdfclown.util.math.geom
           )
         {
             return new RectangleF(
-              anchor.X - rectangle.Width * (1 - alignment.X.CompareTo(0)) / 2,
-              anchor.Y - rectangle.Height * (1 - alignment.Y.CompareTo(0)) / 2,
+              anchor.X - (rectangle.Width * (1 - alignment.X.CompareTo(0)) / 2),
+              anchor.Y - (rectangle.Height * (1 - alignment.Y.CompareTo(0)) / 2),
               rectangle.Width,
               rectangle.Height
               );
@@ -62,11 +61,13 @@ namespace org.pdfclown.util.math.geom
           )
         {
             if (limit == 0)
+            {
                 return new SizeF(size);
+            }
             else
             {
-                float sizeRatio = size.Width / size.Height;
-                return sizeRatio > 1
+                var sizeRatio = size.Width / size.Height;
+                return (sizeRatio > 1)
                   ? new SizeF(limit, limit / sizeRatio)
                   : new SizeF(limit * sizeRatio, limit);
             }
@@ -89,14 +90,22 @@ namespace org.pdfclown.util.math.geom
             if (limit.Width == 0)
             {
                 if (limit.Height == 0)
+                {
                     return new SizeF(size);
+                }
                 else
+                {
                     return new SizeF(limit.Height * size.Width / size.Height, limit.Height);
+                }
             }
             else if (limit.Height == 0)
+            {
                 return new SizeF(limit.Width, limit.Width * size.Height / size.Width);
+            }
             else
+            {
                 return new SizeF(limit);
+            }
         }
     }
 }

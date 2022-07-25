@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.functions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>PostScript calculator function represented as a stream containing code written in a
       small subset of the PostScript language [PDF:1.6:3.9.4].</summary>
@@ -38,27 +37,19 @@ namespace org.pdfclown.documents.functions
     public sealed class Type4Function
       : Function
     {
-        #region dynamic
-        #region constructors
         //TODO:implement function creation!
 
         internal Type4Function(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override double[] Calculate(
-          double[] inputs
-          )
+double[] inputs
+)
         {
             // FIXME: Auto-generated method stub
             return null;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

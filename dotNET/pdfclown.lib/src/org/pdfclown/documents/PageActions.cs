@@ -23,13 +23,11 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.objects;
-
-using system = System;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.objects;
+
     /**
       <summary>Page actions [PDF:1.6:8.5.2].</summary>
     */
@@ -37,30 +35,23 @@ namespace org.pdfclown.documents
     public sealed class PageActions
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region dynamic
-        #region constructors
-        public PageActions(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         internal PageActions(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public PageActions(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the action to be performed when the page is closed.</summary>
-        */
+<summary>Gets/Sets the action to be performed when the page is closed.</summary>
+*/
         public Action OnClose
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.C]); }
-            set
-            { BaseDataObject[PdfName.C] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.C]);
+            set => this.BaseDataObject[PdfName.C] = value.BaseObject;
         }
 
         /**
@@ -68,13 +59,8 @@ namespace org.pdfclown.documents
         */
         public Action OnOpen
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.O]); }
-            set
-            { BaseDataObject[PdfName.O] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.O]);
+            set => this.BaseDataObject[PdfName.O] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

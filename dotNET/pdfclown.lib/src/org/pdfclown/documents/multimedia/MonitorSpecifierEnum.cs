@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using System;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Monitor specifier [PDF:1.7:9.1.6].</summary>
     */
@@ -88,11 +88,15 @@ namespace org.pdfclown.documents.multimedia
           )
         {
             if (code == null)
+            {
                 return MonitorSpecifierEnum.LargestDocumentWindowSection;
+            }
 
             MonitorSpecifierEnum? monitorSpecifier = codes.GetKey(code);
             if (!monitorSpecifier.HasValue)
-                throw new NotSupportedException("Monitor specifier unknown: " + code);
+            {
+                throw new NotSupportedException($"Monitor specifier unknown: {code}");
+            }
 
             return monitorSpecifier;
         }

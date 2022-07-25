@@ -24,16 +24,16 @@
 */
 
 
-using System;
-using System.Net;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-using bytes = org.pdfclown.bytes;
-
 namespace org.pdfclown.documents.files
 {
+    using System;
+    using System.Net;
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+    using bytes = org.pdfclown.bytes;
+
     /**
       <summary>Extended reference to the contents of another file [PDF:1.6:3.10.2].</summary>
     */
@@ -41,200 +41,37 @@ namespace org.pdfclown.documents.files
     public sealed class FullFileSpecification
       : FileSpecification
     {
-        #region types
-        /**
-          <summary>Standard file system.</summary>
-        */
-        public enum StandardFileSystemEnum
-        {
-            /**
-              <summary>Generic platform file system.</summary>
-            */
-            Native,
-            /**
-              <summary>Uniform resource locator.</summary>
-            */
-            URL
-        }
-        #endregion
-
-        #region dynamic
-        #region constructors
-        internal FullFileSpecification(
-          Document context,
-          string path
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {PdfName.Filespec}
-              )
-            )
-        { SetPath(path); }
-
-        internal FullFileSpecification(
-          EmbeddedFile embeddedFile,
-          string filename
-          ) : this(embeddedFile.Document, filename)
-        { EmbeddedFile = embeddedFile; }
-
-        internal FullFileSpecification(
-          Document context,
-          Uri url
-          ) : this(context, url.ToString())
-        { FileSystem = StandardFileSystemEnum.URL; }
 
         internal FullFileSpecification(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the related files.</summary>
-        */
-        public RelatedFiles Dependencies
-        {
-            get
-            { return GetDependencies(PdfName.F); }
-            set
-            { SetDependencies(PdfName.F, value); }
-        }
+        internal FullFileSpecification(
+Document context,
+string path
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Type},
+new PdfDirectObject[]
+{PdfName.Filespec}
+)
+)
+        { this.SetPath(path); }
 
-        /**
-          <summary>Gets/Sets the description of the file.</summary>
-        */
-        public string Description
-        {
-            get
-            { return (string)PdfSimpleObject<object>.GetValue(BaseDictionary[PdfName.Desc]); }
-            set
-            { BaseDictionary[PdfName.Desc] = new PdfTextString(value); }
-        }
+        internal FullFileSpecification(
+          EmbeddedFile embeddedFile,
+          string filename
+          ) : this(embeddedFile.Document, filename)
+        { this.EmbeddedFile = embeddedFile; }
 
-        /**
-          <summary>Gets/Sets the embedded file corresponding to this file.</summary>
-        */
-        public EmbeddedFile EmbeddedFile
-        {
-            get
-            { return GetEmbeddedFile(PdfName.F); }
-            set
-            { SetEmbeddedFile(PdfName.F, value); }
-        }
-
-        /**
-          <summary>Gets/Sets the file system to be used to interpret this file specification.</summary>
-          <returns>Either <see cref="StandardFileSystemEnum"/> (standard file system) or
-          <see cref="String"/> (custom file system).</returns>
-        */
-        public object FileSystem
-        {
-            get
-            {
-                PdfName fileSystemObject = (PdfName)BaseDictionary[PdfName.FS];
-                StandardFileSystemEnum? standardFileSystem = StandardFileSystemEnumExtension.Get(fileSystemObject);
-                return standardFileSystem.HasValue ? standardFileSystem.Value : fileSystemObject.Value;
-            }
-            set
-            {
-                PdfName fileSystemObject;
-                if (value is StandardFileSystemEnum)
-                { fileSystemObject = ((StandardFileSystemEnum)value).GetCode(); }
-                else if (value is string)
-                { fileSystemObject = new PdfName((string)value); }
-                else
-                    throw new ArgumentException("MUST be either StandardFileSystemEnum (standard file system) or String (custom file system)");
-
-                BaseDictionary[PdfName.FS] = fileSystemObject;
-            }
-        }
-
-        public override bytes::IInputStream GetInputStream(
-          )
-        {
-            if (PdfName.URL.Equals(BaseDictionary[PdfName.FS])) // Remote resource [PDF:1.7:3.10.4].
-            {
-                Uri fileUrl;
-                try
-                { fileUrl = new Uri(Path); }
-                catch (Exception e)
-                { throw new Exception("Failed to instantiate URL for " + Path, e); }
-                WebClient webClient = new WebClient();
-                try
-                { return new bytes::Buffer(webClient.OpenRead(fileUrl)); }
-                catch (Exception e)
-                { throw new Exception("Failed to open input stream for " + Path, e); }
-            }
-            else // Local resource [PDF:1.7:3.10.1].
-                return base.GetInputStream();
-        }
-
-        public override bytes::IOutputStream GetOutputStream(
-          )
-        {
-            if (PdfName.URL.Equals(BaseDictionary[PdfName.FS])) // Remote resource [PDF:1.7:3.10.4].
-            {
-                Uri fileUrl;
-                try
-                { fileUrl = new Uri(Path); }
-                catch (Exception e)
-                { throw new Exception("Failed to instantiate URL for " + Path, e); }
-                WebClient webClient = new WebClient();
-                try
-                { return new bytes::Stream(webClient.OpenWrite(fileUrl)); }
-                catch (Exception e)
-                { throw new Exception("Failed to open output stream for " + Path, e); }
-            }
-            else // Local resource [PDF:1.7:3.10.1].
-                return base.GetOutputStream();
-        }
-
-        /**
-          <summary>Gets/Sets the identifier of the file.</summary>
-        */
-        public FileIdentifier ID
-        {
-            get
-            { return FileIdentifier.Wrap(BaseDictionary[PdfName.ID]); }
-            set
-            { BaseDictionary[PdfName.ID] = value.BaseObject; }
-        }
-
-        public override string Path
-        {
-            get
-            { return GetPath(PdfName.F); }
-        }
-
-        public void SetPath(
-          string value
-          )
-        { SetPath(PdfName.F, value); }
-
-        /**
-          <summary>Gets/Sets whether the referenced file is volatile (changes frequently with time).
-          </summary>
-        */
-        public bool Volatile
-        {
-            get
-            { return (bool)PdfSimpleObject<object>.GetValue(BaseDictionary[PdfName.V], false); }
-            set
-            { BaseDictionary[PdfName.V] = PdfBoolean.Get(value); }
-        }
-        #endregion
-
-        #region private
-        private PdfDictionary BaseDictionary
-        {
-            get
-            { return (PdfDictionary)BaseDataObject; }
-        }
+        internal FullFileSpecification(
+          Document context,
+          Uri url
+          ) : this(context, url.ToString())
+        { this.FileSystem = StandardFileSystemEnum.URL; }
 
         /**
           <summary>Gets the related files associated to the given key.</summary>
@@ -243,9 +80,11 @@ namespace org.pdfclown.documents.files
           PdfName key
           )
         {
-            PdfDictionary dependenciesObject = (PdfDictionary)BaseDictionary[PdfName.RF];
+            var dependenciesObject = (PdfDictionary)this.BaseDictionary[PdfName.RF];
             if (dependenciesObject == null)
+            {
                 return null;
+            }
 
             return RelatedFiles.Wrap(dependenciesObject[key]);
         }
@@ -257,9 +96,11 @@ namespace org.pdfclown.documents.files
           PdfName key
           )
         {
-            PdfDictionary embeddedFilesObject = (PdfDictionary)BaseDictionary[PdfName.EF];
+            var embeddedFilesObject = (PdfDictionary)this.BaseDictionary[PdfName.EF];
             if (embeddedFilesObject == null)
+            {
                 return null;
+            }
 
             return EmbeddedFile.Wrap(embeddedFilesObject[key]);
         }
@@ -270,7 +111,7 @@ namespace org.pdfclown.documents.files
         private string GetPath(
           PdfName key
           )
-        { return (string)PdfSimpleObject<object>.GetValue(BaseDictionary[key]); }
+        { return (string)PdfSimpleObject<object>.GetValue(this.BaseDictionary[key]); }
 
         /**
           <see cref="GetDependencies(PdfName)"/>
@@ -280,9 +121,9 @@ namespace org.pdfclown.documents.files
           RelatedFiles value
           )
         {
-            PdfDictionary dependenciesObject = (PdfDictionary)BaseDictionary[PdfName.RF];
+            var dependenciesObject = (PdfDictionary)this.BaseDictionary[PdfName.RF];
             if (dependenciesObject == null)
-            { BaseDictionary[PdfName.RF] = dependenciesObject = new PdfDictionary(); }
+            { this.BaseDictionary[PdfName.RF] = dependenciesObject = new PdfDictionary(); }
 
             dependenciesObject[key] = value.BaseObject;
         }
@@ -295,9 +136,9 @@ namespace org.pdfclown.documents.files
           EmbeddedFile value
           )
         {
-            PdfDictionary embeddedFilesObject = (PdfDictionary)BaseDictionary[PdfName.EF];
+            var embeddedFilesObject = (PdfDictionary)this.BaseDictionary[PdfName.EF];
             if (embeddedFilesObject == null)
-            { BaseDictionary[PdfName.EF] = embeddedFilesObject = new PdfDictionary(); }
+            { this.BaseDictionary[PdfName.EF] = embeddedFilesObject = new PdfDictionary(); }
 
             embeddedFilesObject[key] = value.BaseObject;
         }
@@ -309,10 +150,149 @@ namespace org.pdfclown.documents.files
           PdfName key,
           string value
           )
-        { BaseDictionary[key] = new PdfString(value); }
-        #endregion
-        #endregion
-        #endregion
+        { this.BaseDictionary[key] = new PdfString(value); }
+
+        private PdfDictionary BaseDictionary => (PdfDictionary)this.BaseDataObject;
+
+        public override bytes::IInputStream GetInputStream(
+          )
+        {
+            if (PdfName.URL.Equals(this.BaseDictionary[PdfName.FS])) // Remote resource [PDF:1.7:3.10.4].
+            {
+                Uri fileUrl;
+                try
+                { fileUrl = new Uri(this.Path); }
+                catch (Exception e)
+                { throw new Exception($"Failed to instantiate URL for {this.Path}", e); }
+                var webClient = new WebClient();
+                try
+                { return new bytes::Buffer(webClient.OpenRead(fileUrl)); }
+                catch (Exception e)
+                { throw new Exception($"Failed to open input stream for {this.Path}", e); }
+            }
+            else // Local resource [PDF:1.7:3.10.1].
+            {
+                return base.GetInputStream();
+            }
+        }
+
+        public override bytes::IOutputStream GetOutputStream(
+          )
+        {
+            if (PdfName.URL.Equals(this.BaseDictionary[PdfName.FS])) // Remote resource [PDF:1.7:3.10.4].
+            {
+                Uri fileUrl;
+                try
+                { fileUrl = new Uri(this.Path); }
+                catch (Exception e)
+                { throw new Exception($"Failed to instantiate URL for {this.Path}", e); }
+                var webClient = new WebClient();
+                try
+                { return new bytes::Stream(webClient.OpenWrite(fileUrl)); }
+                catch (Exception e)
+                { throw new Exception($"Failed to open output stream for {this.Path}", e); }
+            }
+            else // Local resource [PDF:1.7:3.10.1].
+            {
+                return base.GetOutputStream();
+            }
+        }
+
+        public void SetPath(
+          string value
+          )
+        { this.SetPath(PdfName.F, value); }
+
+        /**
+<summary>Gets/Sets the related files.</summary>
+*/
+        public RelatedFiles Dependencies
+        {
+            get => this.GetDependencies(PdfName.F);
+            set => this.SetDependencies(PdfName.F, value);
+        }
+
+        /**
+          <summary>Gets/Sets the description of the file.</summary>
+        */
+        public string Description
+        {
+            get => (string)PdfSimpleObject<object>.GetValue(this.BaseDictionary[PdfName.Desc]);
+            set => this.BaseDictionary[PdfName.Desc] = new PdfTextString(value);
+        }
+
+        /**
+          <summary>Gets/Sets the embedded file corresponding to this file.</summary>
+        */
+        public EmbeddedFile EmbeddedFile
+        {
+            get => this.GetEmbeddedFile(PdfName.F);
+            set => this.SetEmbeddedFile(PdfName.F, value);
+        }
+
+        /**
+          <summary>Gets/Sets the file system to be used to interpret this file specification.</summary>
+          <returns>Either <see cref="StandardFileSystemEnum"/> (standard file system) or
+          <see cref="string"/> (custom file system).</returns>
+        */
+        public object FileSystem
+        {
+            get
+            {
+                var fileSystemObject = (PdfName)this.BaseDictionary[PdfName.FS];
+                var standardFileSystem = StandardFileSystemEnumExtension.Get(fileSystemObject);
+                return standardFileSystem.HasValue ? standardFileSystem.Value : fileSystemObject.Value;
+            }
+            set
+            {
+                PdfName fileSystemObject;
+                if (value is StandardFileSystemEnum)
+                { fileSystemObject = ((StandardFileSystemEnum)value).GetCode(); }
+                else if (value is string)
+                { fileSystemObject = new PdfName((string)value); }
+                else
+                {
+                    throw new ArgumentException("MUST be either StandardFileSystemEnum (standard file system) or String (custom file system)");
+                }
+
+                this.BaseDictionary[PdfName.FS] = fileSystemObject;
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the identifier of the file.</summary>
+        */
+        public FileIdentifier ID
+        {
+            get => FileIdentifier.Wrap(this.BaseDictionary[PdfName.ID]);
+            set => this.BaseDictionary[PdfName.ID] = value.BaseObject;
+        }
+
+        public override string Path => this.GetPath(PdfName.F);
+
+        /**
+          <summary>Gets/Sets whether the referenced file is volatile (changes frequently with time).
+          </summary>
+        */
+        public bool Volatile
+        {
+            get => (bool)PdfSimpleObject<object>.GetValue(this.BaseDictionary[PdfName.V], false);
+            set => this.BaseDictionary[PdfName.V] = PdfBoolean.Get(value);
+        }
+        /**
+  <summary>Standard file system.</summary>
+*/
+        public enum StandardFileSystemEnum
+        {
+            /**
+              <summary>Generic platform file system.</summary>
+            */
+            Native,
+            /**
+              <summary>Uniform resource locator.</summary>
+            */
+            URL
+        }
     }
 
     internal static class StandardFileSystemEnumExtension

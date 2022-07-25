@@ -24,14 +24,14 @@
 */
 
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interchange.metadata
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>A page-piece dictionary used to hold private application data [PDF:1.7:10.4].</summary>
     */
@@ -40,105 +40,51 @@ namespace org.pdfclown.documents.interchange.metadata
       : PdfObjectWrapper<PdfDictionary>,
         IDictionary<PdfName, AppData>
     {
-        #region static
-        #region interface
-        public static AppDataCollection Wrap(
-          PdfDirectObject baseObject,
-          IAppDataHolder holder
-          )
-        { return baseObject != null ? new AppDataCollection(baseObject, holder) : null; }
-        #endregion
-        #endregion
 
-        #region dynamic
-        private IAppDataHolder holder;
+        private readonly IAppDataHolder holder;
 
-        #region constructors
         private AppDataCollection(
-          PdfDirectObject baseObject,
-          IAppDataHolder holder
-          ) : base(baseObject)
+  PdfDirectObject baseObject,
+  IAppDataHolder holder
+  ) : base(baseObject)
         { this.holder = holder; }
-        #endregion
-
-        #region interface
-        public AppData Ensure(
-          PdfName key
-          )
-        {
-            AppData appData = this[key];
-            if (appData == null)
-            {
-                BaseDataObject[key] = (appData = new AppData(Document)).BaseObject;
-                holder.Touch(key);
-            }
-            return appData;
-        }
-
-        #region IDictionary
-        public void Add(
-          PdfName key,
-          AppData value
-          )
-        { throw new NotSupportedException(); }
-
-        public void Clear(
-          )
-        { BaseDataObject.Clear(); }
-
-        public bool ContainsKey(
-          PdfName key
-          )
-        { return BaseDataObject.ContainsKey(key); }
-
-        public ICollection<PdfName> Keys
-        {
-            get
-            { return BaseDataObject.Keys; }
-        }
-
-        public bool Remove(
-          PdfName key
-          )
-        { return BaseDataObject.Remove(key); }
 
         public AppData this[
           PdfName key
           ]
         {
-            get
-            { return AppData.Wrap(BaseDataObject[key]); }
-            set
-            { throw new NotSupportedException(); }
+            get => AppData.Wrap(this.BaseDataObject[key]);
+            set => throw new NotSupportedException();
         }
 
-        public bool TryGetValue(
-          PdfName key,
-          out AppData value
-          )
-        { throw new NotImplementedException(); }
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return this.GetEnumerator(); }
 
-        public ICollection<AppData> Values
-        {
-            get
-            {
-                ICollection<AppData> values = new List<AppData>();
-                foreach (PdfDirectObject valueObject in BaseDataObject.Values)
-                { values.Add(AppData.Wrap(valueObject)); }
-                return values;
-            }
-        }
-
-        #region ICollection
         public void Add(
-          KeyValuePair<PdfName, AppData> item
-          )
+  KeyValuePair<PdfName, AppData> item
+  )
         { throw new NotSupportedException(); }
+
+        public void Add(
+  PdfName key,
+  AppData value
+  )
+        { throw new NotSupportedException(); }
+
+        public void Clear(
+          )
+        { this.BaseDataObject.Clear(); }
 
         public bool Contains(
           KeyValuePair<PdfName, AppData> item
           )
-        { return item.Value.BaseObject.Equals(BaseDataObject[item.Key]); }
+        { return item.Value.BaseObject.Equals(this.BaseDataObject[item.Key]); }
+
+        public bool ContainsKey(
+          PdfName key
+          )
+        { return this.BaseDataObject.ContainsKey(key); }
 
         public void CopyTo(
           KeyValuePair<PdfName, AppData>[] array,
@@ -146,46 +92,72 @@ namespace org.pdfclown.documents.interchange.metadata
           )
         { throw new NotImplementedException(); }
 
-        public int Count
+        public AppData Ensure(
+  PdfName key
+  )
         {
-            get
-            { return BaseDataObject.Count; }
+            var appData = this[key];
+            if (appData == null)
+            {
+                this.BaseDataObject[key] = (appData = new AppData(this.Document)).BaseObject;
+                this.holder.Touch(key);
+            }
+            return appData;
         }
 
-        public bool IsReadOnly
+        public IEnumerator<KeyValuePair<PdfName, AppData>> GetEnumerator(
+  )
         {
-            get
-            { return false; }
+            foreach (var key in this.Keys)
+            { yield return new KeyValuePair<PdfName, AppData>(key, this[key]); }
         }
+
+        public bool Remove(
+          PdfName key
+          )
+        { return this.BaseDataObject.Remove(key); }
 
         public bool Remove(
           KeyValuePair<PdfName, AppData> item
           )
         {
-            if (Contains(item))
-                return Remove(item.Key);
+            if (this.Contains(item))
+            {
+                return this.Remove(item.Key);
+            }
             else
+            {
                 return false;
+            }
         }
 
-        #region IEnumerable<KeyValuePair<PdfName,AppData>>
-        public IEnumerator<KeyValuePair<PdfName, AppData>> GetEnumerator(
+        public bool TryGetValue(
+          PdfName key,
+          out AppData value
           )
+        { throw new NotImplementedException(); }
+        public static AppDataCollection Wrap(
+PdfDirectObject baseObject,
+IAppDataHolder holder
+)
+        { return (baseObject != null) ? new AppDataCollection(baseObject, holder) : null; }
+
+        public int Count => this.BaseDataObject.Count;
+
+        public bool IsReadOnly => false;
+
+        public ICollection<PdfName> Keys => this.BaseDataObject.Keys;
+
+        public ICollection<AppData> Values
         {
-            foreach (PdfName key in Keys)
-            { yield return new KeyValuePair<PdfName, AppData>(key, this[key]); }
+            get
+            {
+                ICollection<AppData> values = new List<AppData>();
+                foreach (var valueObject in this.BaseDataObject.Values)
+                { values.Add(AppData.Wrap(valueObject)); }
+                return values;
+            }
         }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<KeyValuePair<PdfName, AppData>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }
 

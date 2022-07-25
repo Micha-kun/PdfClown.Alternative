@@ -24,13 +24,13 @@
 */
 
 
-using System.Collections.Generic;
-using org.pdfclown.bytes;
-
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.tokens;
+
     /**
       <summary>Marked-content sequence [PDF:1.6:10.5].</summary>
     */
@@ -38,23 +38,15 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class MarkedContent
       : ContainerObject
     {
-        #region static
-        #region fields
+
+        private static readonly byte[] EndChunk = Encoding.Pdf.Encode($"{EndOperatorKeyword}{Symbol.LineFeed}");
         public static readonly string EndOperatorKeyword = EndMarkedContent.OperatorKeyword;
 
-        private static readonly byte[] EndChunk = Encoding.Pdf.Encode(EndOperatorKeyword + Symbol.LineFeed);
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
         private BeginMarkedContent header;
-        #endregion
 
-        #region constructors
         public MarkedContent(
-          BeginMarkedContent header
-          ) : this(header, new List<ContentObject>())
+  BeginMarkedContent header
+  ) : this(header, new List<ContentObject>())
         { }
 
         public MarkedContent(
@@ -62,32 +54,24 @@ namespace org.pdfclown.documents.contents.objects
           IList<ContentObject> objects
           ) : base(objects)
         { this.header = header; }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets information about this marked-content sequence.</summary>
-        */
-        public override Operation Header
-        {
-            get
-            { return header; }
-            set
-            { header = (BeginMarkedContent)value; }
-        }
 
         public override void WriteTo(
           IOutputStream stream,
           Document context
           )
         {
-            header.WriteTo(stream, context);
+            this.header.WriteTo(stream, context);
             base.WriteTo(stream, context);
             stream.Write(EndChunk);
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+<summary>Gets/Sets information about this marked-content sequence.</summary>
+*/
+        public override Operation Header
+        {
+            get => this.header;
+            set => this.header = (BeginMarkedContent)value;
+        }
     }
 }

@@ -23,24 +23,21 @@
   this list of conditions.
 */
 
-using org.pdfclown.bytes;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using org.pdfclown.bytes;
+
     /**
       <summary>Abstract content object [PDF:1.6:4.1].</summary>
     */
     [PDF(VersionEnum.PDF10)]
     public abstract class ContentObject
     {
-        #region dynamic
-        #region interface
-        #region public
         /**
-          <summary>Applies this object to the specified graphics context, updating the specified
-          graphics state.</summary>
-          <param name="state">Graphics state.</param>
-        */
+<summary>Applies this object to the specified graphics context, updating the specified
+graphics state.</summary>
+<param name="state">Graphics state.</param>
+*/
         public virtual void Scan(
           ContentScanner.GraphicsState state
           )
@@ -55,8 +52,5 @@ namespace org.pdfclown.documents.contents.objects
           IOutputStream stream,
           Document context
           );
-        #endregion
-        #endregion
-        #endregion
     }
 }

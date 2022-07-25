@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
 namespace org.pdfclown.util.collections.generic
 {
+    using System;
+    using System.Collections.Generic;
+
     /**
       <summary>Extension collection interface.</summary>
     */

@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.files;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using org.pdfclown.documents.files;
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Abstract 'go to non-local destination' action.</summary>
     */
@@ -39,33 +38,26 @@ namespace org.pdfclown.documents.interaction.actions
       : GoToDestination<T>
       where T : Destination
     {
-        #region dynamic
-        #region constructors
-        protected GotoNonLocal(
-          Document context,
-          PdfName actionType,
-          FileSpecification destinationFile,
-          T destination
-          ) : base(context, actionType, destination)
-        { DestinationFile = destinationFile; }
 
         protected GotoNonLocal(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        protected GotoNonLocal(
+Document context,
+PdfName actionType,
+FileSpecification destinationFile,
+T destination
+) : base(context, actionType, destination)
+        { this.DestinationFile = destinationFile; }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the file in which the destination is located.</summary>
-        */
+<summary>Gets/Sets the file in which the destination is located.</summary>
+*/
         public virtual FileSpecification DestinationFile
         {
-            get
-            { return FileSpecification.Wrap(BaseDataObject[PdfName.F]); }
-            set
-            { BaseDataObject[PdfName.F] = (value != null ? value.BaseObject : null); }
+            get => FileSpecification.Wrap(this.BaseDataObject[PdfName.F]);
+            set => this.BaseDataObject[PdfName.F] = (value != null) ? value.BaseObject : null;
         }
 
         /**
@@ -76,8 +68,8 @@ namespace org.pdfclown.documents.interaction.actions
             get
             {
                 OptionsEnum options = 0;
-                PdfDirectObject optionsObject = BaseDataObject[PdfName.NewWindow];
-                if (optionsObject != null
+                var optionsObject = this.BaseDataObject[PdfName.NewWindow];
+                if ((optionsObject != null)
                   && ((PdfBoolean)optionsObject).BooleanValue)
                 { options |= OptionsEnum.NewWindow; }
                 return options;
@@ -85,15 +77,12 @@ namespace org.pdfclown.documents.interaction.actions
             set
             {
                 if ((value & OptionsEnum.NewWindow) == OptionsEnum.NewWindow)
-                { BaseDataObject[PdfName.NewWindow] = PdfBoolean.True; }
+                { this.BaseDataObject[PdfName.NewWindow] = PdfBoolean.True; }
                 else if ((value & OptionsEnum.SameWindow) == OptionsEnum.SameWindow)
-                { BaseDataObject[PdfName.NewWindow] = PdfBoolean.False; }
+                { this.BaseDataObject[PdfName.NewWindow] = PdfBoolean.False; }
                 else
-                { BaseDataObject.Remove(PdfName.NewWindow); } // NOTE: Forcing the absence of this entry ensures that the viewer application should behave in accordance with the current user preference.
+                { _ = this.BaseDataObject.Remove(PdfName.NewWindow); } // NOTE: Forcing the absence of this entry ensures that the viewer application should behave in accordance with the current user preference.
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

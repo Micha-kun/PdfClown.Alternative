@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System;
+
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Abstract content marker [PDF:1.6:10.5].</summary>
     */
@@ -38,11 +38,9 @@ namespace org.pdfclown.documents.contents.objects
       : Operation,
         IResourceReference<PropertyList>
     {
-        #region dynamic
-        #region constructors
         protected ContentMarker(
-          PdfName tag
-          ) : this(tag, null)
+PdfName tag
+) : this(tag, null)
         { }
 
         protected ContentMarker(
@@ -52,11 +50,11 @@ namespace org.pdfclown.documents.contents.objects
         {
             if (properties != null)
             {
-                operands.Add(properties);
-                @operator = PropertyListOperator;
+                this.operands.Add(properties);
+                this.@operator = this.PropertyListOperator;
             }
             else
-            { @operator = SimpleOperator; }
+            { this.@operator = this.SimpleOperator; }
         }
 
         protected ContentMarker(
@@ -64,23 +62,41 @@ namespace org.pdfclown.documents.contents.objects
           IList<PdfDirectObject> operands
           ) : base(@operator, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        protected abstract string PropertyListOperator
+        { get; }
+
+        protected abstract string SimpleOperator
+        { get; }
+
         /**
-          <summary>Gets the private information meaningful to the program (application or plugin extension)
-          creating the marked content.</summary>
-          <param name="context">Content context.</param>
-        */
+<summary>Gets the private information meaningful to the program (application or plugin extension)
+creating the marked content.</summary>
+<param name="context">Content context.</param>
+*/
         public PropertyList GetProperties(
           IContentContext context
           )
         {
-            object properties = Properties;
-            return properties is PdfName
+            var properties = this.Properties;
+            return (properties is PdfName)
               ? context.Resources.PropertyLists[(PdfName)properties]
-              : (PropertyList)properties;
+              : ((PropertyList)properties);
+        }
+
+        public PropertyList GetResource(
+  IContentContext context
+  )
+        { return this.GetProperties(context); }
+
+        public PdfName Name
+        {
+            get
+            {
+                var properties = this.Properties;
+                return (properties is PdfName) ? ((PdfName)properties) : null;
+            }
+            set => this.Properties = value;
         }
 
         /**
@@ -92,23 +108,31 @@ namespace org.pdfclown.documents.contents.objects
         {
             get
             {
-                PdfDirectObject propertiesObject = operands[1];
+                var propertiesObject = this.operands[1];
                 if (propertiesObject == null)
+                {
                     return null;
+                }
                 else if (propertiesObject is PdfName)
+                {
                     return propertiesObject;
+                }
                 else if (propertiesObject is PdfDictionary)
+                {
                     return PropertyList.Wrap(propertiesObject);
+                }
                 else
-                    throw new NotSupportedException("Property list type unknown: " + propertiesObject.GetType().Name);
+                {
+                    throw new NotSupportedException($"Property list type unknown: {propertiesObject.GetType().Name}");
+                }
             }
             set
             {
                 if (value == null)
                 {
-                    @operator = SimpleOperator;
-                    if (operands.Count > 1)
-                    { operands.RemoveAt(1); }
+                    this.@operator = this.SimpleOperator;
+                    if (this.operands.Count > 1)
+                    { this.operands.RemoveAt(1); }
                 }
                 else
                 {
@@ -118,13 +142,15 @@ namespace org.pdfclown.documents.contents.objects
                     else if (value is PropertyList)
                     { operand = ((PropertyList)value).BaseDataObject; }
                     else
+                    {
                         throw new ArgumentException("value MUST be a PdfName or a PropertyList.");
+                    }
 
-                    @operator = PropertyListOperator;
-                    if (operands.Count > 1)
-                    { operands[1] = operand; }
+                    this.@operator = this.PropertyListOperator;
+                    if (this.operands.Count > 1)
+                    { this.operands[1] = operand; }
                     else
-                    { operands.Add(operand); }
+                    { this.operands.Add(operand); }
                 }
             }
         }
@@ -134,39 +160,8 @@ namespace org.pdfclown.documents.contents.objects
         */
         public PdfName Tag
         {
-            get
-            { return (PdfName)operands[0]; }
-            set
-            { operands[0] = value; }
+            get => (PdfName)this.operands[0];
+            set => this.operands[0] = value;
         }
-
-        #region IResourceReference
-        public PropertyList GetResource(
-          IContentContext context
-          )
-        { return GetProperties(context); }
-
-        public PdfName Name
-        {
-            get
-            {
-                object properties = Properties;
-                return (properties is PdfName ? (PdfName)properties : null);
-            }
-            set
-            { Properties = value; }
-        }
-        #endregion
-        #endregion
-
-        #region protected
-        protected abstract string PropertyListOperator
-        { get; }
-
-        protected abstract string SimpleOperator
-        { get; }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.files;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using org.pdfclown.documents.files;
+
+    using org.pdfclown.objects;
+
     //TODO: this is just a stub.
     /**
       <summary>Movie object [PDF:1.6:9.3].</summary>
@@ -39,36 +38,24 @@ namespace org.pdfclown.documents.multimedia
       : PdfObjectWrapper<PdfDictionary>,
         IFileResource
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new movie within the given document context.</summary>
-        */
-        public Movie(
-          Document context,
-          FileSpecification dataFile
-          ) : base(context, new PdfDictionary())
-        { DataFile = dataFile; }
 
         internal Movie(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new movie within the given document context.</summary>
+*/
+        public Movie(
+          Document context,
+          FileSpecification dataFile
+          ) : base(context, new PdfDictionary())
+        { this.DataFile = dataFile; }
 
-        #region interface
-        #region public
-        #region IFileResource
         public FileSpecification DataFile
         {
-            get
-            { return FileSpecification.Wrap(BaseDataObject[PdfName.F]); }
-            set
-            { BaseDataObject[PdfName.F] = value.BaseObject; }
+            get => FileSpecification.Wrap(this.BaseDataObject[PdfName.F]);
+            set => this.BaseDataObject[PdfName.F] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

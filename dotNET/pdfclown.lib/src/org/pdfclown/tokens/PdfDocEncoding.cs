@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.util;
-
 namespace org.pdfclown.tokens
 {
+    using org.pdfclown.util;
+
     /**
       <summary>Encoding for text strings in a PDF document outside the document's content streams
       [PDF:1.7:D].</summary>
@@ -35,9 +34,19 @@ namespace org.pdfclown.tokens
     public sealed class PdfDocEncoding
       : LatinEncoding
     {
-        #region types
+
+        private static readonly PdfDocEncoding instance = new PdfDocEncoding();
+
+        private PdfDocEncoding(
+)
+        { this.chars = new Chars(); }
+
+        public static PdfDocEncoding Get(
+  )
+        { return instance; }
+
         private class Chars
-          : BiDictionary<int, char>
+  : BiDictionary<int, char>
         {
             internal Chars(
               )
@@ -76,58 +85,27 @@ namespace org.pdfclown.tokens
                 this[0xA0] = '\u20AC';
             }
 
+            public override char this[
+              int key
+              ] => this.IsIdentity(key)
+                      ? ((char)key)
+                      : base[key];
+
             private bool IsIdentity(
               int code
               )
-            { return code < 128 || (code > 160 && code < 256); }
-
-            public override int Count
-            {
-                get
-                { return 256; }
-            }
+            { return (code < 128) || ((code > 160) && (code < 256)); }
 
             public override int GetKey(
               char value
               )
             {
-                return IsIdentity(value)
-                  ? (int)value
+                return this.IsIdentity(value)
+                  ? value
                   : base.GetKey(value);
             }
 
-            public override char this[
-              int key
-              ]
-            {
-                get
-                {
-                    return IsIdentity(key)
-                      ? (char)key
-                      : base[key];
-                }
-            }
+            public override int Count => 256;
         }
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly PdfDocEncoding instance = new PdfDocEncoding();
-        #endregion
-
-        #region interface
-        public static PdfDocEncoding Get(
-          )
-        { return instance; }
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        private PdfDocEncoding(
-          )
-        { chars = new Chars(); }
-        #endregion
-        #endregion
     }
 }

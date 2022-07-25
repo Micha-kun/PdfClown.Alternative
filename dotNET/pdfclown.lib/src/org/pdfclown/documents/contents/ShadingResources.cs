@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.contents.colorSpaces;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.documents.contents.colorSpaces;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Shading resources collection [PDF:1.6:3.7.2].</summary>
     */
@@ -37,27 +36,19 @@ namespace org.pdfclown.documents.contents
     public sealed class ShadingResources
       : ResourceItems<Shading>
     {
-        #region dynamic
-        #region constructors
-        public ShadingResources(
-          Document context
-          ) : base(context)
-        { }
 
         internal ShadingResources(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public ShadingResources(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override Shading Wrap(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return Shading.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

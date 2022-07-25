@@ -23,52 +23,34 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using System.IO;
-using System.Security.Cryptography;
-using org.pdfclown.objects;
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.files
 {
+    using System;
+
+    using System.IO;
+    using System.Security.Cryptography;
+    using org.pdfclown.objects;
+    using org.pdfclown.tokens;
+
     /**
       <summary>File identifier [PDF:1.7:10.3].</summary>
     */
     public sealed class FileIdentifier
       : PdfObjectWrapper<PdfArray>
     {
-        #region static
-        #region public
+
         /**
-          <summary>Gets an existing file identifier.</summary>
-          <param name="baseObject">Base object to wrap.</param>
+          <summary>Instantiates an existing file identifier.</summary>
+          <param nme="baseObject">Base object.</param>
         */
-        public static FileIdentifier Wrap(
+        private FileIdentifier(
           PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new FileIdentifier(baseObject) : null; }
-        #endregion
+          ) : base(baseObject)
+        { }
 
-        #region private
-        private static void Digest(
-          BinaryWriter buffer,
-          object value
-          )
-        { buffer.Write(value.ToString()); }
-
-        private static PdfArray CreateBaseDataObject(
-          )
-        { return new PdfArray(PdfString.Default, PdfString.Default); }
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         /**
-          <summary>Creates a new direct file identifier.</summary>
-        */
+<summary>Creates a new direct file identifier.</summary>
+*/
         public FileIdentifier(
           ) : this(CreateBaseDataObject())
         { }
@@ -81,37 +63,15 @@ namespace org.pdfclown.files
           ) : base(context, CreateBaseDataObject())
         { }
 
-        /**
-          <summary>Instantiates an existing file identifier.</summary>
-          <param nme="baseObject">Base object.</param>
-        */
-        private FileIdentifier(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
+        private static PdfArray CreateBaseDataObject(
+          )
+        { return new PdfArray(PdfString.Default, PdfString.Default); }
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets the permanent identifier based on the contents of the file at the time it was
-          originally created.</summary>
-        */
-        public string BaseID
-        {
-            get
-            { return (string)((PdfString)BaseDataObject[0]).Value; }
-        }
-
-        /**
-          <summary>Gets the changing identifier based on the file's contents at the time it was last
-          updated.</summary>
-        */
-        public string VersionID
-        {
-            get
-            { return (string)((PdfString)BaseDataObject[1]).Value; }
-        }
+        private static void Digest(
+  BinaryWriter buffer,
+  object value
+  )
+        { buffer.Write(value.ToString()); }
 
         /**
           <summary>Computes a new version identifier based on the file's contents.</summary>
@@ -126,11 +86,11 @@ namespace org.pdfclown.files
               NOTE: To help ensure the uniqueness of file identifiers, it is recommended that they are
               computed by means of a message digest algorithm such as MD5 [PDF:1.7:10.3].
             */
-            using (MD5 md5 = MD5.Create())
+            using (var md5 = MD5.Create())
             {
-                using (BinaryWriter buffer = new BinaryWriter(new MemoryStream(), Charset.ISO88591))
+                using (var buffer = new BinaryWriter(new MemoryStream(), Charset.ISO88591))
                 {
-                    File file = writer.File;
+                    var file = writer.File;
                     try
                     {
                         // File identifier computation is fulfilled with this information:
@@ -145,7 +105,7 @@ namespace org.pdfclown.files
                         Digest(buffer, writer.Stream.Length);
 
                         // d) Entries in the document information dictionary.
-                        foreach (KeyValuePair<PdfName, PdfDirectObject> informationObjectEntry in file.Document.Information.BaseDataObject)
+                        foreach (var informationObjectEntry in file.Document.Information.BaseDataObject)
                         {
                             Digest(buffer, informationObjectEntry.Key);
                             Digest(buffer, informationObjectEntry.Value);
@@ -164,18 +124,35 @@ namespace org.pdfclown.files
                       file has been found. If only the first identifier matches, a different version of the
                       correct file has been found.
                     */
-                    PdfString versionID = new PdfString(
+                    var versionID = new PdfString(
                       md5.ComputeHash(((MemoryStream)buffer.BaseStream).ToArray()),
                       PdfString.SerializationModeEnum.Hex
                       );
-                    BaseDataObject[1] = versionID;
-                    if (BaseDataObject[0].Equals(PdfString.Default))
-                    { BaseDataObject[0] = versionID; }
+                    this.BaseDataObject[1] = versionID;
+                    if (this.BaseDataObject[0].Equals(PdfString.Default))
+                    { this.BaseDataObject[0] = versionID; }
                 }
             }
         }
-        #endregion
-        #endregion
-        #endregion
+        /**
+<summary>Gets an existing file identifier.</summary>
+<param name="baseObject">Base object to wrap.</param>
+*/
+        public static FileIdentifier Wrap(
+          PdfDirectObject baseObject
+          )
+        { return (baseObject != null) ? new FileIdentifier(baseObject) : null; }
+
+        /**
+<summary>Gets the permanent identifier based on the contents of the file at the time it was
+originally created.</summary>
+*/
+        public string BaseID => (string)((PdfString)this.BaseDataObject[0]).Value;
+
+        /**
+          <summary>Gets the changing identifier based on the file's contents at the time it was last
+          updated.</summary>
+        */
+        public string VersionID => (string)((PdfString)this.BaseDataObject[1]).Value;
     }
 }

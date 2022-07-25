@@ -23,16 +23,16 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-
-using System.Collections.Generic;
-using System.Linq;
-using org.pdfclown.objects;
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.files
 {
+    using System;
+    using System.Collections;
+
+    using System.Collections.Generic;
+    using System.Linq;
+    using org.pdfclown.objects;
+    using org.pdfclown.tokens;
+
     /**
       <summary>Collection of the <b>alive indirect objects</b> available inside the
       file.</summary>
@@ -55,12 +55,10 @@ namespace org.pdfclown.files
     public sealed class IndirectObjects
       : IList<PdfIndirectObject>
     {
-        #region dynamic
-        #region fields
         /**
-          <summary>Associated file.</summary>
-        */
-        private File file;
+<summary>Associated file.</summary>
+*/
+        private readonly File file;
 
         /**
           <summary>Map of matching references of imported indirect objects.</summary>
@@ -71,35 +69,33 @@ namespace org.pdfclown.files
             matching internal indirect object.</para>
           </remarks>
         */
-        private Dictionary<int, PdfIndirectObject> importedObjects = new Dictionary<int, PdfIndirectObject>();
-        /**
-          <summary>Collection of newly-registered indirect objects.</summary>
-        */
-        private SortedDictionary<int, PdfIndirectObject> modifiedObjects = new SortedDictionary<int, PdfIndirectObject>();
-        /**
-          <summary>Collection of instantiated original indirect objects.</summary>
-          <remarks>This collection is used as a cache to avoid unconsistent parsing duplications.</remarks>
-        */
-        private SortedDictionary<int, PdfIndirectObject> wokenObjects = new SortedDictionary<int, PdfIndirectObject>();
+        private readonly Dictionary<int, PdfIndirectObject> importedObjects = new Dictionary<int, PdfIndirectObject>();
 
         /**
           <summary>Object counter.</summary>
         */
         private int lastObjectNumber;
         /**
+          <summary>Collection of newly-registered indirect objects.</summary>
+        */
+        private readonly SortedDictionary<int, PdfIndirectObject> modifiedObjects = new SortedDictionary<int, PdfIndirectObject>();
+        /**
+          <summary>Collection of instantiated original indirect objects.</summary>
+          <remarks>This collection is used as a cache to avoid unconsistent parsing duplications.</remarks>
+        */
+        private readonly SortedDictionary<int, PdfIndirectObject> wokenObjects = new SortedDictionary<int, PdfIndirectObject>();
+        /**
           <summary>Offsets of the original indirect objects inside the associated file
           (to say: implicit collection of the original indirect objects).</summary>
           <remarks>This information is vital to randomly retrieve the indirect-object
           persistent representation inside the associated file.</remarks>
         */
-        private SortedDictionary<int, XRefEntry> xrefEntries;
-        #endregion
+        private readonly SortedDictionary<int, XRefEntry> xrefEntries;
 
-        #region constructors
         internal IndirectObjects(
-          File file,
-          SortedDictionary<int, XRefEntry> xrefEntries
-          )
+  File file,
+  SortedDictionary<int, XRefEntry> xrefEntries
+  )
         {
             this.file = file;
             this.xrefEntries = xrefEntries;
@@ -110,12 +106,12 @@ namespace org.pdfclown.files
                   NOTE: Mandatory head of the linked list of free objects
                   at object number 0 [PDF:1.6:3.4.3].
                 */
-                lastObjectNumber = 0;
-                modifiedObjects[lastObjectNumber] = new PdfIndirectObject(
+                this.lastObjectNumber = 0;
+                this.modifiedObjects[this.lastObjectNumber] = new PdfIndirectObject(
                   this.file,
                   null,
                   new XRefEntry(
-                    lastObjectNumber,
+                    this.lastObjectNumber,
                     XRefEntry.GenerationUnreusable,
                     0,
                     XRefEntry.UsageEnum.Free
@@ -125,32 +121,135 @@ namespace org.pdfclown.files
             else
             {
                 // Adjust the object counter!
-                lastObjectNumber = xrefEntries.Keys.Last();
+                this.lastObjectNumber = xrefEntries.Keys.Last();
             }
         }
-        #endregion
 
-        #region interface
-        #region public
+        public PdfIndirectObject this[
+          int index
+          ]
+        {
+            get
+            {
+                if ((index < 0) || (index >= this.Count))
+                {
+                    /*
+     NOTE: An indirect reference to an undefined object is not an error; it is simply treated
+     as a reference to the null object [PDF:1.7:3.2.9] [FIX:59].
+   */
+                    return null;
+                }
+
+                PdfIndirectObject obj;
+                if (!this.modifiedObjects.TryGetValue(index, out obj))
+                {
+                    if (!this.wokenObjects.TryGetValue(index, out obj))
+                    {
+                        XRefEntry xrefEntry;
+                        if (!this.xrefEntries.TryGetValue(index, out xrefEntry))
+                        {
+                            /*
+                              NOTE: The cross-reference table (comprising the original cross-reference section and
+                              all update sections) MUST contain one entry for each object number from 0 to the
+                              maximum object number used in the file, even if one or more of the object numbers in
+                              this range do not actually occur in the file. However, for resilience purposes
+                              missing entries are treated as free ones.
+                            */
+                            this.xrefEntries[index] = xrefEntry = new XRefEntry(
+                              index,
+                              XRefEntry.GenerationUnreusable,
+                              0,
+                              XRefEntry.UsageEnum.Free
+                              );
+                        }
+
+                        // Awake the object!
+                        /*
+                          NOTE: This operation allows to keep a consistent state across the whole session,
+                          avoiding multiple incoherent instantiations of the same original indirect object.
+                        */
+                        this.wokenObjects[index] = obj = new PdfIndirectObject(this.file, null, xrefEntry);
+                    }
+                }
+                return obj;
+            }
+            set => throw new NotSupportedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return this.GetEnumerator(); }
+
+        internal PdfIndirectObject AddVirtual(
+  PdfIndirectObject obj
+  )
+        {
+            // Update the reference of the object!
+            var xref = obj.XrefEntry;
+            xref.Number = ++this.lastObjectNumber;
+            xref.Generation = 0;
+            // Register the object!
+            this.modifiedObjects[this.lastObjectNumber] = obj;
+            return obj;
+        }
+
+        internal PdfIndirectObject Update(
+          PdfIndirectObject obj
+          )
+        {
+            var index = obj.Reference.ObjectNumber;
+
+            // Get the old indirect object to be replaced!
+            var old = this[index];
+            if (old != obj)
+            { old.DropFile(); } // Disconnect the old indirect object.
+
+            // Insert the new indirect object into the modified objects collection!
+            this.modifiedObjects[index] = obj;
+            // Remove old indirect object from cache!
+            _ = this.wokenObjects.Remove(index);
+            // Mark the new indirect object as modified!
+            obj.DropOriginal();
+
+            return old;
+        }
+
+        internal SortedDictionary<int, PdfIndirectObject> ModifiedObjects => this.modifiedObjects;
+
         /**
-          <summary>Registers an <i>internal</i> data object.</summary>
-          <remarks>To register an external indirect object, use <see
-          cref="AddExternal(PdfIndirectObject)"/>.</remarks>
-          <returns>Indirect object corresponding to the registered data object.</returns>
-        */
+<summary>Registers an <i>internal</i> data object.</summary>
+<remarks>To register an external indirect object, use <see
+cref="AddExternal(PdfIndirectObject)"/>.</remarks>
+<returns>Indirect object corresponding to the registered data object.</returns>
+*/
         public PdfIndirectObject Add(
           PdfDataObject obj
           )
         {
             // Register a new indirect object wrapping the data object inside!
-            PdfIndirectObject indirectObject = new PdfIndirectObject(
-              file,
+            var indirectObject = new PdfIndirectObject(
+              this.file,
               obj,
-              new XRefEntry(++lastObjectNumber, 0)
+              new XRefEntry(++this.lastObjectNumber, 0)
               );
-            modifiedObjects[lastObjectNumber] = indirectObject;
+            this.modifiedObjects[this.lastObjectNumber] = indirectObject;
             return indirectObject;
         }
+
+        /**
+  <summary>Registers an <i>external</i> indirect object.</summary>
+  <remarks>
+    <para>External indirect objects come from alien PDF files; therefore, this is a powerful way
+    to import contents from a file into another one.</para>
+    <para>To register and get an external indirect object, use <see
+    cref="AddExternal(PdfIndirectObject)"/></para>
+  </remarks>
+  <returns>Whether the indirect object was successfully registered.</returns>
+*/
+        public void Add(
+          PdfIndirectObject obj
+          )
+        { _ = this.AddExternal(obj); }
 
         /**
           <summary>Registers an <i>external</i> indirect object.</summary>
@@ -165,7 +264,7 @@ namespace org.pdfclown.files
         public PdfIndirectObject AddExternal(
           PdfIndirectObject obj
           )
-        { return AddExternal(obj, file.Cloner); }
+        { return this.AddExternal(obj, this.file.Cloner); }
 
         /**
           <summary>Registers an <i>external</i> indirect object.</summary>
@@ -183,55 +282,59 @@ namespace org.pdfclown.files
           Cloner cloner
           )
         {
-            if (cloner.Context != file)
+            if (cloner.Context != this.file)
+            {
                 throw new ArgumentException("cloner file context incompatible");
+            }
 
             PdfIndirectObject indirectObject;
             // Hasn't the external indirect object been imported yet?
-            if (!importedObjects.TryGetValue(obj.GetHashCode(), out indirectObject))
+            if (!this.importedObjects.TryGetValue(obj.GetHashCode(), out indirectObject))
             {
                 // Keep track of the imported indirect object!
-                importedObjects.Add(
+                this.importedObjects.Add(
                   obj.GetHashCode(),
-                  indirectObject = Add((PdfDataObject)null) // [DEV:AP] Circular reference issue solved.
+                  indirectObject = this.Add((PdfDataObject)null) // [DEV:AP] Circular reference issue solved.
                   );
                 indirectObject.DataObject = (PdfDataObject)obj.DataObject.Accept(cloner, null);
             }
             return indirectObject;
         }
 
-        /**
-          <summary>Gets the file associated to this collection.</summary>
-        */
-        public File File
-        {
-            get
-            { return file; }
-        }
-
-        public bool IsEmpty(
+        public void Clear(
           )
         {
-            /*
-              NOTE: Indirect objects' semantics imply that the collection is considered empty when no
-              in-use object is available.
-            */
-            foreach (PdfIndirectObject obj in this)
-            {
-                if (obj.IsInUse())
-                    return false;
-            }
-            return true;
+            for (int index = 0, length = this.Count; index < length; index++)
+            { this.RemoveAt(index); }
         }
 
-        #region IList
-        public int IndexOf(
+        public bool Contains(
           PdfIndirectObject obj
           )
+        { return (obj != null) && (this[obj.Reference.ObjectNumber] == obj); }
+
+        public void CopyTo(
+          PdfIndirectObject[] objs,
+          int index
+          )
+        { throw new NotSupportedException(); }
+
+        public IEnumerator<PdfIndirectObject> GetEnumerator(
+  )
+        {
+            for (var index = 0; index < this.Count; index++)
+            { yield return this[index]; }
+        }
+
+        public int IndexOf(
+  PdfIndirectObject obj
+  )
         {
             // Is this indirect object associated to this file?
-            if (obj.File != file)
+            if (obj.File != this.file)
+            {
                 return -1;
+            }
 
             return obj.Reference.ObjectNumber;
         }
@@ -241,6 +344,36 @@ namespace org.pdfclown.files
           PdfIndirectObject obj
           )
         { throw new NotSupportedException(); }
+
+        public bool IsEmpty(
+          )
+        {
+            /*
+              NOTE: Indirect objects' semantics imply that the collection is considered empty when no
+              in-use object is available.
+            */
+            foreach (var obj in this)
+            {
+                if (obj.IsInUse())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public bool Remove(
+          PdfIndirectObject obj
+          )
+        {
+            if (!this.Contains(obj))
+            {
+                return false;
+            }
+
+            this.RemoveAt(obj.Reference.ObjectNumber);
+            return true;
+        }
 
         public void RemoveAt(
           int index
@@ -255,9 +388,9 @@ namespace org.pdfclown.files
                   newly-freed entry, neglecting both to add it to the linked list of free entries and to
                   increment by 1 its generation number.
                 */
-                Update(
+                _ = this.Update(
                   new PdfIndirectObject(
-                    file,
+                    this.file,
                     null,
                     new XRefEntry(
                       index,
@@ -270,178 +403,18 @@ namespace org.pdfclown.files
             }
         }
 
-        public PdfIndirectObject this[
-          int index
-          ]
-        {
-            get
-            {
-                if (index < 0 || index >= Count)
-                    /*
-                      NOTE: An indirect reference to an undefined object is not an error; it is simply treated
-                      as a reference to the null object [PDF:1.7:3.2.9] [FIX:59].
-                    */
-                    return null;
-
-                PdfIndirectObject obj;
-                if (!modifiedObjects.TryGetValue(index, out obj))
-                {
-                    if (!wokenObjects.TryGetValue(index, out obj))
-                    {
-                        XRefEntry xrefEntry;
-                        if (!xrefEntries.TryGetValue(index, out xrefEntry))
-                        {
-                            /*
-                              NOTE: The cross-reference table (comprising the original cross-reference section and
-                              all update sections) MUST contain one entry for each object number from 0 to the
-                              maximum object number used in the file, even if one or more of the object numbers in
-                              this range do not actually occur in the file. However, for resilience purposes
-                              missing entries are treated as free ones.
-                            */
-                            xrefEntries[index] = xrefEntry = new XRefEntry(
-                              index,
-                              XRefEntry.GenerationUnreusable,
-                              0,
-                              XRefEntry.UsageEnum.Free
-                              );
-                        }
-
-                        // Awake the object!
-                        /*
-                          NOTE: This operation allows to keep a consistent state across the whole session,
-                          avoiding multiple incoherent instantiations of the same original indirect object.
-                        */
-                        wokenObjects[index] = obj = new PdfIndirectObject(file, null, xrefEntry);
-                    }
-                }
-                return obj;
-            }
-            set
-            { throw new NotSupportedException(); }
-        }
-
-        #region ICollection
-        /**
-          <summary>Registers an <i>external</i> indirect object.</summary>
-          <remarks>
-            <para>External indirect objects come from alien PDF files; therefore, this is a powerful way
-            to import contents from a file into another one.</para>
-            <para>To register and get an external indirect object, use <see
-            cref="AddExternal(PdfIndirectObject)"/></para>
-          </remarks>
-          <returns>Whether the indirect object was successfully registered.</returns>
-        */
-        public void Add(
-          PdfIndirectObject obj
-          )
-        { AddExternal(obj); }
-
-        public void Clear(
-          )
-        {
-            for (int index = 0, length = Count; index < length; index++)
-            { RemoveAt(index); }
-        }
-
-        public bool Contains(
-          PdfIndirectObject obj
-          )
-        { return obj != null && this[obj.Reference.ObjectNumber] == obj; }
-
-        public void CopyTo(
-          PdfIndirectObject[] objs,
-          int index
-          )
-        { throw new NotSupportedException(); }
-
         /**
           <summary>Gets the number of entries available (both in-use and free) in the
           collection.</summary>
           <returns>The number of entries available in the collection.</returns>
         */
-        public int Count
-        {
-            get
-            { return lastObjectNumber + 1; }
-        }
+        public int Count => this.lastObjectNumber + 1;
 
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
+        /**
+          <summary>Gets the file associated to this collection.</summary>
+        */
+        public File File => this.file;
 
-        public bool Remove(
-          PdfIndirectObject obj
-          )
-        {
-            if (!Contains(obj))
-                return false;
-
-            RemoveAt(obj.Reference.ObjectNumber);
-            return true;
-        }
-
-        #region IEnumerable<ContentStream>
-        public IEnumerator<PdfIndirectObject> GetEnumerator(
-          )
-        {
-            for (int index = 0; index < this.Count; index++)
-            { yield return this[index]; }
-        }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return this.GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region internal
-        internal PdfIndirectObject AddVirtual(
-          PdfIndirectObject obj
-          )
-        {
-            // Update the reference of the object!
-            XRefEntry xref = obj.XrefEntry;
-            xref.Number = ++lastObjectNumber;
-            xref.Generation = 0;
-            // Register the object!
-            modifiedObjects[lastObjectNumber] = obj;
-            return obj;
-        }
-
-        internal SortedDictionary<int, PdfIndirectObject> ModifiedObjects
-        {
-            get
-            { return modifiedObjects; }
-        }
-
-        internal PdfIndirectObject Update(
-          PdfIndirectObject obj
-          )
-        {
-            int index = obj.Reference.ObjectNumber;
-
-            // Get the old indirect object to be replaced!
-            PdfIndirectObject old = this[index];
-            if (old != obj)
-            { old.DropFile(); } // Disconnect the old indirect object.
-
-            // Insert the new indirect object into the modified objects collection!
-            modifiedObjects[index] = obj;
-            // Remove old indirect object from cache!
-            wokenObjects.Remove(index);
-            // Mark the new indirect object as modified!
-            obj.DropOriginal();
-
-            return old;
-        }
-        #endregion
-        #endregion
-        #endregion
+        public bool IsReadOnly => false;
     }
 }

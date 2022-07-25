@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.files
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Embedded files referenced by another one (dependencies) [PDF:1.6:3.10.3].</summary>
     */
@@ -39,100 +39,16 @@ namespace org.pdfclown.documents.files
       : PdfObjectWrapper<PdfArray>,
         IDictionary<string, EmbeddedFile>
     {
-        #region static
-        #region interface
-        #region public
-        public static RelatedFiles Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new RelatedFiles(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public RelatedFiles(
-          Document context
-          ) : base(context, new PdfArray())
-        { }
 
         private RelatedFiles(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        #region IDictionary
-        public void Add(
-          string key,
-          EmbeddedFile value
-          )
-        {
-            PdfArray itemPairs = BaseDataObject;
-            // New entry.
-            itemPairs.Add(new PdfTextString(key));
-            itemPairs.Add(value.BaseObject);
-        }
-
-        public bool ContainsKey(
-          string key
-          )
-        {
-            PdfArray itemPairs = BaseDataObject;
-            for (
-              int index = 0,
-                length = itemPairs.Count;
-              index < length;
-              index += 2
-              )
-            {
-                if (((PdfTextString)itemPairs[index]).Value.Equals(key))
-                    return true;
-            }
-            return false;
-        }
-
-        public ICollection<string> Keys
-        {
-            get
-            {
-                List<string> keys = new List<string>();
-                PdfArray itemPairs = BaseDataObject;
-                for (
-                  int index = 0,
-                    length = itemPairs.Count;
-                  index < length;
-                  index += 2
-                  )
-                { keys.Add((string)((PdfTextString)itemPairs[index]).Value); }
-                return keys;
-            }
-        }
-
-        public bool Remove(
-          string key
-          )
-        {
-            PdfArray itemPairs = BaseDataObject;
-            for (
-              int index = 0,
-                length = itemPairs.Count;
-              index < length;
-              index += 2
-              )
-            {
-                if (((PdfTextString)itemPairs[index]).Value.Equals(key))
-                {
-                    itemPairs.RemoveAt(index); // Key removed.
-                    itemPairs.RemoveAt(index); // Value removed.
-                    return true;
-                }
-            }
-            return false;
-        }
+        public RelatedFiles(
+Document context
+) : base(context, new PdfArray())
+        { }
 
         public EmbeddedFile this[
           string key
@@ -140,7 +56,7 @@ namespace org.pdfclown.documents.files
         {
             get
             {
-                PdfArray itemPairs = BaseDataObject;
+                var itemPairs = this.BaseDataObject;
                 for (
                   int index = 0,
                     length = itemPairs.Count;
@@ -149,13 +65,15 @@ namespace org.pdfclown.documents.files
                   )
                 {
                     if (((PdfTextString)itemPairs[index]).Value.Equals(key))
+                    {
                         return EmbeddedFile.Wrap(itemPairs[index + 1]);
+                    }
                 }
                 return null;
             }
             set
             {
-                PdfArray itemPairs = BaseDataObject;
+                var itemPairs = this.BaseDataObject;
                 for (
                   int index = 0,
                     length = itemPairs.Count;
@@ -176,78 +94,24 @@ namespace org.pdfclown.documents.files
             }
         }
 
-        public bool TryGetValue(
-          string key,
-          out EmbeddedFile value
-          )
-        {
-            value = this[key];
-            if (value == null)
-                return ContainsKey(key);
-            else
-                return true;
-        }
-
-        public ICollection<EmbeddedFile> Values
-        {
-            get
-            {
-                List<EmbeddedFile> values = new List<EmbeddedFile>();
-                PdfArray itemPairs = BaseDataObject;
-                for (
-                  int index = 1,
-                    length = itemPairs.Count;
-                  index < length;
-                  index += 2
-                  )
-                { values.Add(EmbeddedFile.Wrap(itemPairs[index])); }
-                return values;
-            }
-        }
-
-        #region ICollection
         void ICollection<KeyValuePair<string, EmbeddedFile>>.Add(
-          KeyValuePair<string, EmbeddedFile> entry
-          )
-        { Add(entry.Key, entry.Value); }
-
-        public void Clear(
-          )
-        { BaseDataObject.Clear(); }
+  KeyValuePair<string, EmbeddedFile> entry
+  )
+        { this.Add(entry.Key, entry.Value); }
 
         bool ICollection<KeyValuePair<string, EmbeddedFile>>.Contains(
           KeyValuePair<string, EmbeddedFile> entry
           )
         { return entry.Value.Equals(this[entry.Key]); }
 
-        public void CopyTo(
-          KeyValuePair<string, EmbeddedFile>[] entries,
-          int index
-          )
-        { throw new NotImplementedException(); }
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<string, EmbeddedFile>>)this).GetEnumerator(); }
 
-        public int Count
-        {
-            get
-            { return BaseDataObject.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          KeyValuePair<string, EmbeddedFile> entry
-          )
-        { throw new NotImplementedException(); }
-
-        #region IEnumerable<KeyValuePair<string,EmbeddedFile>>
         IEnumerator<KeyValuePair<string, EmbeddedFile>> IEnumerable<KeyValuePair<string, EmbeddedFile>>.GetEnumerator(
-          )
+  )
         {
-            PdfArray itemPairs = BaseDataObject;
+            var itemPairs = this.BaseDataObject;
             for (
               int index = 0,
                 length = itemPairs.Count;
@@ -262,16 +126,130 @@ namespace org.pdfclown.documents.files
             }
         }
 
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
+        public void Add(
+string key,
+EmbeddedFile value
+)
+        {
+            var itemPairs = this.BaseDataObject;
+            // New entry.
+            itemPairs.Add(new PdfTextString(key));
+            itemPairs.Add(value.BaseObject);
+        }
+
+        public void Clear(
           )
-        { return ((IEnumerable<KeyValuePair<string, EmbeddedFile>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        { this.BaseDataObject.Clear(); }
+
+        public bool ContainsKey(
+          string key
+          )
+        {
+            var itemPairs = this.BaseDataObject;
+            for (
+              int index = 0,
+                length = itemPairs.Count;
+              index < length;
+              index += 2
+              )
+            {
+                if (((PdfTextString)itemPairs[index]).Value.Equals(key))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void CopyTo(
+          KeyValuePair<string, EmbeddedFile>[] entries,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Remove(
+          string key
+          )
+        {
+            var itemPairs = this.BaseDataObject;
+            for (
+              int index = 0,
+                length = itemPairs.Count;
+              index < length;
+              index += 2
+              )
+            {
+                if (((PdfTextString)itemPairs[index]).Value.Equals(key))
+                {
+                    itemPairs.RemoveAt(index); // Key removed.
+                    itemPairs.RemoveAt(index); // Value removed.
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool Remove(
+          KeyValuePair<string, EmbeddedFile> entry
+          )
+        { throw new NotImplementedException(); }
+
+        public bool TryGetValue(
+          string key,
+          out EmbeddedFile value
+          )
+        {
+            value = this[key];
+            if (value == null)
+            {
+                return this.ContainsKey(key);
+            }
+            else
+            {
+                return true;
+            }
+        }
+        public static RelatedFiles Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new RelatedFiles(baseObject) : null; }
+
+        public int Count => this.BaseDataObject.Count;
+
+        public bool IsReadOnly => false;
+
+        public ICollection<string> Keys
+        {
+            get
+            {
+                var keys = new List<string>();
+                var itemPairs = this.BaseDataObject;
+                for (
+                  int index = 0,
+                    length = itemPairs.Count;
+                  index < length;
+                  index += 2
+                  )
+                { keys.Add((string)((PdfTextString)itemPairs[index]).Value); }
+                return keys;
+            }
+        }
+
+        public ICollection<EmbeddedFile> Values
+        {
+            get
+            {
+                var values = new List<EmbeddedFile>();
+                var itemPairs = this.BaseDataObject;
+                for (
+                  int index = 1,
+                    length = itemPairs.Count;
+                  index < length;
+                  index += 2
+                  )
+                { values.Add(EmbeddedFile.Wrap(itemPairs[index])); }
+                return values;
+            }
+        }
     }
 }

@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-using colorSpaces = org.pdfclown.documents.contents.colorSpaces;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using org.pdfclown.objects;
+    using colorSpaces = org.pdfclown.documents.contents.colorSpaces;
+
     /**
       <summary>Shading object [PDF:1.6:4.6.3].</summary>
     */
@@ -36,47 +36,26 @@ namespace org.pdfclown.documents.contents.objects
       : GraphicsObject,
         IResourceReference<colorSpaces::Shading>
     {
-        #region static
-        #region fields
         public static readonly string BeginOperatorKeyword = PaintShading.OperatorKeyword;
-        public static readonly string EndOperatorKeyword = BeginOperatorKeyword;
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public Shading(
-          PaintShading operation
-          ) : base(operation)
+PaintShading operation
+) : base(operation)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        #region IResourceReference
+        private PaintShading Operation => (PaintShading)this.Objects[0];
+
         public colorSpaces::Shading GetResource(
-          IContentContext context
-          )
-        { return Operation.GetResource(context); }
+IContentContext context
+)
+        { return this.Operation.GetResource(context); }
 
         public PdfName Name
         {
-            get
-            { return Operation.Name; }
-            set
-            { Operation.Name = value; }
+            get => this.Operation.Name;
+            set => this.Operation.Name = value;
         }
-        #endregion
-        #endregion
 
-        #region private
-        private PaintShading Operation
-        {
-            get
-            { return (PaintShading)Objects[0]; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public static readonly string EndOperatorKeyword = BeginOperatorKeyword;
     }
 }

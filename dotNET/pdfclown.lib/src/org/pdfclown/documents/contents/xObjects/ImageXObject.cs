@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using System.Drawing.Drawing2D;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.xObjects
 {
+    using System;
+    using System.Drawing;
+
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.objects;
+
     /**
       <summary>Image external object [PDF:1.6:4.8.4].</summary>
     */
@@ -39,26 +39,19 @@ namespace org.pdfclown.documents.contents.xObjects
     public sealed class ImageXObject
       : XObject
     {
-        #region static
-        #region interface
-        #region public
-        public static new ImageXObject Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new ImageXObject(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
+        private ImageXObject(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         public ImageXObject(
-          Document context,
-          PdfStream baseDataObject
-          ) : base(
-            context,
-            baseDataObject
-            )
+Document context,
+PdfStream baseDataObject
+) : base(
+context,
+baseDataObject
+)
         {
             /*
               NOTE: It's caller responsability to adequately populate the stream
@@ -69,37 +62,26 @@ namespace org.pdfclown.documents.contents.xObjects
             baseDataObject.Header[PdfName.Subtype] = PdfName.Image;
         }
 
-        private ImageXObject(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
+        public static new ImageXObject Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new ImageXObject(baseObject) : null; }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets the number of bits per color component.</summary>
-        */
-        public int BitsPerComponent
-        {
-            get
-            { return ((PdfInteger)BaseDataObject.Header[PdfName.BitsPerComponent]).RawValue; }
-        }
+<summary>Gets the number of bits per color component.</summary>
+*/
+        public int BitsPerComponent => ((PdfInteger)this.BaseDataObject.Header[PdfName.BitsPerComponent]).RawValue;
 
         /**
           <summary>Gets the color space in which samples are specified.</summary>
         */
-        public ColorSpace ColorSpace
-        {
-            get
-            { return ColorSpace.Wrap(BaseDataObject.Header[PdfName.ColorSpace]); }
-        }
+        public ColorSpace ColorSpace => ColorSpace.Wrap(this.BaseDataObject.Header[PdfName.ColorSpace]);
 
         public override Matrix Matrix
         {
             get
             {
-                SizeF size = Size;
+                var size = this.Size;
 
                 /*
                   NOTE: Image-space-to-user-space matrix is [1/w 0 0 1/h 0 0],
@@ -125,18 +107,14 @@ namespace org.pdfclown.documents.contents.xObjects
         {
             get
             {
-                PdfDictionary header = BaseDataObject.Header;
+                var header = this.BaseDataObject.Header;
 
                 return new SizeF(
                   ((PdfInteger)header[PdfName.Width]).RawValue,
                   ((PdfInteger)header[PdfName.Height]).RawValue
                   );
             }
-            set
-            { throw new NotSupportedException(); }
+            set => throw new NotSupportedException();
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

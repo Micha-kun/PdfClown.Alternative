@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Resource reference.</summary>
     */

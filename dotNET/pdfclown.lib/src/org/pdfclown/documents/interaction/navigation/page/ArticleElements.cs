@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-
-using System.Collections.Generic;
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.navigation.page
 {
+    using System;
+    using System.Collections;
+
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Article bead [PDF:1.7:8.3.2].</summary>
     */
@@ -40,192 +40,11 @@ namespace org.pdfclown.documents.interaction.navigation.page
       : PdfObjectWrapper<PdfDictionary>,
         IList<ArticleElement>
     {
-        #region types
-        private sealed class ElementCounter
-          : ElementEvaluator
-        {
-            public int Count
-            {
-                get
-                { return index + 1; }
-            }
-        }
 
-        private class ElementEvaluator
-          : IPredicate
-        {
-            /**
-              Current position.
-            */
-            protected int index = -1;
-
-            public virtual bool Evaluate(
-              object @object
-              )
-            {
-                index++;
-                return false;
-            }
-        }
-
-        private sealed class ElementGetter
-          : ElementEvaluator
-        {
-            private PdfDictionary bead;
-            private readonly int beadIndex;
-
-            public ElementGetter(
-              int beadIndex
-              )
-            { this.beadIndex = beadIndex; }
-
-            public override bool Evaluate(
-              object @object
-              )
-            {
-                base.Evaluate(@object);
-                if (index == beadIndex)
-                {
-                    bead = (PdfDictionary)@object;
-                    return true;
-                }
-                return false;
-            }
-
-            public PdfDictionary Bead
-            {
-                get
-                { return bead; }
-            }
-        }
-
-        private sealed class ElementIndexer
-          : ElementEvaluator
-        {
-            private readonly PdfDictionary searchedBead;
-
-            public ElementIndexer(
-              PdfDictionary searchedBead
-              )
-            { this.searchedBead = searchedBead; }
-
-            public override bool Evaluate(
-              object @object
-              )
-            {
-                base.Evaluate(@object);
-                return @object.Equals(searchedBead);
-            }
-
-            public int Index
-            {
-                get
-                { return index; }
-            }
-        }
-
-        private class Enumerator
-          : IEnumerator<ArticleElement>
-        {
-            private PdfDirectObject currentObject;
-            private readonly PdfDirectObject firstObject;
-            private PdfDirectObject nextObject;
-
-            internal Enumerator(
-              ArticleElements elements
-              )
-            { nextObject = firstObject = elements.BaseDataObject[PdfName.F]; }
-
-            ArticleElement IEnumerator<ArticleElement>.Current
-            {
-                get
-                { return ArticleElement.Wrap(currentObject); }
-            }
-
-            public object Current
-            {
-                get
-                { return ((IEnumerator<ArticleElement>)this).Current; }
-            }
-
-            public bool MoveNext(
-              )
-            {
-                if (nextObject == null)
-                    return false;
-
-                currentObject = nextObject;
-                nextObject = ((PdfDictionary)currentObject.Resolve())[PdfName.N];
-                if (nextObject == firstObject) // Looping back.
-                { nextObject = null; }
-                return true;
-            }
-
-            public void Reset(
-              )
-            { throw new NotSupportedException(); }
-
-            public void Dispose(
-              )
-            { }
-        }
-        #endregion
-
-        #region static
-        #region interface
-        #region public
-        public static ArticleElements Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new ArticleElements(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         private ArticleElements(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
+PdfDirectObject baseObject
+) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
-        #region IList<ArticleElement>
-        public int IndexOf(
-          ArticleElement @object
-          )
-        {
-            if (@object == null)
-                return -1; // NOTE: By definition, no bead can be null.
-
-            ElementIndexer indexer = new ElementIndexer(@object.BaseDataObject);
-            Iterate(indexer);
-            return indexer.Index;
-        }
-
-        public void Insert(
-          int index,
-          ArticleElement @object
-          )
-        {
-            if (index < 0)
-                throw new ArgumentOutOfRangeException();
-
-            ElementGetter getter = new ElementGetter(index);
-            Iterate(getter);
-            PdfDictionary bead = getter.Bead;
-            if (bead == null)
-            { Add(@object); }
-            else
-            { Link(@object.BaseDataObject, bead); }
-        }
-
-        public void RemoveAt(
-          int index
-          )
-        { Unlink(this[index].BaseDataObject); }
 
         public ArticleElement this[
           int index
@@ -234,123 +53,45 @@ namespace org.pdfclown.documents.interaction.navigation.page
             get
             {
                 if (index < 0)
+                {
                     throw new ArgumentOutOfRangeException();
+                }
 
-                ElementGetter getter = new ElementGetter(index);
-                Iterate(getter);
-                PdfDictionary bead = getter.Bead;
+                var getter = new ElementGetter(index);
+                this.Iterate(getter);
+                var bead = getter.Bead;
                 if (bead == null)
+                {
                     throw new ArgumentOutOfRangeException();
+                }
 
                 return ArticleElement.Wrap(bead.Reference);
             }
-            set
-            { throw new NotImplementedException(); }
+            set => throw new NotImplementedException();
         }
 
-        #region ICollection<TItem>
-        public void Add(
-          ArticleElement @object
-          )
-        {
-            PdfDictionary itemBead = @object.BaseDataObject;
-            PdfDictionary firstBead = FirstBead;
-            if (firstBead != null) // Non-empty list.
-            { Link(itemBead, firstBead); }
-            else // Empty list.
-            {
-                FirstBead = itemBead;
-                Link(itemBead, itemBead);
-            }
-        }
-
-        public void Clear(
-          )
-        { throw new NotImplementedException(); }
-
-        public bool Contains(
-          ArticleElement @object
-          )
-        { return IndexOf(@object) >= 0; }
-
-        public void CopyTo(
-          ArticleElement[] objects,
-          int index
-          )
-        { throw new NotImplementedException(); }
-
-        public int Count
-        {
-            get
-            {
-                ElementCounter counter = new ElementCounter();
-                Iterate(counter);
-                return counter.Count;
-            }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          ArticleElement @object
-          )
-        {
-            if (!Contains(@object))
-                return false;
-
-            Unlink(@object.BaseDataObject);
-            return true;
-        }
-
-        #region IEnumerable<ArticleElement>
-        public IEnumerator<ArticleElement> GetEnumerator(
-          )
-        { return new Enumerator(this); }
-
-        #region IEnumerable
         IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<ArticleElement>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
-        private PdfDictionary FirstBead
-        {
-            get
-            { return (PdfDictionary)BaseDataObject.Resolve(PdfName.F); }
-            set
-            {
-                PdfDictionary oldValue = FirstBead;
-                BaseDataObject[PdfName.F] = PdfObject.Unresolve(value);
-                if (value != null)
-                { value[PdfName.T] = BaseObject; }
-                if (oldValue != null)
-                { oldValue.Remove(PdfName.T); }
-            }
-        }
+  )
+        { return this.GetEnumerator(); }
 
         private void Iterate(
           IPredicate predicate
           )
         {
-            PdfDictionary firstBead = FirstBead;
-            PdfDictionary bead = firstBead;
+            var firstBead = this.FirstBead;
+            var bead = firstBead;
             while (bead != null)
             {
                 if (predicate.Evaluate(bead))
+                {
                     break;
+                }
 
                 bead = (PdfDictionary)bead.Resolve(PdfName.N);
                 if (bead == firstBead)
+                {
                     break;
+                }
             }
         }
 
@@ -362,7 +103,7 @@ namespace org.pdfclown.documents.interaction.navigation.page
           PdfDictionary next
           )
         {
-            PdfDictionary previous = (PdfDictionary)next.Resolve(PdfName.V);
+            var previous = (PdfDictionary)next.Resolve(PdfName.V);
             if (previous == null)
             { previous = next; }
 
@@ -383,22 +124,246 @@ namespace org.pdfclown.documents.interaction.navigation.page
           PdfDictionary item
           )
         {
-            PdfDictionary prevBead = (PdfDictionary)item.Resolve(PdfName.V);
-            item.Remove(PdfName.V);
-            PdfDictionary nextBead = (PdfDictionary)item.Resolve(PdfName.N);
-            item.Remove(PdfName.N);
+            var prevBead = (PdfDictionary)item.Resolve(PdfName.V);
+            _ = item.Remove(PdfName.V);
+            var nextBead = (PdfDictionary)item.Resolve(PdfName.N);
+            _ = item.Remove(PdfName.N);
             if (prevBead != item) // Still some elements.
             {
                 prevBead[PdfName.N] = nextBead.Reference;
                 nextBead[PdfName.V] = prevBead.Reference;
-                if (item == FirstBead)
-                { FirstBead = nextBead; }
+                if (item == this.FirstBead)
+                { this.FirstBead = nextBead; }
             }
             else // No more elements.
-            { FirstBead = null; }
+            { this.FirstBead = null; }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        private PdfDictionary FirstBead
+        {
+            get => (PdfDictionary)this.BaseDataObject.Resolve(PdfName.F);
+            set
+            {
+                var oldValue = this.FirstBead;
+                this.BaseDataObject[PdfName.F] = PdfObject.Unresolve(value);
+                if (value != null)
+                { value[PdfName.T] = this.BaseObject; }
+                if (oldValue != null)
+                { _ = oldValue.Remove(PdfName.T); }
+            }
+        }
+
+        public void Add(
+  ArticleElement @object
+  )
+        {
+            var itemBead = @object.BaseDataObject;
+            var firstBead = this.FirstBead;
+            if (firstBead != null) // Non-empty list.
+            { this.Link(itemBead, firstBead); }
+            else // Empty list.
+            {
+                this.FirstBead = itemBead;
+                this.Link(itemBead, itemBead);
+            }
+        }
+
+        public void Clear(
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Contains(
+          ArticleElement @object
+          )
+        { return this.IndexOf(@object) >= 0; }
+
+        public void CopyTo(
+          ArticleElement[] objects,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public IEnumerator<ArticleElement> GetEnumerator(
+  )
+        { return new Enumerator(this); }
+
+        public int IndexOf(
+ArticleElement @object
+)
+        {
+            if (@object == null)
+            {
+                return -1; // NOTE: By definition, no bead can be null.
+            }
+
+            var indexer = new ElementIndexer(@object.BaseDataObject);
+            this.Iterate(indexer);
+            return indexer.Index;
+        }
+
+        public void Insert(
+          int index,
+          ArticleElement @object
+          )
+        {
+            if (index < 0)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            var getter = new ElementGetter(index);
+            this.Iterate(getter);
+            var bead = getter.Bead;
+            if (bead == null)
+            { this.Add(@object); }
+            else
+            { this.Link(@object.BaseDataObject, bead); }
+        }
+
+        public bool Remove(
+          ArticleElement @object
+          )
+        {
+            if (!this.Contains(@object))
+            {
+                return false;
+            }
+
+            this.Unlink(@object.BaseDataObject);
+            return true;
+        }
+
+        public void RemoveAt(
+          int index
+          )
+        { this.Unlink(this[index].BaseDataObject); }
+
+        public static ArticleElements Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new ArticleElements(baseObject) : null; }
+
+        public int Count
+        {
+            get
+            {
+                var counter = new ElementCounter();
+                this.Iterate(counter);
+                return counter.Count;
+            }
+        }
+
+        public bool IsReadOnly => false;
+
+        private sealed class ElementCounter
+  : ElementEvaluator
+        {
+            public int Count => this.index + 1;
+        }
+
+        private class ElementEvaluator
+          : IPredicate
+        {
+            /**
+              Current position.
+            */
+            protected int index = -1;
+
+            public virtual bool Evaluate(
+              object @object
+              )
+            {
+                this.index++;
+                return false;
+            }
+        }
+
+        private sealed class ElementGetter
+          : ElementEvaluator
+        {
+            private PdfDictionary bead;
+            private readonly int beadIndex;
+
+            public ElementGetter(
+              int beadIndex
+              )
+            { this.beadIndex = beadIndex; }
+
+            public override bool Evaluate(
+              object @object
+              )
+            {
+                _ = base.Evaluate(@object);
+                if (this.index == this.beadIndex)
+                {
+                    this.bead = (PdfDictionary)@object;
+                    return true;
+                }
+                return false;
+            }
+
+            public PdfDictionary Bead => this.bead;
+        }
+
+        private sealed class ElementIndexer
+          : ElementEvaluator
+        {
+            private readonly PdfDictionary searchedBead;
+
+            public ElementIndexer(
+              PdfDictionary searchedBead
+              )
+            { this.searchedBead = searchedBead; }
+
+            public override bool Evaluate(
+              object @object
+              )
+            {
+                _ = base.Evaluate(@object);
+                return @object.Equals(this.searchedBead);
+            }
+
+            public int Index => this.index;
+        }
+
+        private class Enumerator
+          : IEnumerator<ArticleElement>
+        {
+            private PdfDirectObject currentObject;
+            private readonly PdfDirectObject firstObject;
+            private PdfDirectObject nextObject;
+
+            internal Enumerator(
+              ArticleElements elements
+              )
+            { this.nextObject = this.firstObject = elements.BaseDataObject[PdfName.F]; }
+
+            ArticleElement IEnumerator<ArticleElement>.Current => ArticleElement.Wrap(this.currentObject);
+
+            public void Dispose(
+              )
+            { }
+
+            public bool MoveNext(
+              )
+            {
+                if (this.nextObject == null)
+                {
+                    return false;
+                }
+
+                this.currentObject = this.nextObject;
+                this.nextObject = ((PdfDictionary)this.currentObject.Resolve())[PdfName.N];
+                if (this.nextObject == this.firstObject) // Looping back.
+                { this.nextObject = null; }
+                return true;
+            }
+
+            public void Reset(
+              )
+            { throw new NotSupportedException(); }
+
+            public object Current => ((IEnumerator<ArticleElement>)this).Current;
+        }
     }
 }

@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.navigation.document;
-using org.pdfclown.objects;
-
-using system = System;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.navigation.document;
+    using org.pdfclown.objects;
+
+    using system = System;
+
     /**
       <summary>Document actions [PDF:1.6:8.5.2].</summary>
     */
@@ -38,30 +38,23 @@ namespace org.pdfclown.documents
     public sealed class DocumentActions
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region dynamic
-        #region constructors
-        public DocumentActions(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         internal DocumentActions(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public DocumentActions(
+Document context
+) : base(context, new PdfDictionary())
+        { }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the action to be performed after printing the document.</summary>
-        */
+<summary>Gets/Sets the action to be performed after printing the document.</summary>
+*/
         public Action AfterPrint
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.DP]); }
-            set
-            { BaseDataObject[PdfName.DP] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.DP]);
+            set => this.BaseDataObject[PdfName.DP] = value.BaseObject;
         }
 
         /**
@@ -69,10 +62,8 @@ namespace org.pdfclown.documents
         */
         public Action AfterSave
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.DS]); }
-            set
-            { BaseDataObject[PdfName.DS] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.DS]);
+            set => this.BaseDataObject[PdfName.DS] = value.BaseObject;
         }
 
         /**
@@ -80,10 +71,8 @@ namespace org.pdfclown.documents
         */
         public Action BeforePrint
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.WP]); }
-            set
-            { BaseDataObject[PdfName.WP] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.WP]);
+            set => this.BaseDataObject[PdfName.WP] = value.BaseObject;
         }
 
         /**
@@ -91,10 +80,8 @@ namespace org.pdfclown.documents
         */
         public Action BeforeSave
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.WS]); }
-            set
-            { BaseDataObject[PdfName.WS] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.WS]);
+            set => this.BaseDataObject[PdfName.WS] = value.BaseObject;
         }
 
         /**
@@ -102,10 +89,8 @@ namespace org.pdfclown.documents
         */
         public Action OnClose
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.DC]); }
-            set
-            { BaseDataObject[PdfName.DC] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.DC]);
+            set => this.BaseDataObject[PdfName.DC] = value.BaseObject;
         }
 
         /**
@@ -116,23 +101,26 @@ namespace org.pdfclown.documents
         {
             get
             {
-                PdfDirectObject onOpenObject = Document.BaseDataObject[PdfName.OpenAction];
+                var onOpenObject = this.Document.BaseDataObject[PdfName.OpenAction];
                 if (onOpenObject is PdfDictionary) // Action (dictionary).
+                {
                     return Action.Wrap(onOpenObject);
+                }
                 else // Destination (array).
+                {
                     return Destination.Wrap(onOpenObject);
+                }
             }
             set
             {
-                if (!(value is Action
-                  || value is LocalDestination))
+                if (!((value is Action)
+                  || (value is LocalDestination)))
+                {
                     throw new system::ArgumentException("Value MUST be either an Action or a LocalDestination.");
+                }
 
-                Document.BaseDataObject[PdfName.OpenAction] = value.BaseObject;
+                this.Document.BaseDataObject[PdfName.OpenAction] = value.BaseObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -24,15 +24,15 @@
 */
 
 
-using System;
-using System.IO;
-using org.pdfclown.bytes;
-
-using org.pdfclown.util;
-using tokens = org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using System.IO;
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.util;
+    using tokens = org.pdfclown.tokens;
+
     /**
       <summary>PDF string object [PDF:1.6:3.2.3].</summary>
       <remarks>
@@ -48,14 +48,210 @@ namespace org.pdfclown.objects
       : PdfSimpleObject<byte[]>,
         IDataWrapper
     {
+
+        private const byte BackspaceCode = 8;
+        private const byte CarriageReturnCode = 13;
+        private const byte FormFeedCode = 12;
+
+        private const byte HexLeftDelimiterCode = 60;
+        private const byte HexRightDelimiterCode = 62;
+        private const byte HorizontalTabCode = 9;
+        private const byte LineFeedCode = 10;
+        private const byte LiteralEscapeCode = 92;
+        private const byte LiteralLeftDelimiterCode = 40;
+        private const byte LiteralRightDelimiterCode = 41;
+
+        public static readonly PdfString Default = new PdfString(string.Empty);
+
+        protected PdfString(
+          )
+        { }
+
+        public PdfString(
+  byte[] rawValue
+  )
+        { this.RawValue = rawValue; }
+
+        public PdfString(
+          string value
+          )
+        { this.Value = value; }
+
+        public PdfString(
+          byte[] rawValue,
+          SerializationModeEnum serializationMode
+          )
+        {
+            this.SerializationMode = serializationMode;
+            this.RawValue = rawValue;
+        }
+
+        public PdfString(
+          string value,
+          SerializationModeEnum serializationMode
+          )
+        {
+            this.SerializationMode = serializationMode;
+            this.Value = value;
+        }
+
+        public override PdfObject Accept(
+IVisitor visitor,
+object data
+)
+        { return visitor.Visit(this, data); }
+
+        public override int CompareTo(
+          PdfDirectObject obj
+          )
+        {
+            if (!(obj is PdfString))
+            {
+                throw new ArgumentException("Object MUST be a PdfString");
+            }
+
+            return string.CompareOrdinal(this.StringValue, ((PdfString)obj).StringValue);
+        }
+
+        public byte[] ToByteArray(
+          )
+        { return (byte[])this.RawValue.Clone(); }
+
+        public override string ToString(
+          )
+        {
+            switch (this.serializationMode)
+            {
+                case SerializationModeEnum.Hex:
+                    return $"<{base.ToString()}>";
+                case SerializationModeEnum.Literal:
+                    return $"({base.ToString()})";
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public override void WriteTo(
+          IOutputStream stream,
+          files.File context
+          )
+        {
+            var buffer = new MemoryStream();
+            var rawValue = this.RawValue;
+            switch (this.serializationMode)
+            {
+                case SerializationModeEnum.Literal:
+                    buffer.WriteByte(LiteralLeftDelimiterCode);
+                    /*
+                      NOTE: Literal lexical conventions prescribe that the following reserved characters
+                      are to be escaped when placed inside string character sequences:
+                        - \n Line feed (LF)
+                        - \r Carriage return (CR)
+                        - \t Horizontal tab (HT)
+                        - \b Backspace (BS)
+                        - \f Form feed (FF)
+                        - \( Left parenthesis
+                        - \) Right parenthesis
+                        - \\ Backslash
+                    */
+                    for (
+                      var index = 0;
+                      index < rawValue.Length;
+                      index++
+                      )
+                    {
+                        var valueByte = rawValue[index];
+                        switch (valueByte)
+                        {
+                            case LineFeedCode:
+                                buffer.WriteByte(LiteralEscapeCode);
+                                valueByte = 110;
+                                break;
+                            case CarriageReturnCode:
+                                buffer.WriteByte(LiteralEscapeCode);
+                                valueByte = 114;
+                                break;
+                            case HorizontalTabCode:
+                                buffer.WriteByte(LiteralEscapeCode);
+                                valueByte = 116;
+                                break;
+                            case BackspaceCode:
+                                buffer.WriteByte(LiteralEscapeCode);
+                                valueByte = 98;
+                                break;
+                            case FormFeedCode:
+                                buffer.WriteByte(LiteralEscapeCode);
+                                valueByte = 102;
+                                break;
+                            case LiteralLeftDelimiterCode:
+                            case LiteralRightDelimiterCode:
+                            case LiteralEscapeCode:
+                                buffer.WriteByte(LiteralEscapeCode);
+                                break;
+                        }
+                        buffer.WriteByte(valueByte);
+                    }
+                    buffer.WriteByte(LiteralRightDelimiterCode);
+                    break;
+                case SerializationModeEnum.Hex:
+                    buffer.WriteByte(HexLeftDelimiterCode);
+                    var value = tokens::Encoding.Pdf.Encode(ConvertUtils.ByteArrayToHex(rawValue));
+                    buffer.Write(value, 0, value.Length);
+                    buffer.WriteByte(HexRightDelimiterCode);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+            stream.Write(buffer.ToArray());
+        }
+
+        /**
+          <summary>Gets/Sets the serialization mode.</summary>
+        */
+        public virtual SerializationModeEnum SerializationMode
+        {
+            get => this.serializationMode;
+            set => this.serializationMode = value;
+        }
+
+        public string StringValue => (string)this.Value;
+
+        public override object Value
+        {
+            get
+            {
+                switch (this.serializationMode)
+                {
+                    case SerializationModeEnum.Literal:
+                        return tokens::Encoding.Pdf.Decode(this.RawValue);
+                    case SerializationModeEnum.Hex:
+                        return ConvertUtils.ByteArrayToHex(this.RawValue);
+                    default:
+                        throw new NotImplementedException($"{this.serializationMode} serialization mode is not implemented.");
+                }
+            }
+            protected set
+            {
+                switch (this.serializationMode)
+                {
+                    case SerializationModeEnum.Literal:
+                        this.RawValue = tokens::Encoding.Pdf.Encode((string)value);
+                        break;
+                    case SerializationModeEnum.Hex:
+                        this.RawValue = ConvertUtils.HexToByteArray((string)value);
+                        break;
+                    default:
+                        throw new NotImplementedException($"{this.serializationMode} serialization mode is not implemented.");
+                }
+            }
+        }
         /*
           NOTE: String objects are internally represented as unescaped sequences of bytes.
           Escaping is applied on serialization only.
         */
-        #region types
         /**
-          <summary>String serialization mode.</summary>
-        */
+  <summary>String serialization mode.</summary>
+*/
         public enum SerializationModeEnum
         {
             /**
@@ -67,225 +263,7 @@ namespace org.pdfclown.objects
             */
             Hex
         };
-        #endregion
 
-        #region static
-        #region fields
-        public static readonly PdfString Default = new PdfString(string.Empty);
-
-        private const byte BackspaceCode = 8;
-        private const byte CarriageReturnCode = 13;
-        private const byte FormFeedCode = 12;
-        private const byte HorizontalTabCode = 9;
-        private const byte LineFeedCode = 10;
-
-        private const byte HexLeftDelimiterCode = 60;
-        private const byte HexRightDelimiterCode = 62;
-        private const byte LiteralEscapeCode = 92;
-        private const byte LiteralLeftDelimiterCode = 40;
-        private const byte LiteralRightDelimiterCode = 41;
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
         private SerializationModeEnum serializationMode = SerializationModeEnum.Literal;
-        #endregion
-
-        #region constructors
-        public PdfString(
-          byte[] rawValue
-          )
-        { RawValue = rawValue; }
-
-        public PdfString(
-          string value
-          )
-        { Value = value; }
-
-        public PdfString(
-          byte[] rawValue,
-          SerializationModeEnum serializationMode
-          )
-        {
-            SerializationMode = serializationMode;
-            RawValue = rawValue;
-        }
-
-        public PdfString(
-          string value,
-          SerializationModeEnum serializationMode
-          )
-        {
-            SerializationMode = serializationMode;
-            Value = value;
-        }
-
-        protected PdfString(
-          )
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
-        { return visitor.Visit(this, data); }
-
-        public override int CompareTo(
-          PdfDirectObject obj
-          )
-        {
-            if (!(obj is PdfString))
-                throw new ArgumentException("Object MUST be a PdfString");
-
-            return String.CompareOrdinal(StringValue, ((PdfString)obj).StringValue);
-        }
-
-        /**
-          <summary>Gets/Sets the serialization mode.</summary>
-        */
-        public virtual SerializationModeEnum SerializationMode
-        {
-            get
-            { return serializationMode; }
-            set
-            { serializationMode = value; }
-        }
-
-        public string StringValue
-        {
-            get
-            { return (string)Value; }
-        }
-
-        public byte[] ToByteArray(
-          )
-        { return (byte[])RawValue.Clone(); }
-
-        public override string ToString(
-          )
-        {
-            switch (serializationMode)
-            {
-                case SerializationModeEnum.Hex:
-                    return "<" + base.ToString() + ">";
-                case SerializationModeEnum.Literal:
-                    return "(" + base.ToString() + ")";
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        public override object Value
-        {
-            get
-            {
-                switch (serializationMode)
-                {
-                    case SerializationModeEnum.Literal:
-                        return tokens::Encoding.Pdf.Decode(RawValue);
-                    case SerializationModeEnum.Hex:
-                        return ConvertUtils.ByteArrayToHex(RawValue);
-                    default:
-                        throw new NotImplementedException(serializationMode + " serialization mode is not implemented.");
-                }
-            }
-            protected set
-            {
-                switch (serializationMode)
-                {
-                    case SerializationModeEnum.Literal:
-                        RawValue = tokens::Encoding.Pdf.Encode((string)value);
-                        break;
-                    case SerializationModeEnum.Hex:
-                        RawValue = ConvertUtils.HexToByteArray((string)value);
-                        break;
-                    default:
-                        throw new NotImplementedException(serializationMode + " serialization mode is not implemented.");
-                }
-            }
-        }
-
-        public override void WriteTo(
-          IOutputStream stream,
-          files.File context
-          )
-        {
-            MemoryStream buffer = new MemoryStream();
-            {
-                byte[] rawValue = RawValue;
-                switch (serializationMode)
-                {
-                    case SerializationModeEnum.Literal:
-                        buffer.WriteByte(LiteralLeftDelimiterCode);
-                        /*
-                          NOTE: Literal lexical conventions prescribe that the following reserved characters
-                          are to be escaped when placed inside string character sequences:
-                            - \n Line feed (LF)
-                            - \r Carriage return (CR)
-                            - \t Horizontal tab (HT)
-                            - \b Backspace (BS)
-                            - \f Form feed (FF)
-                            - \( Left parenthesis
-                            - \) Right parenthesis
-                            - \\ Backslash
-                        */
-                        for (
-                          int index = 0;
-                          index < rawValue.Length;
-                          index++
-                          )
-                        {
-                            byte valueByte = rawValue[index];
-                            switch (valueByte)
-                            {
-                                case LineFeedCode:
-                                    buffer.WriteByte(LiteralEscapeCode);
-                                    valueByte = 110;
-                                    break;
-                                case CarriageReturnCode:
-                                    buffer.WriteByte(LiteralEscapeCode);
-                                    valueByte = 114;
-                                    break;
-                                case HorizontalTabCode:
-                                    buffer.WriteByte(LiteralEscapeCode);
-                                    valueByte = 116;
-                                    break;
-                                case BackspaceCode:
-                                    buffer.WriteByte(LiteralEscapeCode);
-                                    valueByte = 98;
-                                    break;
-                                case FormFeedCode:
-                                    buffer.WriteByte(LiteralEscapeCode);
-                                    valueByte = 102;
-                                    break;
-                                case LiteralLeftDelimiterCode:
-                                case LiteralRightDelimiterCode:
-                                case LiteralEscapeCode:
-                                    buffer.WriteByte(LiteralEscapeCode);
-                                    break;
-                            }
-                            buffer.WriteByte(valueByte);
-                        }
-                        buffer.WriteByte(LiteralRightDelimiterCode);
-                        break;
-                    case SerializationModeEnum.Hex:
-                        buffer.WriteByte(HexLeftDelimiterCode);
-                        byte[] value = tokens::Encoding.Pdf.Encode(ConvertUtils.ByteArrayToHex(rawValue));
-                        buffer.Write(value, 0, value.Length);
-                        buffer.WriteByte(HexRightDelimiterCode);
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-            stream.Write(buffer.ToArray());
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

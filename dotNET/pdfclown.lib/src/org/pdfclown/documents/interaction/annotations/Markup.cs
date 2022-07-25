@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Drawing;
+
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Markup annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It represents text-based annotations used primarily to mark up documents.</remarks>
@@ -39,48 +39,36 @@ namespace org.pdfclown.documents.interaction.annotations
     public abstract class Markup
       : Annotation
     {
-        #region types
-        /**
-          <summary>Annotation relationship [PDF:1.6:8.4.5].</summary>
-        */
-        [PDF(VersionEnum.PDF16)]
-        public enum ReplyTypeEnum
-        {
-            Thread,
-            Group
-        }
-        #endregion
-
-        #region dynamic
-        #region constructors
-        protected Markup(
-          Page page,
-          PdfName subtype,
-          RectangleF box,
-          string text
-          ) : base(page, subtype, box, text)
-        { CreationDate = DateTime.Now; }
 
         protected Markup(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        protected Markup(
+Page page,
+PdfName subtype,
+RectangleF box,
+string text
+) : base(page, subtype, box, text)
+        { this.CreationDate = DateTime.Now; }
+
+        protected PdfName TypeBase
+        {
+            get => (PdfName)this.BaseDataObject[PdfName.IT];
+            set => this.BaseDataObject[PdfName.IT] = value;
+        }
+
         /**
-          <summary>Gets/Sets the constant opacity value to be used in painting the annotation.</summary>
-          <remarks>This value applies to all visible elements of the annotation (including its background
-          and border) but not to the popup window that appears when the annotation is opened.</remarks>
-        */
+<summary>Gets/Sets the constant opacity value to be used in painting the annotation.</summary>
+<remarks>This value applies to all visible elements of the annotation (including its background
+and border) but not to the popup window that appears when the annotation is opened.</remarks>
+*/
         [PDF(VersionEnum.PDF14)]
         public virtual double Alpha
         {
-            get
-            { return (double)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.CA], 1d); }
-            set
-            { BaseDataObject[PdfName.CA] = PdfReal.Get(value); }
+            get => (double)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.CA], 1d);
+            set => this.BaseDataObject[PdfName.CA] = PdfReal.Get(value);
         }
 
         /**
@@ -91,12 +79,11 @@ namespace org.pdfclown.documents.interaction.annotations
         [PDF(VersionEnum.PDF11)]
         public virtual string Author
         {
-            get
-            { return (string)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.T]); }
+            get => (string)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.T]);
             set
             {
-                BaseDataObject[PdfName.T] = PdfTextString.Get(value);
-                ModificationDate = DateTime.Now;
+                this.BaseDataObject[PdfName.T] = PdfTextString.Get(value);
+                this.ModificationDate = DateTime.Now;
             }
         }
 
@@ -108,11 +95,10 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfDirectObject creationDateObject = BaseDataObject[PdfName.CreationDate];
-                return creationDateObject is PdfDate ? (DateTime?)((PdfDate)creationDateObject).Value : null;
+                var creationDateObject = this.BaseDataObject[PdfName.CreationDate];
+                return (creationDateObject is PdfDate) ? ((DateTime?)((PdfDate)creationDateObject).Value) : null;
             }
-            set
-            { BaseDataObject[PdfName.CreationDate] = PdfDate.Get(value); }
+            set => this.BaseDataObject[PdfName.CreationDate] = PdfDate.Get(value);
         }
 
         /**
@@ -124,10 +110,8 @@ namespace org.pdfclown.documents.interaction.annotations
         [PDF(VersionEnum.PDF15)]
         public virtual Annotation InReplyTo
         {
-            get
-            { return Annotation.Wrap(BaseDataObject[PdfName.IRT]); }
-            set
-            { BaseDataObject[PdfName.IRT] = PdfObjectWrapper.GetBaseObject(value); }
+            get => Annotation.Wrap(this.BaseDataObject[PdfName.IRT]);
+            set => this.BaseDataObject[PdfName.IRT] = PdfObjectWrapper.GetBaseObject(value);
         }
 
         /**
@@ -138,12 +122,11 @@ namespace org.pdfclown.documents.interaction.annotations
         [PDF(VersionEnum.PDF13)]
         public virtual Popup Popup
         {
-            get
-            { return (Popup)Annotation.Wrap(BaseDataObject[PdfName.Popup]); }
+            get => (Popup)Annotation.Wrap(this.BaseDataObject[PdfName.Popup]);
             set
             {
                 value.Markup = this;
-                BaseDataObject[PdfName.Popup] = value.BaseObject;
+                this.BaseDataObject[PdfName.Popup] = value.BaseObject;
             }
         }
 
@@ -154,10 +137,8 @@ namespace org.pdfclown.documents.interaction.annotations
         [PDF(VersionEnum.PDF16)]
         public virtual ReplyTypeEnum ReplyType
         {
-            get
-            { return ReplyTypeEnumExtension.Get((PdfName)BaseDataObject[PdfName.RT]).Value; }
-            set
-            { BaseDataObject[PdfName.RT] = value.GetCode(); }
+            get => ReplyTypeEnumExtension.Get((PdfName)this.BaseDataObject[PdfName.RT]).Value;
+            set => this.BaseDataObject[PdfName.RT] = value.GetCode();
         }
 
         /**
@@ -166,27 +147,22 @@ namespace org.pdfclown.documents.interaction.annotations
         [PDF(VersionEnum.PDF15)]
         public virtual string Subject
         {
-            get
-            { return (string)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.Subj]); }
+            get => (string)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.Subj]);
             set
             {
-                BaseDataObject[PdfName.Subj] = PdfTextString.Get(value);
-                ModificationDate = DateTime.Now;
+                this.BaseDataObject[PdfName.Subj] = PdfTextString.Get(value);
+                this.ModificationDate = DateTime.Now;
             }
         }
-        #endregion
-
-        #region protected
-        protected PdfName TypeBase
+        /**
+  <summary>Annotation relationship [PDF:1.6:8.4.5].</summary>
+*/
+        [PDF(VersionEnum.PDF16)]
+        public enum ReplyTypeEnum
         {
-            get
-            { return (PdfName)BaseDataObject[PdfName.IT]; }
-            set
-            { BaseDataObject[PdfName.IT] = value; }
+            Thread,
+            Group
         }
-        #endregion
-        #endregion
-        #endregion
     }
 
     internal static class ReplyTypeEnumExtension
@@ -205,7 +181,9 @@ namespace org.pdfclown.documents.interaction.annotations
           )
         {
             if (name == null)
+            {
                 return Markup.ReplyTypeEnum.Thread;
+            }
 
             return codes.GetKey(name);
         }

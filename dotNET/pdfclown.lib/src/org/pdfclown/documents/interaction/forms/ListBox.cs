@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>List box [PDF:1.6:8.6.3].</summary>
     */
@@ -37,11 +36,14 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class ListBox
       : ChoiceField
     {
-        #region dynamic
-        #region constructors
+
+        internal ListBox(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new listbox within the given document context.</summary>
-        */
+<summary>Creates a new listbox within the given document context.</summary>
+*/
         public ListBox(
           string name,
           Widget widget
@@ -51,14 +53,5 @@ namespace org.pdfclown.documents.interaction.forms
             )
         { }
 
-        internal ListBox(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #endregion
-        #endregion
     }
 }

@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.objects;
-
-using system = System;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.objects;
+
+    using system = System;
+
     /**
       <summary>Widget actions [PDF:1.6:8.5.2].</summary>
     */
@@ -37,25 +37,20 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class WidgetActions
       : AnnotationActions
     {
-        #region dynamic
-        #region constructors
-        public WidgetActions(
-          Annotation parent
-          ) : base(parent)
-        { }
 
         internal WidgetActions(
           Annotation parent,
           PdfDirectObject baseObject
           ) : base(parent, baseObject)
         { }
-        #endregion
+        public WidgetActions(
+Annotation parent
+) : base(parent)
+        { }
 
-        #region interface
-        #region public
         public override object Clone(
-          Document context
-          )
+Document context
+)
         { throw new system::NotImplementedException(); } // TODO: verify parent reference.
 
         /**
@@ -63,10 +58,8 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public Action OnBlur
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.Bl]); }
-            set
-            { BaseDataObject[PdfName.Bl] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.Bl]);
+            set => this.BaseDataObject[PdfName.Bl] = value.BaseObject;
         }
 
         /**
@@ -74,13 +67,8 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public Action OnFocus
         {
-            get
-            { return Action.Wrap(BaseDataObject[PdfName.Fo]); }
-            set
-            { BaseDataObject[PdfName.Fo] = value.BaseObject; }
+            get => Action.Wrap(this.BaseDataObject[PdfName.Fo]);
+            set => this.BaseDataObject[PdfName.Fo] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

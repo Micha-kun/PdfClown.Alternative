@@ -66,7 +66,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
         /// <param name="components">Color components to convert.</param>
         ///
         public static new DeviceRGBColor Get(PdfArray components)
-        { return (components != null) ? (new DeviceRGBColor(components)) : Default; }
+        { return (components != null) ? new DeviceRGBColor(components) : Default; }
 
         ///
         /// <summary>
@@ -77,7 +77,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
         public static DeviceRGBColor Get(drawing::Color? color)
         {
             return color.HasValue
-                ? (new DeviceRGBColor(color.Value.R / 255d, color.Value.G / 255d, color.Value.B / 255d))
+                ? new DeviceRGBColor(color.Value.R / 255d, color.Value.G / 255d, color.Value.B / 255d)
                 : Default;
         }
 

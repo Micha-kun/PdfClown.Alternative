@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
 namespace org.pdfclown.util.metadata
 {
+    using System;
+    using System.Collections.Generic;
+
     /**
       <summary>Generic software version number.</summary>
     */

@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using System.IO;
-
 namespace org.pdfclown.util.io
 {
+    using System.IO;
+
     /**
       <summary>IO utilities.</summary>
     */

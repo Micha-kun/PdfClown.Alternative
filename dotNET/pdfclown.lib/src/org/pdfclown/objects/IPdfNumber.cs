@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.objects
 {
+    using System;
+
     /**
       <summary>PDF number interface.</summary>
     */
@@ -66,9 +66,14 @@ namespace org.pdfclown.objects
           )
         {
             if (!(obj1 is IPdfNumber))
+            {
                 throw new ArgumentException("obj1 MUST implement IPdfNumber");
+            }
+
             if (!(obj2 is IPdfNumber))
+            {
                 throw new ArgumentException("obj2 MUST implement IPdfNumber");
+            }
 
             return ((IPdfNumber)obj1).RawValue.CompareTo(((IPdfNumber)obj2).RawValue);
         }
@@ -79,9 +84,14 @@ namespace org.pdfclown.objects
           )
         {
             if (!(obj1 is IPdfNumber))
+            {
                 throw new ArgumentException("obj1 MUST implement IPdfNumber");
+            }
+
             if (!(obj2 is IPdfNumber))
+            {
                 throw new ArgumentException("obj2 MUST implement IPdfNumber");
+            }
 
             return ((IPdfNumber)obj1).RawValue.Equals(((IPdfNumber)obj2).RawValue);
         }
@@ -91,12 +101,14 @@ namespace org.pdfclown.objects
           )
         {
             if (!(obj is IPdfNumber))
+            {
                 throw new ArgumentException("obj MUST implement IPdfNumber");
+            }
 
-            double value = ((IPdfNumber)obj).RawValue;
-            int intValue = (int)value;
+            var value = ((IPdfNumber)obj).RawValue;
+            var intValue = (int)value;
 
-            return value == intValue ? intValue.GetHashCode() : value.GetHashCode();
+            return (value == intValue) ? intValue.GetHashCode() : value.GetHashCode();
         }
     }
 }

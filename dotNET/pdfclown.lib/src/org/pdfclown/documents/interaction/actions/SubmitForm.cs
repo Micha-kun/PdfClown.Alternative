@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Transmit the names and values of selected interactive form fields
       to a specified URL (Uniform Resource Locator)' action [PDF:1.6:8.6.4].</summary>
@@ -37,24 +36,18 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class SubmitForm
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public SubmitForm(
-          Document context
-          ) : base(context, PdfName.SubmitForm)
-        { }
 
         internal SubmitForm(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public SubmitForm(
+          Document context
+          ) : base(context, PdfName.SubmitForm)
+        { }
 
-        #region interface
-        #endregion
-        #endregion
     }
 }

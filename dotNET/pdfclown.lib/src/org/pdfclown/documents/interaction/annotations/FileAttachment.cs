@@ -23,15 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using System.Drawing;
-using org.pdfclown.documents.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Collections.Generic;
+
+    using System.Drawing;
+    using org.pdfclown.documents.files;
+    using org.pdfclown.objects;
+
     /**
       <summary>File attachment annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It represents a reference to a file, which typically is embedded in the PDF file.
@@ -42,10 +41,73 @@ namespace org.pdfclown.documents.interaction.annotations
       : Markup,
         IFileResource
     {
-        #region types
+
+        private static readonly Dictionary<IconTypeEnum, PdfName> IconTypeEnumCodes;
+
+        static FileAttachment()
+        {
+            IconTypeEnumCodes = new Dictionary<IconTypeEnum, PdfName>();
+            IconTypeEnumCodes[IconTypeEnum.Graph] = PdfName.Graph;
+            IconTypeEnumCodes[IconTypeEnum.PaperClip] = PdfName.Paperclip;
+            IconTypeEnumCodes[IconTypeEnum.PushPin] = PdfName.PushPin;
+            IconTypeEnumCodes[IconTypeEnum.Tag] = PdfName.Tag;
+        }
+
+        internal FileAttachment(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        public FileAttachment(
+Page page,
+RectangleF box,
+string text,
+FileSpecification dataFile
+) : base(page, PdfName.FileAttachment, box, text)
+        { this.DataFile = dataFile; }
+
         /**
-          <summary>Icon to be used in displaying the annotation [PDF:1.6:8.4.5].</summary>
+<summary>Gets the code corresponding to the given value.</summary>
+*/
+        private static PdfName ToCode(
+          IconTypeEnum value
+          )
+        { return IconTypeEnumCodes[value]; }
+
+        /**
+          <summary>Gets the icon type corresponding to the given value.</summary>
         */
+        private static IconTypeEnum ToIconTypeEnum(
+          PdfName value
+          )
+        {
+            foreach (var iconType in IconTypeEnumCodes)
+            {
+                if (iconType.Value.Equals(value))
+                {
+                    return iconType.Key;
+                }
+            }
+            return DefaultIconType;
+        }
+
+        public FileSpecification DataFile
+        {
+            get => FileSpecification.Wrap(this.BaseDataObject[PdfName.FS]);
+            set => this.BaseDataObject[PdfName.FS] = value.BaseObject;
+        }
+
+        /**
+<summary>Gets/Sets the icon to be used in displaying the annotation.</summary>
+*/
+        public IconTypeEnum IconType
+        {
+            get => ToIconTypeEnum((PdfName)this.BaseDataObject[PdfName.Name]);
+            set => this.BaseDataObject[PdfName.Name] = (value != DefaultIconType) ? ToCode(value) : null;
+        }
+        /**
+  <summary>Icon to be used in displaying the annotation [PDF:1.6:8.4.5].</summary>
+*/
         public enum IconTypeEnum
         {
             /**
@@ -65,94 +127,7 @@ namespace org.pdfclown.documents.interaction.annotations
             */
             Tag
         };
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly Dictionary<IconTypeEnum, PdfName> IconTypeEnumCodes;
 
         private static readonly IconTypeEnum DefaultIconType = IconTypeEnum.PushPin;
-        #endregion
-
-        #region constructors
-        static FileAttachment()
-        {
-            IconTypeEnumCodes = new Dictionary<IconTypeEnum, PdfName>();
-            IconTypeEnumCodes[IconTypeEnum.Graph] = PdfName.Graph;
-            IconTypeEnumCodes[IconTypeEnum.PaperClip] = PdfName.Paperclip;
-            IconTypeEnumCodes[IconTypeEnum.PushPin] = PdfName.PushPin;
-            IconTypeEnumCodes[IconTypeEnum.Tag] = PdfName.Tag;
-        }
-        #endregion
-
-        #region interface
-        #region private
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          IconTypeEnum value
-          )
-        { return IconTypeEnumCodes[value]; }
-
-        /**
-          <summary>Gets the icon type corresponding to the given value.</summary>
-        */
-        private static IconTypeEnum ToIconTypeEnum(
-          PdfName value
-          )
-        {
-            foreach (KeyValuePair<IconTypeEnum, PdfName> iconType in IconTypeEnumCodes)
-            {
-                if (iconType.Value.Equals(value))
-                    return iconType.Key;
-            }
-            return DefaultIconType;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public FileAttachment(
-          Page page,
-          RectangleF box,
-          string text,
-          FileSpecification dataFile
-          ) : base(page, PdfName.FileAttachment, box, text)
-        { DataFile = dataFile; }
-
-        internal FileAttachment(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the icon to be used in displaying the annotation.</summary>
-        */
-        public IconTypeEnum IconType
-        {
-            get
-            { return ToIconTypeEnum((PdfName)BaseDataObject[PdfName.Name]); }
-            set
-            { BaseDataObject[PdfName.Name] = value != DefaultIconType ? ToCode(value) : null; }
-        }
-
-        #region IFileResource
-        public FileSpecification DataFile
-        {
-            get
-            { return FileSpecification.Wrap(BaseDataObject[PdfName.FS]); }
-            set
-            { BaseDataObject[PdfName.FS] = value.BaseObject; }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

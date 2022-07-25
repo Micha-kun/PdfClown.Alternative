@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Chained actions [PDF:1.6:8.5.1].</summary>
     */
@@ -44,57 +44,16 @@ namespace org.pdfclown.documents.interaction.actions
           This implementation hides such a complexity to the user, smoothly exposing
           just the most general case (array) yet preserving its internal state.
         */
-        #region dynamic
-        #region fields
         /**
-          Parent action.
-        */
-        private Action parent;
-        #endregion
+Parent action.
+*/
+        private readonly Action parent;
 
-        #region constructors
         internal ChainedActions(
-          PdfDirectObject baseObject,
-          Action parent
-          ) : base(baseObject)
+  PdfDirectObject baseObject,
+  Action parent
+  ) : base(baseObject)
         { this.parent = parent; }
-        #endregion
-
-        #region interface
-        #region public
-        public override object Clone(
-          Document context
-          )
-        { throw new NotImplementedException(); } // TODO:verify
-
-        /**
-          <summary>Gets the parent action.</summary>
-        */
-        public Action Parent
-        { get { return parent; } }
-
-        #region IList
-        public int IndexOf(
-          Action value
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject is PdfDictionary) // Single action.
-                return (value.BaseObject.Equals(BaseObject) ? 0 : -1);
-            else // Multiple actions.
-                return ((PdfArray)baseDataObject).IndexOf(value.BaseObject);
-        }
-
-        public void Insert(
-          int index,
-          Action value
-          )
-        { EnsureArray().Insert(index, value.BaseObject); }
-
-        public void RemoveAt(
-          int index
-          )
-        { EnsureArray().RemoveAt(index); }
 
         public Action this[
           int index
@@ -102,40 +61,83 @@ namespace org.pdfclown.documents.interaction.actions
         {
             get
             {
-                PdfDataObject baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 if (baseDataObject is PdfDictionary) // Single action.
                 {
                     if (index != 0)
-                        throw new ArgumentException("Index: " + index + ", Size: 1");
+                    {
+                        throw new ArgumentException($"Index: {index}, Size: 1");
+                    }
 
-                    return Action.Wrap(BaseObject);
+                    return Action.Wrap(this.BaseObject);
                 }
                 else // Multiple actions.
+                {
                     return Action.Wrap(((PdfArray)baseDataObject)[index]);
+                }
             }
-            set
-            { EnsureArray()[index] = value.BaseObject; }
+            set => this.EnsureArray()[index] = value.BaseObject;
         }
 
-        #region ICollection
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<Action>)this).GetEnumerator(); }
+
+        IEnumerator<Action> IEnumerable<Action>.GetEnumerator(
+  )
+        {
+            for (
+              int index = 0,
+                length = this.Count;
+              index < length;
+              index++
+              )
+            { yield return this[index]; }
+        }
+
+        private PdfArray EnsureArray(
+  )
+        {
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject is PdfDictionary) // Single action.
+            {
+                var actionsArray = new PdfArray();
+                actionsArray.Add(this.BaseObject);
+                this.BaseObject = actionsArray;
+                this.parent.BaseDataObject[PdfName.Next] = actionsArray;
+
+                baseDataObject = actionsArray;
+            }
+            return (PdfArray)baseDataObject;
+        }
+
         public void Add(
-          Action value
-          )
-        { EnsureArray().Add(value.BaseObject); }
+  Action value
+  )
+        { this.EnsureArray().Add(value.BaseObject); }
 
         public void Clear(
           )
-        { EnsureArray().Clear(); }
+        { this.EnsureArray().Clear(); }
+
+        public override object Clone(
+Document context
+)
+        { throw new NotImplementedException(); } // TODO:verify
 
         public bool Contains(
           Action value
           )
         {
-            PdfDataObject baseDataObject = BaseDataObject;
+            var baseDataObject = this.BaseDataObject;
             if (baseDataObject is PdfDictionary) // Single action.
-                return value.BaseObject.Equals(BaseObject);
+            {
+                return value.BaseObject.Equals(this.BaseObject);
+            }
             else // Multiple actions.
+            {
                 return ((PdfArray)baseDataObject).Contains(value.BaseObject);
+            }
         }
 
         public void CopyTo(
@@ -144,67 +146,58 @@ namespace org.pdfclown.documents.interaction.actions
           )
         { throw new NotImplementedException(); }
 
-        public int Count
+        public int IndexOf(
+  Action value
+  )
         {
-            get
+            var baseDataObject = this.BaseDataObject;
+            if (baseDataObject is PdfDictionary) // Single action.
             {
-                PdfDataObject baseDataObject = BaseDataObject;
-                if (baseDataObject is PdfDictionary) // Single action.
-                    return 1;
-                else // Multiple actions.
-                    return ((PdfArray)baseDataObject).Count;
+                return value.BaseObject.Equals(this.BaseObject) ? 0 : (-1);
+            }
+            else // Multiple actions.
+            {
+                return ((PdfArray)baseDataObject).IndexOf(value.BaseObject);
             }
         }
 
-        public bool IsReadOnly
-        { get { return false; } }
+        public void Insert(
+          int index,
+          Action value
+          )
+        { this.EnsureArray().Insert(index, value.BaseObject); }
 
         public bool Remove(
           Action value
           )
-        { return EnsureArray().Remove(value.BaseObject); }
+        { return this.EnsureArray().Remove(value.BaseObject); }
 
-        #region IEnumerable<Action>
-        IEnumerator<Action> IEnumerable<Action>.GetEnumerator(
+        public void RemoveAt(
+          int index
           )
+        { this.EnsureArray().RemoveAt(index); }
+
+        public int Count
         {
-            for (
-              int index = 0,
-                length = Count;
-              index < length;
-              index++
-              )
-            { yield return this[index]; }
-        }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<Action>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
-        private PdfArray EnsureArray(
-          )
-        {
-            PdfDataObject baseDataObject = BaseDataObject;
-            if (baseDataObject is PdfDictionary) // Single action.
+            get
             {
-                PdfArray actionsArray = new PdfArray();
-                actionsArray.Add(BaseObject);
-                BaseObject = actionsArray;
-                parent.BaseDataObject[PdfName.Next] = actionsArray;
-
-                baseDataObject = actionsArray;
+                var baseDataObject = this.BaseDataObject;
+                if (baseDataObject is PdfDictionary) // Single action.
+                {
+                    return 1;
+                }
+                else // Multiple actions.
+                {
+                    return ((PdfArray)baseDataObject).Count;
+                }
             }
-            return (PdfArray)baseDataObject;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public bool IsReadOnly => false;
+
+        /**
+          <summary>Gets the parent action.</summary>
+        */
+        public Action Parent => this.parent;
     }
 }

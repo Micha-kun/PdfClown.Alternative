@@ -87,9 +87,9 @@ namespace org.pdfclown.bytes.filters
                     }
                     break;
                 default: // PNG Predictors [RFC 2083] (byte-based).
-                    var sampleBytesCount = (int)Math.Ceiling((sampleComponentBitsCount * sampleComponentsCount) / 8d); // Number of bytes per pixel (bpp).
+                    var sampleBytesCount = (int)Math.Ceiling(sampleComponentBitsCount * sampleComponentsCount / 8d); // Number of bytes per pixel (bpp).
                     var rowSampleBytesCount = ((int)Math.Ceiling(
-                            (sampleComponentBitsCount * sampleComponentsCount * rowSamplesCount) / 8d)) +
+                            sampleComponentBitsCount * sampleComponentsCount * rowSamplesCount / 8d)) +
                         sampleBytesCount; // Number of bytes per row (comprising a leading upper-left sample (see Paeth method)).
                     var previousRowBytePredictions = new int[rowSampleBytesCount];
                     var currentRowBytePredictions = new int[rowSampleBytesCount];
@@ -136,8 +136,8 @@ namespace org.pdfclown.bytes.filters
                                     var topBytePrediction = previousRowBytePredictions[rowSampleByteIndex];
                                     var topLeftBytePrediction = previousRowBytePredictions[
                                         rowSampleByteIndex - sampleBytesCount];
-                                    var initialPrediction = (leftBytePrediction +
-                                        topBytePrediction) -
+                                    var initialPrediction = leftBytePrediction +
+                                        topBytePrediction -
                                         topLeftBytePrediction;
                                     var leftPrediction = Math.Abs(initialPrediction - leftBytePrediction);
                                     var topPrediction = Math.Abs(initialPrediction - topBytePrediction);

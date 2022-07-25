@@ -24,12 +24,12 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.layers
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Read-only collection of all the layers existing in the document.</summary>
     */
@@ -37,47 +37,32 @@ namespace org.pdfclown.documents.contents.layers
     public sealed class Layers
       : Array<Layer>
     {
-        #region static
-        #region interface
-        #region public
-        public static Layers Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Layers(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         private Layers(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
+PdfDirectObject baseObject
+) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public override Layer this[
+          int index
+          ]
+        {
+            set => throw new NotSupportedException();
+        }
+
         public override void Insert(
-          int index,
-          Layer item
-          )
+int index,
+Layer item
+)
         { throw new NotSupportedException(); }
 
         public override void RemoveAt(
           int index
           )
         { throw new NotSupportedException(); }
-
-        public override Layer this[
-          int index
-          ]
-        {
-            set
-            { throw new NotSupportedException(); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public static Layers Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Layers(baseObject) : null; }
     }
 }

@@ -24,13 +24,12 @@
 */
 
 
-using System;
-using org.pdfclown.documents.interaction.actions;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.actions;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Named JavaScript actions [PDF:1.6:3.6.3].</summary>
     */
@@ -38,27 +37,19 @@ namespace org.pdfclown.documents
     public sealed class NamedJavaScripts
       : NameTree<JavaScript>
     {
-        #region dynamic
-        #region constructors
-        public NamedJavaScripts(
-          Document context
-          ) : base(context)
-        { }
 
         internal NamedJavaScripts(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public NamedJavaScripts(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override JavaScript WrapValue(
-          PdfDirectObject baseObject
-          )
-        { return (JavaScript)interaction.actions.Action.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
+PdfDirectObject baseObject
+)
+        { return (JavaScript)Action.Wrap(baseObject); }
     }
 }

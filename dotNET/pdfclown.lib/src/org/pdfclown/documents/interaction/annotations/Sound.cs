@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using System.Drawing;
-using org.pdfclown.objects;
-using multimedia = org.pdfclown.documents.multimedia;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Collections.Generic;
+
+    using System.Drawing;
+    using org.pdfclown.objects;
+    using multimedia = org.pdfclown.documents.multimedia;
+
     /**
       <summary>Sound annotation [PDF:1.6:8.4.5].</summary>
       <remarks>When the annotation is activated, the sound is played.</remarks>
@@ -40,44 +40,32 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Sound
       : Markup
     {
-        #region types
-        /**
-          <summary>Icon to be used in displaying the annotation [PDF:1.6:8.4.5].</summary>
-        */
-        public enum IconTypeEnum
-        {
-            /**
-              <summary>Speaker.</summary>
-            */
-            Speaker,
-            /**
-              <summary>Microphone.</summary>
-            */
-            Microphone
-        };
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly IconTypeEnum DefaultIconType = IconTypeEnum.Speaker;
 
         private static readonly Dictionary<IconTypeEnum, PdfName> IconTypeEnumCodes;
-        #endregion
 
-        #region constructors
         static Sound()
         {
             IconTypeEnumCodes = new Dictionary<IconTypeEnum, PdfName>();
             IconTypeEnumCodes[IconTypeEnum.Speaker] = PdfName.Speaker;
             IconTypeEnumCodes[IconTypeEnum.Microphone] = PdfName.Mic;
         }
-        #endregion
 
-        #region interface
-        #region private
+        internal Sound(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        public Sound(
+Page page,
+RectangleF box,
+string text,
+multimedia::Sound content
+) : base(page, PdfName.Sound, box, text)
+        { this.Content = content; }
+
         /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
+<summary>Gets the code corresponding to the given value.</summary>
+*/
         private static PdfName ToCode(
           IconTypeEnum value
           )
@@ -90,52 +78,32 @@ namespace org.pdfclown.documents.interaction.annotations
           PdfName value
           )
         {
-            foreach (KeyValuePair<IconTypeEnum, PdfName> iconType in IconTypeEnumCodes)
+            foreach (var iconType in IconTypeEnumCodes)
             {
                 if (iconType.Value.Equals(value))
+                {
                     return iconType.Key;
+                }
             }
             return DefaultIconType;
         }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
-        public Sound(
-          Page page,
-          RectangleF box,
-          string text,
-          multimedia::Sound content
-          ) : base(page, PdfName.Sound, box, text)
-        { Content = content; }
-
-        internal Sound(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the sound to be played.</summary>
-        */
+<summary>Gets/Sets the sound to be played.</summary>
+*/
         public multimedia::Sound Content
         {
-            get
-            {
-                return new multimedia::Sound(
-                  BaseDataObject[PdfName.Sound]
+            get => new multimedia::Sound(
+                  this.BaseDataObject[PdfName.Sound]
                   );
-            }
             set
             {
                 if (value == null)
+                {
                     throw new ArgumentException("Content MUST be defined.");
+                }
 
-                BaseDataObject[PdfName.Sound] = value.BaseObject;
+                this.BaseDataObject[PdfName.Sound] = value.BaseObject;
             }
         }
 
@@ -144,10 +112,8 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public IconTypeEnum IconType
         {
-            get
-            { return ToIconTypeEnum((PdfName)BaseDataObject[PdfName.Name]); }
-            set
-            { BaseDataObject[PdfName.Name] = value != DefaultIconType ? ToCode(value) : null; }
+            get => ToIconTypeEnum((PdfName)this.BaseDataObject[PdfName.Name]);
+            set => this.BaseDataObject[PdfName.Name] = (value != DefaultIconType) ? ToCode(value) : null;
         }
 
         /**
@@ -155,11 +121,23 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public override Popup Popup
         {
-            set
-            { throw new NotSupportedException(); }
+            set => throw new NotSupportedException();
         }
-        #endregion
-        #endregion
-        #endregion
+        /**
+  <summary>Icon to be used in displaying the annotation [PDF:1.6:8.4.5].</summary>
+*/
+        public enum IconTypeEnum
+        {
+            /**
+              <summary>Speaker.</summary>
+            */
+            Speaker,
+            /**
+              <summary>Microphone.</summary>
+            */
+            Microphone
+        };
+
+        private static readonly IconTypeEnum DefaultIconType = IconTypeEnum.Speaker;
     }
 }

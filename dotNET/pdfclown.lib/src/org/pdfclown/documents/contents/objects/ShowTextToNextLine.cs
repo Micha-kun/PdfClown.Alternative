@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Move to the next line and show a text string' operation [PDF:1.6:5.3.2].</summary>
     */
@@ -37,31 +36,34 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class ShowTextToNextLine
       : ShowText
     {
-        #region static
-        #region fields
         /**
-          <summary>Specifies no text state parameter
-          (just uses the current settings).</summary>
-        */
+<summary>Specifies no text state parameter
+(just uses the current settings).</summary>
+*/
         public static readonly string SimpleOperatorKeyword = "'";
         /**
           <summary>Specifies the word spacing and the character spacing
           (setting the corresponding parameters in the text state).</summary>
         */
         public static readonly string SpaceOperatorKeyword = "''";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         /**
-          <param name="text">Text encoded using current font's encoding.</param>
-        */
+<param name="text">Text encoded using current font's encoding.</param>
+*/
         public ShowTextToNextLine(
           byte[] text
           ) : base(
             SimpleOperatorKeyword,
             new PdfByteString(text)
+            )
+        { }
+
+        public ShowTextToNextLine(
+          string @operator,
+          IList<PdfDirectObject> operands
+          ) : base(
+            @operator,
+            operands
             )
         { }
 
@@ -82,51 +84,48 @@ namespace org.pdfclown.documents.contents.objects
             )
         { }
 
-        public ShowTextToNextLine(
-          string @operator,
-          IList<PdfDirectObject> operands
-          ) : base(
-            @operator,
-            operands
-            )
-        { }
-        #endregion
+        private void EnsureSpaceOperation(
+  )
+        {
+            if (this.@operator.Equals(SimpleOperatorKeyword))
+            {
+                this.@operator = SpaceOperatorKeyword;
+                this.operands.Insert(0, PdfReal.Get(0));
+                this.operands.Insert(1, PdfReal.Get(0));
+            }
+        }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the character spacing.</summary>
-        */
+<summary>Gets/Sets the character spacing.</summary>
+*/
         public double? CharSpace
         {
             get
             {
-                if (@operator.Equals(SimpleOperatorKeyword))
+                if (this.@operator.Equals(SimpleOperatorKeyword))
+                {
                     return null;
+                }
                 else
-                    return ((IPdfNumber)operands[1]).RawValue;
+                {
+                    return ((IPdfNumber)this.operands[1]).RawValue;
+                }
             }
             set
             {
-                EnsureSpaceOperation();
-                operands[1] = PdfReal.Get(value.Value);
+                this.EnsureSpaceOperation();
+                this.operands[1] = PdfReal.Get(value.Value);
             }
         }
 
         public override byte[] Text
         {
-            get
-            {
-                return ((PdfString)operands[
-                  @operator.Equals(SimpleOperatorKeyword) ? 0 : 2
+            get => ((PdfString)this.operands[
+                  this.@operator.Equals(SimpleOperatorKeyword) ? 0 : 2
                   ]).RawValue;
-            }
-            set
-            {
-                operands[
-                  @operator.Equals(SimpleOperatorKeyword) ? 0 : 2
+            set => this.operands[
+                  this.@operator.Equals(SimpleOperatorKeyword) ? 0 : 2
                   ] = new PdfByteString(value);
-            }
         }
 
         /**
@@ -136,32 +135,20 @@ namespace org.pdfclown.documents.contents.objects
         {
             get
             {
-                if (@operator.Equals(SimpleOperatorKeyword))
+                if (this.@operator.Equals(SimpleOperatorKeyword))
+                {
                     return null;
+                }
                 else
-                    return ((IPdfNumber)operands[0]).RawValue;
+                {
+                    return ((IPdfNumber)this.operands[0]).RawValue;
+                }
             }
             set
             {
-                EnsureSpaceOperation();
-                operands[0] = PdfReal.Get(value.Value);
+                this.EnsureSpaceOperation();
+                this.operands[0] = PdfReal.Get(value.Value);
             }
         }
-        #endregion
-
-        #region private
-        private void EnsureSpaceOperation(
-          )
-        {
-            if (@operator.Equals(SimpleOperatorKeyword))
-            {
-                @operator = SpaceOperatorKeyword;
-                operands.Insert(0, PdfReal.Get(0));
-                operands.Insert(1, PdfReal.Get(0));
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

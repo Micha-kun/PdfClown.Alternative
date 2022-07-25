@@ -23,16 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Collections.Generic;
+    using System.Drawing;
+
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Widget annotation [PDF:1.6:8.4.5].</summary>
     */
@@ -40,10 +39,126 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Widget
       : Annotation
     {
-        #region types
+
+        private static readonly Dictionary<HighlightModeEnum, PdfName> HighlightModeEnumCodes;
+
+        static Widget()
+        {
+            HighlightModeEnumCodes = new Dictionary<HighlightModeEnum, PdfName>();
+            HighlightModeEnumCodes[HighlightModeEnum.None] = PdfName.N;
+            HighlightModeEnumCodes[HighlightModeEnum.Invert] = PdfName.I;
+            HighlightModeEnumCodes[HighlightModeEnum.Outline] = PdfName.O;
+            HighlightModeEnumCodes[HighlightModeEnum.Push] = PdfName.P;
+            HighlightModeEnumCodes[HighlightModeEnum.Toggle] = PdfName.T;
+        }
+
+        internal Widget(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         /**
-          <summary>Highlighting mode [PDF:1.6:8.4.5].</summary>
+<summary>Creates a new generic widget.</summary>
+*/
+        public Widget(
+          Page page,
+          RectangleF box
+          ) : base(page, PdfName.Widget, box, null)
+        { this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.Print, true); }
+
+        /**
+          <summary>Creates a new dual-state widget (required by <see
+          cref="org.pdfclown.documents.forms.RadioButton"/> fields).</summary>
         */
+        public Widget(
+          Page page,
+          RectangleF box,
+          string name
+          ) : this(page, box)
+        {
+            // Initialize the on-state appearance!
+            /*
+              NOTE: This is necessary to keep the reference to the on-state name.
+            */
+            var appearance = new Appearance(page.Document);
+            this.Appearance = appearance;
+            var normalAppearance = appearance.Normal;
+            normalAppearance[new PdfName(name)] = new FormXObject(page.Document, box.Size);
+        }
+
+        /**
+<summary>Gets the code corresponding to the given value.</summary>
+*/
+        private static PdfName ToCode(
+          HighlightModeEnum value
+          )
+        { return HighlightModeEnumCodes[value]; }
+
+        /**
+          <summary>Gets the highlighting mode corresponding to the given value.</summary>
+        */
+        private static HighlightModeEnum ToHighlightModeEnum(
+          PdfName value
+          )
+        {
+            foreach (var mode in HighlightModeEnumCodes)
+            {
+                if (mode.Value.Equals(value))
+                {
+                    return mode.Key;
+                }
+            }
+            return HighlightModeEnum.Invert;
+        }
+
+        public override AnnotationActions Actions
+        {
+            get => new WidgetActions(this, this.BaseDataObject.Get<PdfDictionary>(PdfName.AA));
+            set => base.Actions = value;
+        }
+
+        /**
+          <summary>Gets/Sets the annotation's appearance characteristics to be used for its visual
+          presentation on the page.</summary>
+        */
+        public AppearanceCharacteristics AppearanceCharacteristics
+        {
+            get => AppearanceCharacteristics.Wrap(this.BaseDataObject.Get<PdfDictionary>(PdfName.MK));
+            set => this.BaseDataObject[PdfName.MK] = value.BaseObject;
+        }
+
+        /**
+          <summary>Gets/Sets the annotation's highlighting mode, the visual effect to be used when the
+          mouse button is pressed or held down inside its active area.</summary>
+        */
+        public HighlightModeEnum HighlightMode
+        {
+            get => ToHighlightModeEnum((PdfName)this.BaseDataObject[PdfName.H]);
+            set => this.BaseDataObject[PdfName.H] = ToCode(value);
+        }
+
+        /**
+          <summary>Gets the widget value (applicable to dual-state widgets only). It corresponds to the
+          on-state appearance of this widget.</summary>
+        */
+        public string Value
+        {
+            get
+            {
+                foreach (var normalAppearanceEntry in this.Appearance.Normal)
+                {
+                    var key = normalAppearanceEntry.Key;
+                    if (!key.Equals(PdfName.Off)) // 'On' state.
+                    {
+                        return (string)key.Value;
+                    }
+                }
+                return null; // NOTE: It MUST NOT happen (on-state should always be defined).
+            }
+        }
+        /**
+  <summary>Highlighting mode [PDF:1.6:8.4.5].</summary>
+*/
         public enum HighlightModeEnum
         {
             /**
@@ -67,143 +182,5 @@ namespace org.pdfclown.documents.interaction.annotations
             */
             Toggle
         };
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly Dictionary<HighlightModeEnum, PdfName> HighlightModeEnumCodes;
-        #endregion
-
-        #region constructors
-        static Widget()
-        {
-            HighlightModeEnumCodes = new Dictionary<HighlightModeEnum, PdfName>();
-            HighlightModeEnumCodes[HighlightModeEnum.None] = PdfName.N;
-            HighlightModeEnumCodes[HighlightModeEnum.Invert] = PdfName.I;
-            HighlightModeEnumCodes[HighlightModeEnum.Outline] = PdfName.O;
-            HighlightModeEnumCodes[HighlightModeEnum.Push] = PdfName.P;
-            HighlightModeEnumCodes[HighlightModeEnum.Toggle] = PdfName.T;
-        }
-        #endregion
-
-        #region interface
-        #region private
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          HighlightModeEnum value
-          )
-        { return HighlightModeEnumCodes[value]; }
-
-        /**
-          <summary>Gets the highlighting mode corresponding to the given value.</summary>
-        */
-        private static HighlightModeEnum ToHighlightModeEnum(
-          PdfName value
-          )
-        {
-            foreach (KeyValuePair<HighlightModeEnum, PdfName> mode in HighlightModeEnumCodes)
-            {
-                if (mode.Value.Equals(value))
-                    return mode.Key;
-            }
-            return HighlightModeEnum.Invert;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new generic widget.</summary>
-        */
-        public Widget(
-          Page page,
-          RectangleF box
-          ) : base(page, PdfName.Widget, box, null)
-        { Flags = EnumUtils.Mask(Flags, FlagsEnum.Print, true); }
-
-        /**
-          <summary>Creates a new dual-state widget (required by <see
-          cref="org.pdfclown.documents.forms.RadioButton"/> fields).</summary>
-        */
-        public Widget(
-          Page page,
-          RectangleF box,
-          string name
-          ) : this(page, box)
-        {
-            // Initialize the on-state appearance!
-            /*
-              NOTE: This is necessary to keep the reference to the on-state name.
-            */
-            Appearance appearance = new Appearance(page.Document);
-            Appearance = appearance;
-            AppearanceStates normalAppearance = appearance.Normal;
-            normalAppearance[new PdfName(name)] = new FormXObject(page.Document, box.Size);
-        }
-
-        internal Widget(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override AnnotationActions Actions
-        {
-            get
-            { return new WidgetActions(this, BaseDataObject.Get<PdfDictionary>(PdfName.AA)); }
-            set
-            { base.Actions = value; }
-        }
-
-        /**
-          <summary>Gets/Sets the annotation's appearance characteristics to be used for its visual
-          presentation on the page.</summary>
-        */
-        public AppearanceCharacteristics AppearanceCharacteristics
-        {
-            get
-            { return AppearanceCharacteristics.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.MK)); }
-            set
-            { BaseDataObject[PdfName.MK] = value.BaseObject; }
-        }
-
-        /**
-          <summary>Gets/Sets the annotation's highlighting mode, the visual effect to be used when the
-          mouse button is pressed or held down inside its active area.</summary>
-        */
-        public HighlightModeEnum HighlightMode
-        {
-            get
-            { return ToHighlightModeEnum((PdfName)BaseDataObject[PdfName.H]); }
-            set
-            { BaseDataObject[PdfName.H] = ToCode(value); }
-        }
-
-        /**
-          <summary>Gets the widget value (applicable to dual-state widgets only). It corresponds to the
-          on-state appearance of this widget.</summary>
-        */
-        public string Value
-        {
-            get
-            {
-                foreach (KeyValuePair<PdfName, FormXObject> normalAppearanceEntry in Appearance.Normal)
-                {
-                    PdfName key = normalAppearanceEntry.Key;
-                    if (!key.Equals(PdfName.Off)) // 'On' state.
-                        return (string)key.Value;
-                }
-                return null; // NOTE: It MUST NOT happen (on-state should always be defined).
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

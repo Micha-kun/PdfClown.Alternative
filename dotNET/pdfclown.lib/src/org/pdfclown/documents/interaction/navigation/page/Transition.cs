@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.navigation.page
 {
+
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Visual transition to use when moving to a page during a presentation [PDF:1.6:8.3.3].</summary>
     */
@@ -37,10 +36,324 @@ namespace org.pdfclown.documents.interaction.navigation.page
     public sealed class Transition
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region types
+        private static readonly double DefaultDuration = 1;
+        private static readonly double DefaultScale = 1;
+
+        private static readonly Dictionary<DirectionEnum, PdfDirectObject> DirectionEnumCodes;
+        private static readonly Dictionary<OrientationEnum, PdfName> OrientationEnumCodes;
+        private static readonly Dictionary<PageDirectionEnum, PdfName> PageDirectionEnumCodes;
+        private static readonly Dictionary<StyleEnum, PdfName> StyleEnumCodes;
+
+        static Transition()
+        {
+            //TODO: transfer to extension methods!
+            DirectionEnumCodes = new Dictionary<DirectionEnum, PdfDirectObject>();
+            DirectionEnumCodes[DirectionEnum.LeftToRight] = PdfInteger.Get(0);
+            DirectionEnumCodes[DirectionEnum.BottomToTop] = PdfInteger.Get(90);
+            DirectionEnumCodes[DirectionEnum.RightToLeft] = PdfInteger.Get(180);
+            DirectionEnumCodes[DirectionEnum.TopToBottom] = PdfInteger.Get(270);
+            DirectionEnumCodes[DirectionEnum.TopLeftToBottomRight] = PdfInteger.Get(315);
+            DirectionEnumCodes[DirectionEnum.None] = PdfName.None;
+
+            OrientationEnumCodes = new Dictionary<OrientationEnum, PdfName>();
+            OrientationEnumCodes[OrientationEnum.Horizontal] = PdfName.H;
+            OrientationEnumCodes[OrientationEnum.Vertical] = PdfName.V;
+
+            PageDirectionEnumCodes = new Dictionary<PageDirectionEnum, PdfName>();
+            PageDirectionEnumCodes[PageDirectionEnum.Inward] = PdfName.I;
+            PageDirectionEnumCodes[PageDirectionEnum.Outward] = PdfName.O;
+
+            StyleEnumCodes = new Dictionary<StyleEnum, PdfName>();
+            StyleEnumCodes[StyleEnum.Split] = PdfName.Split;
+            StyleEnumCodes[StyleEnum.Blinds] = PdfName.Blinds;
+            StyleEnumCodes[StyleEnum.Box] = PdfName.Box;
+            StyleEnumCodes[StyleEnum.Wipe] = PdfName.Wipe;
+            StyleEnumCodes[StyleEnum.Dissolve] = PdfName.Dissolve;
+            StyleEnumCodes[StyleEnum.Glitter] = PdfName.Glitter;
+            StyleEnumCodes[StyleEnum.Replace] = PdfName.R;
+            StyleEnumCodes[StyleEnum.Fly] = PdfName.Fly;
+            StyleEnumCodes[StyleEnum.Push] = PdfName.Push;
+            StyleEnumCodes[StyleEnum.Cover] = PdfName.Cover;
+            StyleEnumCodes[StyleEnum.Uncover] = PdfName.Uncover;
+            StyleEnumCodes[StyleEnum.Fade] = PdfName.Fade;
+        }
+
+        private Transition(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         /**
-          <summary>Transition direction (counterclockwise) [PDF:1.6:8.3.3].</summary>
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public Transition(
+          Document context
+          ) : base(
+            context,
+            new PdfDictionary(
+              new PdfName[] { PdfName.Type },
+              new PdfDirectObject[] { PdfName.Trans }
+              )
+            )
+        { }
+
+        public Transition(
+          Document context,
+          StyleEnum style
+          ) : this(
+            context,
+            style,
+            DefaultDuration,
+            DefaultOrientation,
+            DefaultPageDirection,
+            DefaultDirection,
+            DefaultScale
+            )
+        { }
+
+        public Transition(
+          Document context,
+          StyleEnum style,
+          double duration
+          ) : this(
+            context,
+            style,
+            duration,
+            DefaultOrientation,
+            DefaultPageDirection,
+            DefaultDirection,
+            DefaultScale
+            )
+        { }
+
+        public Transition(
+          Document context,
+          StyleEnum style,
+          double duration,
+          OrientationEnum orientation,
+          PageDirectionEnum pageDirection,
+          DirectionEnum direction,
+          double scale
+          ) : this(context)
+        {
+            this.Style = style;
+            this.Duration = duration;
+            this.Orientation = orientation;
+            this.PageDirection = pageDirection;
+            this.Direction = direction;
+            this.Scale = scale;
+        }
+
+        /**
+  <summary>Gets the code corresponding to the given value.</summary>
+*/
+        private static PdfDirectObject ToCode(
+          DirectionEnum value
+          )
+        { return DirectionEnumCodes[value]; }
+
+        /**
+          <summary>Gets the code corresponding to the given value.</summary>
         */
+        private static PdfName ToCode(
+          OrientationEnum value
+          )
+        { return OrientationEnumCodes[value]; }
+
+        /**
+          <summary>Gets the code corresponding to the given value.</summary>
+        */
+        private static PdfName ToCode(
+          PageDirectionEnum value
+          )
+        { return PageDirectionEnumCodes[value]; }
+
+        /**
+          <summary>Gets the code corresponding to the given value.</summary>
+        */
+        private static PdfName ToCode(
+          StyleEnum value
+          )
+        { return StyleEnumCodes[value]; }
+
+        /**
+          <summary>Gets the direction corresponding to the given value.</summary>
+        */
+        private static DirectionEnum ToDirectionEnum(
+          PdfDirectObject value
+          )
+        {
+            foreach (var direction in DirectionEnumCodes)
+            {
+                if (direction.Value.Equals(value))
+                {
+                    return direction.Key;
+                }
+            }
+            return DefaultDirection;
+        }
+
+        /**
+          <summary>Gets the orientation corresponding to the given value.</summary>
+        */
+        private static OrientationEnum ToOrientationEnum(
+          PdfName value
+          )
+        {
+            foreach (var orientation in OrientationEnumCodes)
+            {
+                if (orientation.Value.Equals(value))
+                {
+                    return orientation.Key;
+                }
+            }
+            return DefaultOrientation;
+        }
+
+        /**
+          <summary>Gets the page direction corresponding to the given value.</summary>
+        */
+        private static PageDirectionEnum ToPageDirectionEnum(
+          PdfName value
+          )
+        {
+            foreach (var direction in PageDirectionEnumCodes)
+            {
+                if (direction.Value.Equals(value))
+                {
+                    return direction.Key;
+                }
+            }
+            return DefaultPageDirection;
+        }
+
+        /**
+          <summary>Gets the style corresponding to the given value.</summary>
+        */
+        private static StyleEnum ToStyleEnum(
+          PdfName value
+          )
+        {
+            foreach (var style in StyleEnumCodes)
+            {
+                if (style.Value.Equals(value))
+                {
+                    return style.Key;
+                }
+            }
+            return DefaultStyle;
+        }
+
+        public static Transition Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Transition(baseObject) : null; }
+
+        /**
+<summary>Gets/Sets the transition direction.</summary>
+*/
+        public DirectionEnum Direction
+        {
+            get => ToDirectionEnum(this.BaseDataObject[PdfName.Di]);
+            set
+            {
+                if (value == DefaultDirection)
+                { _ = this.BaseDataObject.Remove(PdfName.Di); }
+                else
+                { this.BaseDataObject[PdfName.Di] = ToCode(value); }
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the duration of the transition effect, in seconds.</summary>
+        */
+        public double Duration
+        {
+            get
+            {
+                var durationObject = (IPdfNumber)this.BaseDataObject[PdfName.D];
+                return (durationObject == null)
+                  ? DefaultDuration
+                  : durationObject.RawValue;
+            }
+            set
+            {
+                if (value == DefaultDuration)
+                { _ = this.BaseDataObject.Remove(PdfName.D); }
+                else
+                { this.BaseDataObject[PdfName.D] = PdfReal.Get(value); }
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the transition orientation.</summary>
+        */
+        public OrientationEnum Orientation
+        {
+            get => ToOrientationEnum((PdfName)this.BaseDataObject[PdfName.Dm]);
+            set
+            {
+                if (value == DefaultOrientation)
+                { _ = this.BaseDataObject.Remove(PdfName.Dm); }
+                else
+                { this.BaseDataObject[PdfName.Dm] = ToCode(value); }
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the transition direction on page.</summary>
+        */
+        public PageDirectionEnum PageDirection
+        {
+            get => ToPageDirectionEnum((PdfName)this.BaseDataObject[PdfName.M]);
+            set
+            {
+                if (value == DefaultPageDirection)
+                { _ = this.BaseDataObject.Remove(PdfName.M); }
+                else
+                { this.BaseDataObject[PdfName.M] = ToCode(value); }
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the scale at which the changes are drawn.</summary>
+        */
+        [PDF(VersionEnum.PDF15)]
+        public double Scale
+        {
+            get
+            {
+                var scaleObject = (IPdfNumber)this.BaseDataObject[PdfName.SS];
+                return (scaleObject == null)
+                  ? DefaultScale
+                  : scaleObject.RawValue;
+            }
+            set
+            {
+                if (value == DefaultScale)
+                { _ = this.BaseDataObject.Remove(PdfName.SS); }
+                else
+                { this.BaseDataObject[PdfName.SS] = PdfReal.Get(value); }
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the transition style.</summary>
+        */
+        public StyleEnum Style
+        {
+            get => ToStyleEnum((PdfName)this.BaseDataObject[PdfName.S]);
+            set
+            {
+                if (value == DefaultStyle)
+                { _ = this.BaseDataObject.Remove(PdfName.S); }
+                else
+                { this.BaseDataObject[PdfName.S] = ToCode(value); }
+            }
+        }
+        /**
+  <summary>Transition direction (counterclockwise) [PDF:1.6:8.3.3].</summary>
+*/
         public enum DirectionEnum
         {
             /**
@@ -159,342 +472,10 @@ namespace org.pdfclown.documents.interaction.navigation.page
             [PDF(VersionEnum.PDF15)]
             Fade
         };
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly Dictionary<DirectionEnum, PdfDirectObject> DirectionEnumCodes;
-        private static readonly Dictionary<OrientationEnum, PdfName> OrientationEnumCodes;
-        private static readonly Dictionary<PageDirectionEnum, PdfName> PageDirectionEnumCodes;
-        private static readonly Dictionary<StyleEnum, PdfName> StyleEnumCodes;
 
         private static readonly DirectionEnum DefaultDirection = DirectionEnum.LeftToRight;
-        private static readonly double DefaultDuration = 1;
         private static readonly OrientationEnum DefaultOrientation = OrientationEnum.Horizontal;
         private static readonly PageDirectionEnum DefaultPageDirection = PageDirectionEnum.Inward;
-        private static readonly double DefaultScale = 1;
         private static readonly StyleEnum DefaultStyle = StyleEnum.Replace;
-        #endregion
-
-        #region constructors
-        static Transition()
-        {
-            //TODO: transfer to extension methods!
-            DirectionEnumCodes = new Dictionary<DirectionEnum, PdfDirectObject>();
-            DirectionEnumCodes[DirectionEnum.LeftToRight] = PdfInteger.Get(0);
-            DirectionEnumCodes[DirectionEnum.BottomToTop] = PdfInteger.Get(90);
-            DirectionEnumCodes[DirectionEnum.RightToLeft] = PdfInteger.Get(180);
-            DirectionEnumCodes[DirectionEnum.TopToBottom] = PdfInteger.Get(270);
-            DirectionEnumCodes[DirectionEnum.TopLeftToBottomRight] = PdfInteger.Get(315);
-            DirectionEnumCodes[DirectionEnum.None] = PdfName.None;
-
-            OrientationEnumCodes = new Dictionary<OrientationEnum, PdfName>();
-            OrientationEnumCodes[OrientationEnum.Horizontal] = PdfName.H;
-            OrientationEnumCodes[OrientationEnum.Vertical] = PdfName.V;
-
-            PageDirectionEnumCodes = new Dictionary<PageDirectionEnum, PdfName>();
-            PageDirectionEnumCodes[PageDirectionEnum.Inward] = PdfName.I;
-            PageDirectionEnumCodes[PageDirectionEnum.Outward] = PdfName.O;
-
-            StyleEnumCodes = new Dictionary<StyleEnum, PdfName>();
-            StyleEnumCodes[StyleEnum.Split] = PdfName.Split;
-            StyleEnumCodes[StyleEnum.Blinds] = PdfName.Blinds;
-            StyleEnumCodes[StyleEnum.Box] = PdfName.Box;
-            StyleEnumCodes[StyleEnum.Wipe] = PdfName.Wipe;
-            StyleEnumCodes[StyleEnum.Dissolve] = PdfName.Dissolve;
-            StyleEnumCodes[StyleEnum.Glitter] = PdfName.Glitter;
-            StyleEnumCodes[StyleEnum.Replace] = PdfName.R;
-            StyleEnumCodes[StyleEnum.Fly] = PdfName.Fly;
-            StyleEnumCodes[StyleEnum.Push] = PdfName.Push;
-            StyleEnumCodes[StyleEnum.Cover] = PdfName.Cover;
-            StyleEnumCodes[StyleEnum.Uncover] = PdfName.Uncover;
-            StyleEnumCodes[StyleEnum.Fade] = PdfName.Fade;
-        }
-        #endregion
-
-        #region interface
-        #region public
-        public static Transition Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Transition(baseObject) : null; }
-        #endregion
-
-        #region private
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfDirectObject ToCode(
-          DirectionEnum value
-          )
-        { return DirectionEnumCodes[value]; }
-
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          OrientationEnum value
-          )
-        { return OrientationEnumCodes[value]; }
-
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          PageDirectionEnum value
-          )
-        { return PageDirectionEnumCodes[value]; }
-
-        /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
-        private static PdfName ToCode(
-          StyleEnum value
-          )
-        { return StyleEnumCodes[value]; }
-
-        /**
-          <summary>Gets the direction corresponding to the given value.</summary>
-        */
-        private static DirectionEnum ToDirectionEnum(
-          PdfDirectObject value
-          )
-        {
-            foreach (KeyValuePair<DirectionEnum, PdfDirectObject> direction in DirectionEnumCodes)
-            {
-                if (direction.Value.Equals(value))
-                    return direction.Key;
-            }
-            return DefaultDirection;
-        }
-
-        /**
-          <summary>Gets the orientation corresponding to the given value.</summary>
-        */
-        private static OrientationEnum ToOrientationEnum(
-          PdfName value
-          )
-        {
-            foreach (KeyValuePair<OrientationEnum, PdfName> orientation in OrientationEnumCodes)
-            {
-                if (orientation.Value.Equals(value))
-                    return orientation.Key;
-            }
-            return DefaultOrientation;
-        }
-
-        /**
-          <summary>Gets the page direction corresponding to the given value.</summary>
-        */
-        private static PageDirectionEnum ToPageDirectionEnum(
-          PdfName value
-          )
-        {
-            foreach (KeyValuePair<PageDirectionEnum, PdfName> direction in PageDirectionEnumCodes)
-            {
-                if (direction.Value.Equals(value))
-                    return direction.Key;
-            }
-            return DefaultPageDirection;
-        }
-
-        /**
-          <summary>Gets the style corresponding to the given value.</summary>
-        */
-        private static StyleEnum ToStyleEnum(
-          PdfName value
-          )
-        {
-            foreach (KeyValuePair<StyleEnum, PdfName> style in StyleEnumCodes)
-            {
-                if (style.Value.Equals(value))
-                    return style.Key;
-            }
-            return DefaultStyle;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public Transition(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[] { PdfName.Type },
-              new PdfDirectObject[] { PdfName.Trans }
-              )
-            )
-        { }
-
-        public Transition(
-          Document context,
-          StyleEnum style
-          ) : this(
-            context,
-            style,
-            DefaultDuration,
-            DefaultOrientation,
-            DefaultPageDirection,
-            DefaultDirection,
-            DefaultScale
-            )
-        { }
-
-        public Transition(
-          Document context,
-          StyleEnum style,
-          double duration
-          ) : this(
-            context,
-            style,
-            duration,
-            DefaultOrientation,
-            DefaultPageDirection,
-            DefaultDirection,
-            DefaultScale
-            )
-        { }
-
-        public Transition(
-          Document context,
-          StyleEnum style,
-          double duration,
-          OrientationEnum orientation,
-          PageDirectionEnum pageDirection,
-          DirectionEnum direction,
-          double scale
-          ) : this(context)
-        {
-            Style = style;
-            Duration = duration;
-            Orientation = orientation;
-            PageDirection = pageDirection;
-            Direction = direction;
-            Scale = scale;
-        }
-
-        private Transition(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the transition direction.</summary>
-        */
-        public DirectionEnum Direction
-        {
-            get
-            { return ToDirectionEnum(BaseDataObject[PdfName.Di]); }
-            set
-            {
-                if (value == DefaultDirection)
-                { BaseDataObject.Remove(PdfName.Di); }
-                else
-                { BaseDataObject[PdfName.Di] = ToCode(value); }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the duration of the transition effect, in seconds.</summary>
-        */
-        public double Duration
-        {
-            get
-            {
-                IPdfNumber durationObject = (IPdfNumber)BaseDataObject[PdfName.D];
-                return durationObject == null
-                  ? DefaultDuration
-                  : durationObject.RawValue;
-            }
-            set
-            {
-                if (value == DefaultDuration)
-                { BaseDataObject.Remove(PdfName.D); }
-                else
-                { BaseDataObject[PdfName.D] = PdfReal.Get(value); }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the transition orientation.</summary>
-        */
-        public OrientationEnum Orientation
-        {
-            get
-            { return ToOrientationEnum((PdfName)BaseDataObject[PdfName.Dm]); }
-            set
-            {
-                if (value == DefaultOrientation)
-                { BaseDataObject.Remove(PdfName.Dm); }
-                else
-                { BaseDataObject[PdfName.Dm] = ToCode(value); }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the transition direction on page.</summary>
-        */
-        public PageDirectionEnum PageDirection
-        {
-            get
-            { return ToPageDirectionEnum((PdfName)BaseDataObject[PdfName.M]); }
-            set
-            {
-                if (value == DefaultPageDirection)
-                { BaseDataObject.Remove(PdfName.M); }
-                else
-                { BaseDataObject[PdfName.M] = ToCode(value); }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the scale at which the changes are drawn.</summary>
-        */
-        [PDF(VersionEnum.PDF15)]
-        public double Scale
-        {
-            get
-            {
-                IPdfNumber scaleObject = (IPdfNumber)BaseDataObject[PdfName.SS];
-                return scaleObject == null
-                  ? DefaultScale
-                  : scaleObject.RawValue;
-            }
-            set
-            {
-                if (value == DefaultScale)
-                { BaseDataObject.Remove(PdfName.SS); }
-                else
-                { BaseDataObject[PdfName.SS] = PdfReal.Get(value); }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the transition style.</summary>
-        */
-        public StyleEnum Style
-        {
-            get
-            { return ToStyleEnum((PdfName)BaseDataObject[PdfName.S]); }
-            set
-            {
-                if (value == DefaultStyle)
-                { BaseDataObject.Remove(PdfName.S); }
-                else
-                { BaseDataObject[PdfName.S] = ToCode(value); }
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

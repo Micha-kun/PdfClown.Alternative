@@ -24,14 +24,14 @@
 */
 
 
-using System;
-
-using System.Collections;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.functions
 {
+    using System;
+
+    using System.Collections;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>List of 1-input functions combined in a <see cref="Parent">stitching function</see> [PDF:1.6:3.9.3].</summary>
     */
@@ -40,88 +40,80 @@ namespace org.pdfclown.documents.functions
       : PdfObjectWrapper<PdfArray>,
         IList<Function>
     {
-        #region dynamic
-        #region fields
         /**
-          <summary>Parent function.</summary>
-        */
-        private Type3Function parent;
-        #endregion
+<summary>Parent function.</summary>
+*/
+        private readonly Type3Function parent;
 
-        #region constructors
         internal Functions(
-          PdfDirectObject baseObject,
-          Type3Function parent
-          ) : base(baseObject)
+  PdfDirectObject baseObject,
+  Type3Function parent
+  ) : base(baseObject)
         { this.parent = parent; }
-        #endregion
-
-        #region interface
-        #region public
-        public override Object Clone(
-          Document context
-          )
-        { return new NotImplementedException(); }
-
-        /**
-          <summary>Gets the parent stitching function.</summary>
-        */
-        public Type3Function Parent
-        {
-            get
-            { return parent; }
-        }
-
-        #region IList
-        public int IndexOf(
-          Function value
-          )
-        { return BaseDataObject.IndexOf(value.BaseObject); }
-
-        public void Insert(
-          int index,
-          Function value
-          )
-        {
-            Validate(value);
-            BaseDataObject.Insert(index, value.BaseObject);
-        }
-
-        public void RemoveAt(
-          int index
-          )
-        { BaseDataObject.RemoveAt(index); }
 
         public Function this[
           int index
           ]
         {
-            get
-            { return Function.Wrap(BaseDataObject[index]); }
+            get => Function.Wrap(this.BaseDataObject[index]);
             set
             {
-                Validate(value);
-                BaseDataObject[index] = value.BaseObject;
+                this.Validate(value);
+                this.BaseDataObject[index] = value.BaseObject;
             }
         }
 
-        #region ICollection
-        public void Add(
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<Function>)this).GetEnumerator(); }
+
+        IEnumerator<Function> IEnumerable<Function>.GetEnumerator(
+  )
+        {
+            for (
+              int index = 0,
+                length = this.Count;
+              index < length;
+              index++
+              )
+            { yield return this[index]; }
+        }
+
+        /**
+  <summary>Checks whether the specified function is valid for insertion.</summary>
+  <param name="value">Function to validate.</param>
+*/
+        private void Validate(
           Function value
           )
         {
-            Validate(value);
-            BaseDataObject.Add(value.BaseObject);
+            if (value.InputCount != 1)
+            {
+                throw new ArgumentException("value parameter MUST be 1-input function.");
+            }
+        }
+
+        public void Add(
+  Function value
+  )
+        {
+            this.Validate(value);
+            this.BaseDataObject.Add(value.BaseObject);
         }
 
         public void Clear(
           )
-        { BaseDataObject.Clear(); }
+        { this.BaseDataObject.Clear(); }
+
+        public override object Clone(
+Document context
+)
+        { return new NotImplementedException(); }
 
         public bool Contains(
           Function value
           )
-        { return BaseDataObject.Contains(value.BaseObject); }
+        { return this.BaseDataObject.Contains(value.BaseObject); }
 
         public void CopyTo(
           Function[] values,
@@ -129,60 +121,37 @@ namespace org.pdfclown.documents.functions
           )
         { throw new NotImplementedException(); }
 
-        public int Count
-        {
-            get
-            { return BaseDataObject.Count; }
-        }
+        public int IndexOf(
+  Function value
+  )
+        { return this.BaseDataObject.IndexOf(value.BaseObject); }
 
-        public bool IsReadOnly
+        public void Insert(
+          int index,
+          Function value
+          )
         {
-            get
-            { return false; }
+            this.Validate(value);
+            this.BaseDataObject.Insert(index, value.BaseObject);
         }
 
         public bool Remove(
           Function value
           )
-        { return BaseDataObject.Remove(value.BaseObject); }
+        { return this.BaseDataObject.Remove(value.BaseObject); }
 
-        #region IEnumerable<Function>
-        IEnumerator<Function> IEnumerable<Function>.GetEnumerator(
+        public void RemoveAt(
+          int index
           )
-        {
-            for (
-              int index = 0,
-                length = Count;
-              index < length;
-              index++
-              )
-            { yield return this[index]; }
-        }
+        { this.BaseDataObject.RemoveAt(index); }
 
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<Function>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        public int Count => this.BaseDataObject.Count;
 
-        #region private
+        public bool IsReadOnly => false;
+
         /**
-          <summary>Checks whether the specified function is valid for insertion.</summary>
-          <param name="value">Function to validate.</param>
+          <summary>Gets the parent stitching function.</summary>
         */
-        private void Validate(
-          Function value
-          )
-        {
-            if (value.InputCount != 1)
-                throw new ArgumentException("value parameter MUST be 1-input function.");
-        }
-        #endregion
-        #endregion
-        #endregion
+        public Type3Function Parent => this.parent;
     }
 }

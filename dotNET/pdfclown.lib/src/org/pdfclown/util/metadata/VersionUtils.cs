@@ -23,43 +23,39 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace org.pdfclown.util.metadata
 {
+    using System;
+    using System.Text;
+
     /**
       <summary>Version utility.</summary>
     */
     public static class VersionUtils
     {
-        #region static
-        #region interface
-        #region public
         public static int CompareTo(
-          IVersion version1,
-          IVersion version2
-          )
+IVersion version1,
+IVersion version2
+)
         {
-            int comparison = 0;
+            var comparison = 0;
+            var version1Numbers = version1.Numbers;
+            var version2Numbers = version2.Numbers;
+            for (
+              int index = 0,
+                length = Math.Min(version1Numbers.Count, version2Numbers.Count);
+              index < length;
+              index++
+              )
             {
-                IList<int> version1Numbers = version1.Numbers;
-                IList<int> version2Numbers = version2.Numbers;
-                for (
-                  int index = 0,
-                    length = Math.Min(version1Numbers.Count, version2Numbers.Count);
-                  index < length;
-                  index++
-                  )
+                comparison = version1Numbers[index] - version2Numbers[index];
+                if (comparison != 0)
                 {
-                    comparison = version1Numbers[index] - version2Numbers[index];
-                    if (comparison != 0)
-                        break;
+                    break;
                 }
-                if (comparison == 0)
-                { comparison = version1Numbers.Count - version2Numbers.Count; }
             }
+            if (comparison == 0)
+            { comparison = version1Numbers.Count - version2Numbers.Count; }
             return Math.Sign(comparison);
         }
 
@@ -67,17 +63,14 @@ namespace org.pdfclown.util.metadata
           IVersion version
           )
         {
-            StringBuilder versionStringBuilder = new StringBuilder();
-            foreach (int number in version.Numbers)
+            var versionStringBuilder = new StringBuilder();
+            foreach (var number in version.Numbers)
             {
                 if (versionStringBuilder.Length > 0)
-                { versionStringBuilder.Append('.'); }
-                versionStringBuilder.Append(number);
+                { _ = versionStringBuilder.Append('.'); }
+                _ = versionStringBuilder.Append(number);
             }
             return versionStringBuilder.ToString();
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

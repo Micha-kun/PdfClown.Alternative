@@ -24,13 +24,12 @@
 */
 
 
-using System;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Blend mode to be used in the transparent imaging model [PDF:1.7:7.2.4].</summary>
     */

@@ -24,13 +24,12 @@
 */
 
 
-using System;
-
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.layers
 {
+
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Optional content configuration interface [PDF:1.7:4.10.3].</summary>
     */

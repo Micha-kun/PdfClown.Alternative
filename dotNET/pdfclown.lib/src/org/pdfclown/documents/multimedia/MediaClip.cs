@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Media clip object [PDF:1.7:9.1.3].</summary>
     */
@@ -36,72 +36,66 @@ namespace org.pdfclown.documents.multimedia
     public abstract class MediaClip
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Wraps a clip base object into a clip object.</summary>
-        */
-        public static MediaClip Wrap(
-          PdfDirectObject baseObject
-          )
-        {
-            if (baseObject == null)
-                return null;
-
-            PdfName subtype = (PdfName)((PdfDictionary)baseObject.Resolve())[PdfName.S];
-            if (PdfName.MCD.Equals(subtype))
-                return new MediaClipData(baseObject);
-            else if (PdfName.MCS.Equals(subtype))
-                return new MediaClipSection(baseObject);
-            else
-                throw new ArgumentException("It doesn't represent a valid clip object.", "baseObject");
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        protected MediaClip(
-          Document context,
-          PdfName subtype
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {
-            PdfName.Type,
-            PdfName.S
-              },
-              new PdfDirectObject[]
-              {
-            PdfName.MediaClip,
-            subtype
-              }
-              )
-            )
-        { }
 
         protected MediaClip(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        protected MediaClip(
+Document context,
+PdfName subtype
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{
+            PdfName.Type,
+            PdfName.S
+},
+new PdfDirectObject[]
+{
+            PdfName.MediaClip,
+            subtype
+}
+)
+)
+        { }
         /**
-          <summary>Gets/Sets the actual media data.</summary>
-          <returns>Either a <see cref="FullFileSpecification"/> or a <see cref="FormXObject"/>.</returns>
-        */
+<summary>Wraps a clip base object into a clip object.</summary>
+*/
+        public static MediaClip Wrap(
+          PdfDirectObject baseObject
+          )
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
+
+            var subtype = (PdfName)((PdfDictionary)baseObject.Resolve())[PdfName.S];
+            if (PdfName.MCD.Equals(subtype))
+            {
+                return new MediaClipData(baseObject);
+            }
+            else if (PdfName.MCS.Equals(subtype))
+            {
+                return new MediaClipSection(baseObject);
+            }
+            else
+            {
+                throw new ArgumentException("It doesn't represent a valid clip object.", nameof(baseObject));
+            }
+        }
+
+        /**
+<summary>Gets/Sets the actual media data.</summary>
+<returns>Either a <see cref="FullFileSpecification"/> or a <see cref="FormXObject"/>.</returns>
+*/
         public abstract PdfObjectWrapper Data
         {
             get;
             set;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.multimedia;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.multimedia;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Named renditions [PDF:1.6:3.6.3].</summary>
     */
@@ -37,71 +36,60 @@ namespace org.pdfclown.documents
     public sealed class NamedRenditions
       : NameTree<Rendition>
     {
-        #region dynamic
-        #region constructors
-        public NamedRenditions(
-          Document context
-          ) : base(context)
-        { }
 
         internal NamedRenditions(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
-        public override bool Remove(
-          PdfString key
-          )
-        {
-            Rendition oldValue = this[key];
-            bool removed = base.Remove(key);
-            UpdateName(oldValue, null);
-            return removed;
-        }
+        public NamedRenditions(
+Document context
+) : base(context)
+        { }
 
         public override Rendition this[
           PdfString key
           ]
         {
-            get
-            { return base[key]; }
+            get => base[key];
             set
             {
-                Rendition oldValue = base[key];
+                var oldValue = base[key];
                 base[key] = value;
-                UpdateName(oldValue, null);
-                UpdateName(value, key);
+                this.UpdateName(oldValue, null);
+                this.UpdateName(value, key);
             }
         }
-        #endregion
 
-        #region protected
-        protected override Rendition WrapValue(
-          PdfDirectObject baseObject
-          )
-        { return Rendition.Wrap(baseObject); }
-        #endregion
-
-        #region private
         /**
-          <summary>Ensures name reference synchronization for the specified rendition [PDF:1.7:9.1.2].
-          </summary>
-        */
+  <summary>Ensures name reference synchronization for the specified rendition [PDF:1.7:9.1.2].
+  </summary>
+*/
         private void UpdateName(
           Rendition rendition,
           PdfString name
           )
         {
             if (rendition == null)
+            {
                 return;
+            }
 
             rendition.BaseDataObject[PdfName.N] = name;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        protected override Rendition WrapValue(
+  PdfDirectObject baseObject
+  )
+        { return Rendition.Wrap(baseObject); }
+
+        public override bool Remove(
+PdfString key
+)
+        {
+            var oldValue = this[key];
+            var removed = base.Remove(key);
+            this.UpdateName(oldValue, null);
+            return removed;
+        }
     }
 }

@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using System;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Media play parameters [PDF:1.7:9.1.4].</summary>
     */
@@ -37,13 +37,148 @@ namespace org.pdfclown.documents.multimedia
     public sealed class MediaPlayParameters
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region types
+
+        internal MediaPlayParameters(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        public MediaPlayParameters(
+Document context
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Type},
+new PdfDirectObject[]
+{PdfName.MediaPlayParams}
+)
+)
+        { }
+
         /**
-          <summary>Media player parameters viability.</summary>
+<summary>Gets/Sets the player rules for playing this media.</summary>
+*/
+        public MediaPlayers Players
+        {
+            get => MediaPlayers.Wrap(this.BaseDataObject.Get<PdfDictionary>(PdfName.PL));
+            set => this.BaseDataObject[PdfName.PL] = PdfObjectWrapper.GetBaseObject(value);
+        }
+
+        /**
+          <summary>Gets/Sets the preferred options the renderer should attempt to honor without affecting
+          its viability.</summary>
         */
+        public Viability Preferences
+        {
+            get => new Viability(this.BaseDataObject.Get<PdfDictionary>(PdfName.BE));
+            set => this.BaseDataObject[PdfName.BE] = PdfObjectWrapper.GetBaseObject(value);
+        }
+
+        /**
+          <summary>Gets/Sets the minimum requirements the renderer must honor in order to be considered
+          viable.</summary>
+        */
+        public Viability Requirements
+        {
+            get => new Viability(this.BaseDataObject.Get<PdfDictionary>(PdfName.MH));
+            set => this.BaseDataObject[PdfName.MH] = PdfObjectWrapper.GetBaseObject(value);
+        }
+        /**
+  <summary>Media player parameters viability.</summary>
+*/
         public class Viability
           : PdfObjectWrapper<PdfDictionary>
         {
+
+            internal Viability(
+              PdfDirectObject baseObject
+              ) : base(baseObject)
+            { }
+
+            /**
+              <summary>Gets/Sets whether the media should automatically play when activated.</summary>
+            */
+            public bool Autoplay
+            {
+                get => (bool)PdfBoolean.GetValue(this.BaseDataObject[PdfName.A], true);
+                set => this.BaseDataObject[PdfName.A] = PdfBoolean.Get(value);
+            }
+
+            /**
+              <summary>Gets/Sets the temporal duration, corresponding to the notion of simple duration in
+              SMIL.</summary>
+              <returns>
+                <list type="bullet">
+                  <item><code>Double.NEGATIVE_INFINITY</code>: intrinsic duration of the associated media;
+                  </item>
+                  <item><code>Double.POSITIVE_INFINITY</code>: infinite duration;</item>
+                  <item>non-infinite positive: explicit duration.</item>
+                </list>
+              </returns>
+            */
+            public double Duration
+            {
+                get
+                {
+                    var durationObject = this.BaseDataObject[PdfName.D];
+                    return (durationObject != null) ? new DurationObject(durationObject).Value : double.NegativeInfinity;
+                }
+                set => this.BaseDataObject[PdfName.D] = new DurationObject(value).BaseObject;
+            }
+
+            /**
+              <summary>Gets/Sets the manner in which the player should treat a visual media type that does
+              not exactly fit the rectangle in which it plays.</summary>
+            */
+            public FitModeEnum? FitMode
+            {
+                get => FitModeEnumExtension.Get((PdfInteger)this.BaseDataObject[PdfName.F]);
+                set => this.BaseDataObject[PdfName.F] = value.HasValue ? value.Value.GetCode() : null;
+            }
+
+            /**
+              <summary>Gets/Sets whether to display a player-specific controller user interface (for
+              example, play/pause/stop controls) when playing.</summary>
+            */
+            public bool PlayerSpecificControl
+            {
+                get => (bool)PdfBoolean.GetValue(this.BaseDataObject[PdfName.C], false);
+                set => this.BaseDataObject[PdfName.C] = PdfBoolean.Get(value);
+            }
+
+            /**
+              <summary>Gets/Sets the number of iterations of the duration to repeat; similar to SMIL's
+              <code>repeatCount</code> attribute.</summary>
+              <returns>
+                <list type="bullet">
+                  <item><code>0</code>: repeat forever;</item>
+                </list>
+              </returns>
+            */
+            public double RepeatCount
+            {
+                get => (double)PdfReal.GetValue(this.BaseDataObject[PdfName.RC], 1d);
+                set => this.BaseDataObject[PdfName.RC] = PdfReal.Get(value);
+            }
+
+            /**
+              <summary>Gets/Sets the volume level as a percentage of recorded volume level. A zero value
+              is equivalent to mute.</summary>
+            */
+            public int Volume
+            {
+                get => (int)PdfInteger.GetValue(this.BaseDataObject[PdfName.V], 100);
+                set
+                {
+                    if (value < 0)
+                    { value = 0; }
+                    else if (value > 100)
+                    { value = 100; }
+                    this.BaseDataObject[PdfName.V] = PdfInteger.Get(value);
+                }
+            }
+
             private class DurationObject
               : PdfObjectWrapper<PdfDictionary>
             {
@@ -57,7 +192,7 @@ namespace org.pdfclown.documents.multimedia
                       {PdfName.MediaDuration}
                       )
                     )
-                { Value = value; }
+                { this.Value = value; }
 
                 internal DurationObject(
                   PdfDirectObject baseObject
@@ -79,32 +214,40 @@ namespace org.pdfclown.documents.multimedia
                 {
                     get
                     {
-                        PdfName durationSubtype = (PdfName)BaseDataObject[PdfName.S];
+                        var durationSubtype = (PdfName)this.BaseDataObject[PdfName.S];
                         if (PdfName.I.Equals(durationSubtype))
-                            return Double.NegativeInfinity;
+                        {
+                            return double.NegativeInfinity;
+                        }
                         else if (PdfName.F.Equals(durationSubtype))
-                            return Double.PositiveInfinity;
+                        {
+                            return double.PositiveInfinity;
+                        }
                         else if (PdfName.T.Equals(durationSubtype))
-                            return new Timespan(BaseDataObject[PdfName.T]).Time;
+                        {
+                            return new Timespan(this.BaseDataObject[PdfName.T]).Time;
+                        }
                         else
-                            throw new NotSupportedException("Duration subtype '" + durationSubtype + "'");
+                        {
+                            throw new NotSupportedException($"Duration subtype '{durationSubtype}'");
+                        }
                     }
                     set
                     {
-                        if (Double.IsNegativeInfinity(value))
+                        if (double.IsNegativeInfinity(value))
                         {
-                            BaseDataObject[PdfName.S] = PdfName.I;
-                            BaseDataObject.Remove(PdfName.T);
+                            this.BaseDataObject[PdfName.S] = PdfName.I;
+                            _ = this.BaseDataObject.Remove(PdfName.T);
                         }
-                        else if (Double.IsPositiveInfinity(value))
+                        else if (double.IsPositiveInfinity(value))
                         {
-                            BaseDataObject[PdfName.S] = PdfName.F;
-                            BaseDataObject.Remove(PdfName.T);
+                            this.BaseDataObject[PdfName.S] = PdfName.F;
+                            _ = this.BaseDataObject.Remove(PdfName.T);
                         }
                         else
                         {
-                            BaseDataObject[PdfName.S] = PdfName.T;
-                            new Timespan(BaseDataObject.Get<PdfDictionary>(PdfName.T)).Time = value;
+                            this.BaseDataObject[PdfName.S] = PdfName.T;
+                            new Timespan(this.BaseDataObject.Get<PdfDictionary>(PdfName.T)).Time = value;
                         }
                     }
                 }
@@ -149,167 +292,7 @@ namespace org.pdfclown.documents.multimedia
                 */
                 Default
             }
-
-            internal Viability(
-              PdfDirectObject baseObject
-              ) : base(baseObject)
-            { }
-
-            /**
-              <summary>Gets/Sets whether the media should automatically play when activated.</summary>
-            */
-            public bool Autoplay
-            {
-                get
-                { return (Boolean)PdfBoolean.GetValue(BaseDataObject[PdfName.A], true); }
-                set
-                { BaseDataObject[PdfName.A] = PdfBoolean.Get(value); }
-            }
-
-            /**
-              <summary>Gets/Sets the temporal duration, corresponding to the notion of simple duration in
-              SMIL.</summary>
-              <returns>
-                <list type="bullet">
-                  <item><code>Double.NEGATIVE_INFINITY</code>: intrinsic duration of the associated media;
-                  </item>
-                  <item><code>Double.POSITIVE_INFINITY</code>: infinite duration;</item>
-                  <item>non-infinite positive: explicit duration.</item>
-                </list>
-              </returns>
-            */
-            public double Duration
-            {
-                get
-                {
-                    PdfDirectObject durationObject = BaseDataObject[PdfName.D];
-                    return durationObject != null ? new DurationObject(durationObject).Value : Double.NegativeInfinity;
-                }
-                set
-                { BaseDataObject[PdfName.D] = new DurationObject(value).BaseObject; }
-            }
-
-            /**
-              <summary>Gets/Sets the manner in which the player should treat a visual media type that does
-              not exactly fit the rectangle in which it plays.</summary>
-            */
-            public FitModeEnum? FitMode
-            {
-                get
-                { return FitModeEnumExtension.Get((PdfInteger)BaseDataObject[PdfName.F]); }
-                set
-                { BaseDataObject[PdfName.F] = (value.HasValue ? value.Value.GetCode() : null); }
-            }
-
-            /**
-              <summary>Gets/Sets whether to display a player-specific controller user interface (for
-              example, play/pause/stop controls) when playing.</summary>
-            */
-            public bool PlayerSpecificControl
-            {
-                get
-                { return (Boolean)PdfBoolean.GetValue(BaseDataObject[PdfName.C], false); }
-                set
-                { BaseDataObject[PdfName.C] = PdfBoolean.Get(value); }
-            }
-
-            /**
-              <summary>Gets/Sets the number of iterations of the duration to repeat; similar to SMIL's
-              <code>repeatCount</code> attribute.</summary>
-              <returns>
-                <list type="bullet">
-                  <item><code>0</code>: repeat forever;</item>
-                </list>
-              </returns>
-            */
-            public double RepeatCount
-            {
-                get
-                { return (Double)PdfReal.GetValue(BaseDataObject[PdfName.RC], 1d); }
-                set
-                { BaseDataObject[PdfName.RC] = PdfReal.Get(value); }
-            }
-
-            /**
-              <summary>Gets/Sets the volume level as a percentage of recorded volume level. A zero value
-              is equivalent to mute.</summary>
-            */
-            public int Volume
-            {
-                get
-                { return (int)PdfInteger.GetValue(BaseDataObject[PdfName.V], 100); }
-                set
-                {
-                    if (value < 0)
-                    { value = 0; }
-                    else if (value > 100)
-                    { value = 100; }
-                    BaseDataObject[PdfName.V] = PdfInteger.Get(value);
-                }
-            }
         }
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public MediaPlayParameters(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {PdfName.MediaPlayParams}
-              )
-            )
-        { }
-
-        internal MediaPlayParameters(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the player rules for playing this media.</summary>
-        */
-        public MediaPlayers Players
-        {
-            get
-            { return MediaPlayers.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.PL)); }
-            set
-            { BaseDataObject[PdfName.PL] = PdfObjectWrapper.GetBaseObject(value); }
-        }
-
-        /**
-          <summary>Gets/Sets the preferred options the renderer should attempt to honor without affecting
-          its viability.</summary>
-        */
-        public Viability Preferences
-        {
-            get
-            { return new Viability(BaseDataObject.Get<PdfDictionary>(PdfName.BE)); }
-            set
-            { BaseDataObject[PdfName.BE] = PdfObjectWrapper.GetBaseObject(value); }
-        }
-
-        /**
-          <summary>Gets/Sets the minimum requirements the renderer must honor in order to be considered
-          viable.</summary>
-        */
-        public Viability Requirements
-        {
-            get
-            { return new Viability(BaseDataObject.Get<PdfDictionary>(PdfName.MH)); }
-            set
-            { BaseDataObject[PdfName.MH] = PdfObjectWrapper.GetBaseObject(value); }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 
     internal static class FitModeEnumExtension
@@ -332,11 +315,15 @@ namespace org.pdfclown.documents.multimedia
           )
         {
             if (code == null)
+            {
                 return MediaPlayParameters.Viability.FitModeEnum.Default;
+            }
 
             MediaPlayParameters.Viability.FitModeEnum? mode = codes.GetKey(code);
             if (!mode.HasValue)
-                throw new NotSupportedException("Mode unknown: " + code);
+            {
+                throw new NotSupportedException($"Mode unknown: {code}");
+            }
 
             return mode;
         }

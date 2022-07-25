@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
-using colorSpaces = org.pdfclown.documents.contents.colorSpaces;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
+    using colorSpaces = org.pdfclown.documents.contents.colorSpaces;
+
     /**
       <summary>'Paint the shape and color shading' operation [PDF:1.6:4.6.3].</summary>
     */
@@ -38,53 +38,37 @@ namespace org.pdfclown.documents.contents.objects
       : Operation,
         IResourceReference<colorSpaces::Shading>
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "sh";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public PaintShading(
-          PdfName name
-          ) : base(OperatorKeyword, name)
+PdfName name
+) : base(OperatorKeyword, name)
         { }
 
         public PaintShading(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public colorSpaces::Shading GetResource(
+  IContentContext context
+  )
+        { return context.Resources.Shadings[this.Name]; }
+
         /**
-          <summary>Gets the <see cref="colorSpaces::Shading">shading</see> resource to be painted.
-          </summary>
-          <param name="context">Content context.</param>
-        */
+<summary>Gets the <see cref="colorSpaces::Shading">shading</see> resource to be painted.
+</summary>
+<param name="context">Content context.</param>
+*/
         public colorSpaces::Shading GetShading(
           IContentContext context
           )
-        { return GetResource(context); }
-
-        #region IResourceReference
-        public colorSpaces::Shading GetResource(
-          IContentContext context
-          )
-        { return context.Resources.Shadings[Name]; }
+        { return this.GetResource(context); }
 
         public PdfName Name
         {
-            get
-            { return (PdfName)operands[0]; }
-            set
-            { operands[0] = value; }
+            get => (PdfName)this.operands[0];
+            set => this.operands[0] = value;
         }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

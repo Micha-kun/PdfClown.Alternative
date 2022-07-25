@@ -23,76 +23,74 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.util.math.geom
 {
+    using System;
+    using System.Drawing;
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>Quadrilateral shape.</summary>
     */
     public class Quad
     {
-        #region static
-        #region interface
-        #region public
-        public static Quad Get(
-          RectangleF rectangle
-          )
-        { return new Quad(GetPoints(rectangle)); }
-
-        public static PointF[] GetPoints(
-          RectangleF rectangle
-          )
-        {
-            PointF[] points = new PointF[4];
-            {
-                points[0] = new PointF(rectangle.Left, rectangle.Top);
-                points[1] = new PointF(rectangle.Right, rectangle.Top);
-                points[2] = new PointF(rectangle.Right, rectangle.Bottom);
-                points[3] = new PointF(rectangle.Left, rectangle.Bottom);
-            }
-            return points;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        private PointF[] points;
 
         private GraphicsPath path;
-        #endregion
 
-        #region constructors
+        private PointF[] points;
+
         public Quad(
-          params PointF[] points
-          )
-        { Points = points; }
-        #endregion
+  params PointF[] points
+  )
+        { this.Points = points; }
 
-        #region interface
-        #region public
+        private GraphicsPath Path
+        {
+            get
+            {
+                if (this.path == null)
+                {
+                    this.path = new GraphicsPath(FillMode.Alternate);
+                    this.path.AddPolygon(this.points);
+                }
+                return this.path;
+            }
+        }
+
         public bool Contains(
-          PointF point
-          )
-        { return Path.IsVisible(point); }
+PointF point
+)
+        { return this.Path.IsVisible(point); }
 
         public bool Contains(
           float x,
           float y
           )
-        { return Path.IsVisible(x, y); }
+        { return this.Path.IsVisible(x, y); }
+        public static Quad Get(
+RectangleF rectangle
+)
+        { return new Quad(GetPoints(rectangle)); }
 
         public RectangleF GetBounds(
           )
-        { return Path.GetBounds(); }
+        { return this.Path.GetBounds(); }
 
         public GraphicsPathIterator GetPathIterator(
           )
-        { return new GraphicsPathIterator(Path); }
+        { return new GraphicsPathIterator(this.Path); }
+
+        public static PointF[] GetPoints(
+          RectangleF rectangle
+          )
+        {
+            var points = new PointF[4];
+            points[0] = new PointF(rectangle.Left, rectangle.Top);
+            points[1] = new PointF(rectangle.Right, rectangle.Top);
+            points[2] = new PointF(rectangle.Right, rectangle.Bottom);
+            points[3] = new PointF(rectangle.Left, rectangle.Bottom);
+            return points;
+        }
 
         /**
           <summary>Expands the size of this quad stretching around its center.</summary>
@@ -102,7 +100,7 @@ namespace org.pdfclown.util.math.geom
         public Quad Inflate(
           float value
           )
-        { return Inflate(value, value); }
+        { return this.Inflate(value, value); }
 
         /**
           <summary>Expands the size of this quad stretching around its center.</summary>
@@ -115,52 +113,35 @@ namespace org.pdfclown.util.math.geom
           float valueY
           )
         {
-            Matrix matrix = new Matrix();
-            RectangleF oldBounds = Path.GetBounds();
+            var matrix = new Matrix();
+            var oldBounds = this.Path.GetBounds();
             matrix.Translate(-oldBounds.X, -oldBounds.Y);
-            path.Transform(matrix);
+            this.path.Transform(matrix);
             matrix = new Matrix();
-            matrix.Scale(1 + valueX * 2 / oldBounds.Width, 1 + valueY * 2 / oldBounds.Height);
-            path.Transform(matrix);
-            RectangleF newBounds = path.GetBounds();
+            matrix.Scale(1 + (valueX * 2 / oldBounds.Width), 1 + (valueY * 2 / oldBounds.Height));
+            this.path.Transform(matrix);
+            var newBounds = this.path.GetBounds();
             matrix = new Matrix();
-            matrix.Translate(oldBounds.X - (newBounds.Width - oldBounds.Width) / 2, oldBounds.Y - (newBounds.Height - oldBounds.Height) / 2);
-            path.Transform(matrix);
+            matrix.Translate(oldBounds.X - ((newBounds.Width - oldBounds.Width) / 2), oldBounds.Y - ((newBounds.Height - oldBounds.Height) / 2));
+            this.path.Transform(matrix);
 
-            points = path.PathPoints;
+            this.points = this.path.PathPoints;
             return this;
         }
 
         public PointF[] Points
         {
-            get
-            { return points; }
+            get => this.points;
             set
             {
                 if (value.Length != 4)
-                    throw new ArgumentException("Cardinality MUST be 4.", "points");
-
-                points = value;
-                path = null;
-            }
-        }
-        #endregion
-
-        #region private
-        private GraphicsPath Path
-        {
-            get
-            {
-                if (path == null)
                 {
-                    path = new GraphicsPath(FillMode.Alternate);
-                    path.AddPolygon(points);
+                    throw new ArgumentException("Cardinality MUST be 4.", nameof(this.points));
                 }
-                return path;
+
+                this.points = value;
+                this.path = null;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

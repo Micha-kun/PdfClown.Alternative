@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Selector rendition [PDF:1.7:9.1.2].</summary>
     */
@@ -36,51 +35,36 @@ namespace org.pdfclown.documents.multimedia
     public sealed class SelectorRendition
       : Rendition
     {
-        #region static
-        #region types
+
+        private static readonly Array<Rendition>.IWrapper<Rendition> ArrayWrapper = new ArrayWrapperObject();
+
+        internal SelectorRendition(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        public SelectorRendition(
+Document context
+) : base(context, PdfName.SR)
+        { }
+
+        /**
+<summary>Gets/Sets an ordered collection of renditions. The first viable media rendition found
+in the array, or nested within a selector rendition in the array, should be used.</summary>
+*/
+        public Array<Rendition> Renditions
+        {
+            get => Array<Rendition>.Wrap<Rendition>(ArrayWrapper, this.BaseDataObject.Get<PdfArray>(PdfName.R));
+            set => this.BaseDataObject[PdfName.R] = value.BaseObject;
+        }
+
         private class ArrayWrapperObject
-          : org.pdfclown.objects.Array<Rendition>.IWrapper<Rendition>
+: Array<Rendition>.IWrapper<Rendition>
         {
             public Rendition Wrap(
               PdfDirectObject baseObject
               )
             { return Rendition.Wrap(baseObject); }
         }
-        #endregion
-
-        #region fields
-        private static readonly org.pdfclown.objects.Array<Rendition>.IWrapper<Rendition> ArrayWrapper = new ArrayWrapperObject();
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public SelectorRendition(
-          Document context
-          ) : base(context, PdfName.SR)
-        { }
-
-        internal SelectorRendition(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets an ordered collection of renditions. The first viable media rendition found
-          in the array, or nested within a selector rendition in the array, should be used.</summary>
-        */
-        public Array<Rendition> Renditions
-        {
-            get
-            { return Array<Rendition>.Wrap<Rendition>(ArrayWrapper, BaseDataObject.Get<PdfArray>(PdfName.R)); }
-            set
-            { BaseDataObject[PdfName.R] = value.BaseObject; }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

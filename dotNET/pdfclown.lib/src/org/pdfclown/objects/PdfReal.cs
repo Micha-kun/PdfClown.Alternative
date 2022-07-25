@@ -24,14 +24,14 @@
 */
 
 
-using System;
-using System.Globalization;
-
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using System.Globalization;
+
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+
     /**
       <summary>PDF real number object [PDF:1.6:3.2.2].</summary>
     */
@@ -39,57 +39,25 @@ namespace org.pdfclown.objects
       : PdfSimpleObject<double>,
         IPdfNumber
     {
-        #region static
-        #region fields
         private static readonly NumberFormatInfo formatInfo;
-        #endregion
 
-        #region constructors
         static PdfReal(
-          )
+  )
         {
             formatInfo = new NumberFormatInfo();
             formatInfo.NumberDecimalSeparator = ".";
             formatInfo.NegativeSign = "-";
         }
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets the object equivalent to the given value.</summary>
-        */
-        public static PdfReal Get(
-          double? value
-          )
-        {
-            if (!value.HasValue)
-                return null;
-
-            double doubleValue = value.Value;
-            if (Double.IsNaN(doubleValue))
-                return null;
-
-            return new PdfReal(doubleValue);
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         public PdfReal(
-          double value
-          )
-        { RawValue = value; }
-        #endregion
+double value
+)
+        { this.RawValue = value; }
 
-        #region interface
-        #region public
         public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
+IVisitor visitor,
+object data
+)
         { return visitor.Visit(this, data); }
 
         public override int CompareTo(
@@ -102,6 +70,27 @@ namespace org.pdfclown.objects
           )
         { return PdfNumber.Equal(this, obj); }
 
+        /**
+<summary>Gets the object equivalent to the given value.</summary>
+*/
+        public static PdfReal Get(
+          double? value
+          )
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            var doubleValue = value.Value;
+            if (double.IsNaN(doubleValue))
+            {
+                return null;
+            }
+
+            return new PdfReal(doubleValue);
+        }
+
         public override int GetHashCode(
           )
         { return PdfNumber.GetHashCode(this); }
@@ -110,29 +99,12 @@ namespace org.pdfclown.objects
           IOutputStream stream,
           File context
           )
-        { stream.Write(RawValue.ToString(context.Configuration.RealFormat, formatInfo)); }
+        { stream.Write(this.RawValue.ToString(context.Configuration.RealFormat, formatInfo)); }
 
-        #region IPdfNumber
-        public double DoubleValue
-        {
-            get
-            { return RawValue; }
-        }
+        public double DoubleValue => this.RawValue;
 
-        public float FloatValue
-        {
-            get
-            { return (float)RawValue; }
-        }
+        public float FloatValue => (float)this.RawValue;
 
-        public int IntValue
-        {
-            get
-            { return (int)Math.Round(RawValue); }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        public int IntValue => (int)Math.Round(this.RawValue);
     }
 }

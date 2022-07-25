@@ -23,8 +23,6 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.util
 {
     /**
@@ -32,25 +30,19 @@ namespace org.pdfclown.util
     */
     public static class EnumUtils
     {
-        #region static
-        #region interface
-        #region public
         public static T Mask<T>(
-          T map,
-          T key,
-          bool enabled
-          ) where T : struct
+T map,
+T key,
+bool enabled
+) where T : struct
         {
-            int mapValue = (int)(object)map;
-            int keyValue = (int)(object)key;
+            var mapValue = (int)(object)map;
+            var keyValue = (int)(object)key;
             if (enabled)
             { mapValue |= keyValue; }
             else
             { mapValue ^= keyValue; }
             return (T)(object)mapValue;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

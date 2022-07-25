@@ -24,13 +24,12 @@
 */
 
 
-using System;
-using org.pdfclown.documents.interaction.navigation.page;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.navigation.page;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Page label ranges [PDF:1.6:3.6.1].</summary>
     */
@@ -38,27 +37,19 @@ namespace org.pdfclown.documents
     public sealed class PageLabels
       : NumberTree<PageLabel>
     {
-        #region dynamic
-        #region constructors
-        public PageLabels(
-          Document context
-          ) : base(context)
-        { }
 
         internal PageLabels(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public PageLabels(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override PageLabel WrapValue(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return PageLabel.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

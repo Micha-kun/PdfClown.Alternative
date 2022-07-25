@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.objects
 {
+
+    using org.pdfclown.util;
+
     /**
       <summary>PDF byte string object [PDF:1.7:3.8.1].</summary>
       <remarks>The byte string type is used for binary data represented as a series of 8-bit bytes,
@@ -40,11 +39,9 @@ namespace org.pdfclown.objects
     public sealed class PdfByteString
       : PdfString
     {
-        #region dynamic
-        #region constructors
         public PdfByteString(
-          byte[] rawValue
-          ) : base(rawValue)
+byte[] rawValue
+) : base(rawValue)
         { }
 
         /**
@@ -54,17 +51,7 @@ namespace org.pdfclown.objects
           string value
           ) : base(value, SerializationModeEnum.Hex)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        public override object Value
-        {
-            get
-            { return ConvertUtils.ByteArrayToHex(RawValue); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public override object Value => ConvertUtils.ByteArrayToHex(this.RawValue);
     }
 }

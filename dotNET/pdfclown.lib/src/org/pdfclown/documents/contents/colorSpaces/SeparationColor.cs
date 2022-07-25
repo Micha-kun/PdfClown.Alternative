@@ -65,7 +65,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
         /// <param name="components">Color components to convert.</param>
         ///
         public static SeparationColor Get(PdfArray components)
-        { return (components != null) ? (new SeparationColor(components)) : Default; }
+        { return (components != null) ? new SeparationColor(components) : Default; }
 
         ///
         /// <summary>

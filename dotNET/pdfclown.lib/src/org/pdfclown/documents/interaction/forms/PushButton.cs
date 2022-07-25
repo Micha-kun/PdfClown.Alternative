@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Pushbutton field [PDF:1.6:8.6.3].</summary>
     */
@@ -38,36 +37,28 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class PushButton
       : ButtonField
     {
-        #region dynamic
-        #region constructors
+
+        internal PushButton(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new pushbutton within the given document context.</summary>
-        */
+<summary>Creates a new pushbutton within the given document context.</summary>
+*/
         public PushButton(
           string name,
           Widget widget,
           string caption
           ) : base(name, widget)
         {
-            Flags = EnumUtils.Mask(Flags, FlagsEnum.Pushbutton, true);
-            Value = caption;
+            this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.Pushbutton, true);
+            this.Value = caption;
         }
 
-        internal PushButton(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         public override object Value
         {
             set
             {/* NOOP: This type of button retains no permanent value. */}
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

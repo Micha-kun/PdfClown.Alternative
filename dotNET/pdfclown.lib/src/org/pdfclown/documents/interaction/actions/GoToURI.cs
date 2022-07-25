@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Cause a URI (Uniform Resource Identifier) to be resolved' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,44 +37,33 @@ namespace org.pdfclown.documents.interaction.actions
       : Action,
         IGoToAction
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public GoToURI(
-          Document context,
-          Uri uri
-          ) : base(context, PdfName.URI)
-        { URI = uri; }
 
         internal GoToURI(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the uniform resource identifier to resolve [RFC 2396].</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public GoToURI(
+          Document context,
+          Uri uri
+          ) : base(context, PdfName.URI)
+        { this.URI = uri; }
+
+        /**
+<summary>Gets/Sets the uniform resource identifier to resolve [RFC 2396].</summary>
+*/
         public Uri URI
         {
-            get
-            {
+            get =>
                 /*
-                  NOTE: 'URI' entry MUST exist.
-                */
-                return new Uri(
-                  (string)((PdfString)BaseDataObject[PdfName.URI]).Value
+NOTE: 'URI' entry MUST exist.
+*/
+                new Uri(
+                  (string)((PdfString)this.BaseDataObject[PdfName.URI]).Value
                   );
-            }
-            set
-            { BaseDataObject[PdfName.URI] = new PdfString(value.ToString()); }
+            set => this.BaseDataObject[PdfName.URI] = new PdfString(value.ToString());
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

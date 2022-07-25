@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Line ending style [PDF:1.6:8.4.5].</summary>
     */
@@ -101,11 +101,15 @@ namespace org.pdfclown.documents.interaction.annotations
           )
         {
             if (name == null)
+            {
                 return LineEndStyleEnum.None;
+            }
 
             LineEndStyleEnum? lineEndStyle = codes.GetKey(name);
             if (!lineEndStyle.HasValue)
-                throw new NotSupportedException("Line end style unknown: " + name);
+            {
+                throw new NotSupportedException($"Line end style unknown: {name}");
+            }
 
             return lineEndStyle.Value;
         }

@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Show a text string' operation [PDF:1.6:5.3.2].</summary>
     */
@@ -36,17 +36,11 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class ShowSimpleText
       : ShowText
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "Tj";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         /**
-          <param name="text">Text encoded using current font's encoding.</param>
-        */
+<param name="text">Text encoded using current font's encoding.</param>
+*/
         public ShowSimpleText(
           byte[] text
           ) : base(OperatorKeyword, new PdfByteString(text))
@@ -56,19 +50,11 @@ namespace org.pdfclown.documents.contents.objects
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override byte[] Text
         {
-            get
-            { return ((PdfString)operands[0]).RawValue; }
-            set
-            { operands[0] = new PdfByteString(value); }
+            get => ((PdfString)this.operands[0]).RawValue;
+            set => this.operands[0] = new PdfByteString(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

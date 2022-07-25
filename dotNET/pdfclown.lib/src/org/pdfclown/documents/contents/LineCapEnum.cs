@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents
 {
+    using System;
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>Shape to be used at the ends of stroked open subpaths
       [PDF:1.6:4.3.2].</summary>
@@ -51,22 +51,6 @@ namespace org.pdfclown.documents.contents
 
     internal static class LineCapEnumExtension
     {
-        public static LineCap ToGdi(
-          this LineCapEnum lineCap
-          )
-        {
-            switch (lineCap)
-            {
-                case LineCapEnum.Butt:
-                    return LineCap.Flat;
-                case LineCapEnum.Round:
-                    return LineCap.Round;
-                case LineCapEnum.Square:
-                    return LineCap.Square;
-                default:
-                    throw new NotSupportedException(lineCap + " convertion not supported.");
-            }
-        }
 
         public static DashCap ToDashCap(
           this LineCap lineCap
@@ -81,6 +65,22 @@ namespace org.pdfclown.documents.contents
                     return DashCap.Triangle;
                 default:
                     return DashCap.Flat;
+            }
+        }
+        public static LineCap ToGdi(
+          this LineCapEnum lineCap
+          )
+        {
+            switch (lineCap)
+            {
+                case LineCapEnum.Butt:
+                    return LineCap.Flat;
+                case LineCapEnum.Round:
+                    return LineCap.Round;
+                case LineCapEnum.Square:
+                    return LineCap.Square;
+                default:
+                    throw new NotSupportedException($"{lineCap} convertion not supported.");
             }
         }
     }

@@ -24,13 +24,12 @@
 */
 
 
-using System;
-using org.pdfclown.documents.interaction.navigation.page;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.navigation.page;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Article threads [PDF:1.7:3.6.1].</summary>
     */
@@ -38,24 +37,15 @@ namespace org.pdfclown.documents
     public sealed class Articles
       : Array<Article>
     {
-        #region static
-        #region interface
-        #region public
-        public static Articles Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Articles(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         internal Articles(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
+PdfDirectObject baseObject
+) : base(baseObject)
         { }
-        #endregion
-        #endregion
+
+        public static Articles Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Articles(baseObject) : null; }
     }
 }

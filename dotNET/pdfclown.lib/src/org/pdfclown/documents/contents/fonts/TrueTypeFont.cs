@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>TrueType font [PDF:1.6:5;OFF:2009].</summary>
     */
@@ -36,13 +35,9 @@ namespace org.pdfclown.documents.contents.fonts
     public sealed class TrueTypeFont
       : SimpleFont
     {
-        #region dynamic
-        #region constructors
         internal TrueTypeFont(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
+PdfDirectObject baseObject
+) : base(baseObject)
         { }
-        #endregion
-        #endregion
     }
 }

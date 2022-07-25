@@ -24,13 +24,13 @@
 */
 
 
-using System;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.layers
 {
+    using System;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>List mode specifying which layers should be displayed to the user [PDF:1.7:4.10.3].
       </summary>
@@ -63,11 +63,15 @@ namespace org.pdfclown.documents.contents.layers
           )
         {
             if (name == null)
+            {
                 return UIModeEnum.AllPages;
+            }
 
             UIModeEnum? uiMode = codes.GetKey(name);
             if (!uiMode.HasValue)
-                throw new NotSupportedException("UI mode unknown: " + name);
+            {
+                throw new NotSupportedException($"UI mode unknown: {name}");
+            }
 
             return uiMode.Value;
         }

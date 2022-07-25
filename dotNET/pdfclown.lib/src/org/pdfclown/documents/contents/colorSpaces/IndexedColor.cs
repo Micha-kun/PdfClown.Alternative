@@ -63,7 +63,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
         /// <param name="components">Color components to convert.</param>
         ///
         public static IndexedColor Get(PdfArray components)
-        { return (components != null) ? (new IndexedColor(components)) : Default; }
+        { return (components != null) ? new IndexedColor(components) : Default; }
 
         public override IList<PdfDirectObject> Components => (PdfArray)this.BaseDataObject;
 

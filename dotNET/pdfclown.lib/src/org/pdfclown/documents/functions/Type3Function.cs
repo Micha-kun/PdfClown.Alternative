@@ -24,14 +24,13 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-using org.pdfclown.util.math;
-
 namespace org.pdfclown.documents.functions
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+    using org.pdfclown.util.math;
+
     /**
       <summary>Stitching function producing a single new 1-input function from the combination of the
       subdomains of <see cref="Functions">several 1-input functions</see> [PDF:1.6:3.9.3].</summary>
@@ -40,21 +39,16 @@ namespace org.pdfclown.documents.functions
     public sealed class Type3Function
       : Function
     {
-        #region dynamic
-        #region constructors
         //TODO:implement function creation!
 
         internal Type3Function(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override double[] Calculate(
-          double[] inputs
-          )
+double[] inputs
+)
         {
             // FIXME: Auto-generated method stub
             return null;
@@ -69,11 +63,9 @@ namespace org.pdfclown.documents.functions
             get
             {
                 IList<double> domainBounds = new List<double>();
-                {
-                    PdfArray domainBoundsObject = (PdfArray)Dictionary.Resolve(PdfName.Bounds);
-                    foreach (PdfDirectObject domainBoundObject in domainBoundsObject)
-                    { domainBounds.Add(((IPdfNumber)domainBoundObject).RawValue); }
-                }
+                var domainBoundsObject = (PdfArray)this.Dictionary.Resolve(PdfName.Bounds);
+                foreach (var domainBoundObject in domainBoundsObject)
+                { domainBounds.Add(((IPdfNumber)domainBoundObject).RawValue); }
                 return domainBounds;
             }
         }
@@ -82,23 +74,12 @@ namespace org.pdfclown.documents.functions
           <summary>Gets the mapping of each <see cref="DomainBounds">subdomain</see> into the domain
           of the corresponding <see cref="Functions">function</see>.</summary>
         */
-        public IList<Interval<double>> DomainEncodes
-        {
-            get
-            { return GetIntervals<double>(PdfName.Encode, null); }
-        }
+        public IList<Interval<double>> DomainEncodes => this.GetIntervals<double>(PdfName.Encode, null);
 
         /**
           <summary>Gets the 1-input functions making up this stitching function.</summary>
           <remarks>The output dimensionality of all functions must be the same.</remarks>
         */
-        public Functions Functions
-        {
-            get
-            { return new Functions(Dictionary[PdfName.Functions], this); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public Functions Functions => new Functions(this.Dictionary[PdfName.Functions], this);
     }
 }

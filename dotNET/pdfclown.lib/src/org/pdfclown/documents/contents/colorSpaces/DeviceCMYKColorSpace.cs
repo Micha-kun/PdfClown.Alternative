@@ -68,7 +68,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
             */
             //FIXME: verify whether this algorithm is effective (limit checking seems quite ugly to me!).
             var keyCorrection = ((float)spaceColor.K) / 2.5f;
-            var r = (int)Math.Round(((1 - spaceColor.C) + keyCorrection) * 255);
+            var r = (int)Math.Round((1 - spaceColor.C + keyCorrection) * 255);
             if (r > 255)
             {
                 r = 255;
@@ -77,7 +77,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
             {
                 r = 0;
             }
-            var g = (int)Math.Round(((1 - spaceColor.M) + keyCorrection) * 255);
+            var g = (int)Math.Round((1 - spaceColor.M + keyCorrection) * 255);
             if (g > 255)
             {
                 g = 255;
@@ -86,7 +86,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
             {
                 g = 0;
             }
-            var b = (int)Math.Round(((1 - spaceColor.Y) + keyCorrection) * 255);
+            var b = (int)Math.Round((1 - spaceColor.Y + keyCorrection) * 255);
             if (b > 255)
             {
                 b = 255;

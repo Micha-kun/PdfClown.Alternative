@@ -24,104 +24,29 @@
 */
 
 
-using System;
-using System.Text;
-
-using org.pdfclown.bytes;
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.util.parsers
 {
+    using System;
+    using System.Text;
+
+    using org.pdfclown.bytes;
+    using org.pdfclown.tokens;
+
     /**
       <summary>PostScript (non-procedural subset) parser [PS].</summary>
     */
     public class PostScriptParser
       : IDisposable
     {
-        #region types
-        public enum TokenTypeEnum // [PS:3.3].
-        {
-            Keyword,
-            Boolean,
-            Integer,
-            Real,
-            Literal,
-            Hex,
-            Name,
-            Comment,
-            ArrayBegin,
-            ArrayEnd,
-            DictionaryBegin,
-            DictionaryEnd,
-            Null
-        }
-        #endregion
 
-        #region static
-        #region interface
-        #region protected
-        protected static int GetHex(
-          int c
-          )
-        {
-            if (c >= '0' && c <= '9')
-                return (c - '0');
-            else if (c >= 'A' && c <= 'F')
-                return (c - 'A' + 10);
-            else if (c >= 'a' && c <= 'f')
-                return (c - 'a' + 10);
-            else
-                return -1;
-        }
-
-        /**
-          <summary>Evaluate whether a character is a delimiter.</summary>
-        */
-        protected static bool IsDelimiter(
-          int c
-          )
-        {
-            return c == Symbol.OpenRoundBracket
-              || c == Symbol.CloseRoundBracket
-              || c == Symbol.OpenAngleBracket
-              || c == Symbol.CloseAngleBracket
-              || c == Symbol.OpenSquareBracket
-              || c == Symbol.CloseSquareBracket
-              || c == Symbol.Slash
-              || c == Symbol.Percent;
-        }
-
-        /**
-          <summary>Evaluate whether a character is an EOL marker.</summary>
-        */
-        protected static bool IsEOL(
-          int c
-          )
-        { return (c == 10 || c == 13); }
-
-        /**
-          <summary>Evaluate whether a character is a white-space.</summary>
-        */
-        protected static bool IsWhitespace(
-          int c
-          )
-        { return c == 32 || IsEOL(c) || c == 0 || c == 9 || c == 12; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
         private IInputStream stream;
 
         private object token;
         private TokenTypeEnum tokenType;
-        #endregion
 
-        #region constructors
         public PostScriptParser(
-          IInputStream stream
-          )
+  IInputStream stream
+  )
         { this.stream = stream; }
 
         public PostScriptParser(
@@ -131,14 +56,87 @@ namespace org.pdfclown.util.parsers
 
         ~PostScriptParser(
           )
-        { Dispose(false); }
-        #endregion
+        { this.Dispose(false); }
 
-        #region interface
-        #region public
-        public override int GetHashCode(
+        protected virtual void Dispose(
+  bool disposing
+  )
+        {
+            if (disposing)
+            {
+                if (this.stream != null)
+                {
+                    this.stream.Dispose();
+                    this.stream = null;
+                }
+            }
+        }
+
+        protected static int GetHex(
+int c
+)
+        {
+            if ((c >= '0') && (c <= '9'))
+            {
+                return c - '0';
+            }
+            else if ((c >= 'A') && (c <= 'F'))
+            {
+                return c - 'A' + 10;
+            }
+            else if ((c >= 'a') && (c <= 'f'))
+            {
+                return c - 'a' + 10;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+
+        /**
+          <summary>Evaluate whether a character is a delimiter.</summary>
+        */
+        protected static bool IsDelimiter(
+          int c
           )
-        { return stream.GetHashCode(); }
+        {
+            return (c == Symbol.OpenRoundBracket)
+              || (c == Symbol.CloseRoundBracket)
+              || (c == Symbol.OpenAngleBracket)
+              || (c == Symbol.CloseAngleBracket)
+              || (c == Symbol.OpenSquareBracket)
+              || (c == Symbol.CloseSquareBracket)
+              || (c == Symbol.Slash)
+              || (c == Symbol.Percent);
+        }
+
+        /**
+          <summary>Evaluate whether a character is an EOL marker.</summary>
+        */
+        protected static bool IsEOL(
+          int c
+          )
+        { return (c == 10) || (c == 13); }
+
+        /**
+          <summary>Evaluate whether a character is a white-space.</summary>
+        */
+        protected static bool IsWhitespace(
+          int c
+          )
+        { return (c == 32) || IsEOL(c) || (c == 0) || (c == 9) || (c == 12); }
+
+        public void Dispose(
+  )
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public override int GetHashCode(
+)
+        { return this.stream.GetHashCode(); }
 
         /**
           <summary>Gets a token after moving to the given offset.</summary>
@@ -148,33 +146,7 @@ namespace org.pdfclown.util.parsers
         public object GetToken(
           int offset
           )
-        { MoveNext(offset); return Token; }
-
-        public long Length
-        {
-            get
-            { return stream.Length; }
-        }
-
-        /**
-          <summary>Moves the pointer to the next token.</summary>
-          <param name="offset">Number of tokens to skip before reaching the intended one.</param>
-        */
-        public bool MoveNext(
-          int offset
-          )
-        {
-            for (
-              int index = 0;
-              index < offset;
-              index++
-              )
-            {
-                if (!MoveNext())
-                    return false;
-            }
-            return true;
-        }
+        { _ = this.MoveNext(offset); return this.Token; }
 
         /**
           <summary>Moves the pointer to the next token.</summary>
@@ -187,23 +159,24 @@ namespace org.pdfclown.util.parsers
           )
         {
             StringBuilder buffer = null;
-            token = null;
-            int c = 0;
+            this.token = null;
+            int c;
 
             // Skip leading white-space characters.
             do
             {
-                c = stream.ReadByte();
+                c = this.stream.ReadByte();
                 if (c == -1)
+                {
                     return false;
+                }
             } while (IsWhitespace(c)); // Keep goin' till there's a white-space character...
 
             // Which character is it?
             switch (c)
             {
                 case Symbol.Slash: // Name.
-                {
-                    tokenType = TokenTypeEnum.Name;
+                    this.tokenType = TokenTypeEnum.Name;
 
                     /*
                       NOTE: As name objects are simple symbols uniquely defined by sequences of characters,
@@ -213,18 +186,22 @@ namespace org.pdfclown.util.parsers
                     buffer = new StringBuilder();
                     while (true)
                     {
-                        c = stream.ReadByte();
+                        c = this.stream.ReadByte();
                         if (c == -1)
+                        {
                             break; // NOOP.
-                        if (IsDelimiter(c) || IsWhitespace(c))
-                            break;
+                        }
 
-                        buffer.Append((char)c);
+                        if (IsDelimiter(c) || IsWhitespace(c))
+                        {
+                            break;
+                        }
+
+                        _ = buffer.Append((char)c);
                     }
                     if (c > -1)
-                    { stream.Skip(-1); } // Restores the first byte after the current token.
-                }
-                break;
+                    { this.stream.Skip(-1); } // Restores the first byte after the current token.
+                    break;
                 case '0':
                 case '1':
                 case '2':
@@ -238,92 +215,105 @@ namespace org.pdfclown.util.parsers
                 case '.':
                 case '-':
                 case '+': // Number.
-                {
                     if (c == '.')
-                    { tokenType = TokenTypeEnum.Real; }
+                    { this.tokenType = TokenTypeEnum.Real; }
                     else // Digit or signum.
-                    { tokenType = TokenTypeEnum.Integer; } // By default (it may be real).
+                    { this.tokenType = TokenTypeEnum.Integer; } // By default (it may be real).
 
                     // Building the number...
                     buffer = new StringBuilder();
                     while (true)
                     {
-                        buffer.Append((char)c);
-                        c = stream.ReadByte();
+                        _ = buffer.Append((char)c);
+                        c = this.stream.ReadByte();
                         if (c == -1)
+                        {
                             break; // NOOP.
+                        }
                         else if (c == '.')
-                            tokenType = TokenTypeEnum.Real;
-                        else if (c < '0' || c > '9')
+                        {
+                            this.tokenType = TokenTypeEnum.Real;
+                        }
+                        else if ((c < '0') || (c > '9'))
+                        {
                             break;
+                        }
                     }
                     if (c > -1)
-                    { stream.Skip(-1); } // Restores the first byte after the current token.
-                }
-                break;
+                    { this.stream.Skip(-1); } // Restores the first byte after the current token.
+                    break;
                 case Symbol.OpenSquareBracket: // Array (begin).
-                    tokenType = TokenTypeEnum.ArrayBegin;
+                    this.tokenType = TokenTypeEnum.ArrayBegin;
                     break;
                 case Symbol.CloseSquareBracket: // Array (end).
-                    tokenType = TokenTypeEnum.ArrayEnd;
+                    this.tokenType = TokenTypeEnum.ArrayEnd;
                     break;
                 case Symbol.OpenAngleBracket: // Dictionary (begin) | Hexadecimal string.
-                {
-                    c = stream.ReadByte();
+                    c = this.stream.ReadByte();
                     if (c == -1)
+                    {
                         throw new PostScriptParseException("Isolated opening angle-bracket character.");
+                    }
                     // Is it a dictionary (2nd angle bracket)?
                     if (c == Symbol.OpenAngleBracket)
                     {
-                        tokenType = TokenTypeEnum.DictionaryBegin;
+                        this.tokenType = TokenTypeEnum.DictionaryBegin;
                         break;
                     }
 
                     // Hexadecimal string (single angle bracket).
-                    tokenType = TokenTypeEnum.Hex;
+                    this.tokenType = TokenTypeEnum.Hex;
 
                     buffer = new StringBuilder();
                     while (c != Symbol.CloseAngleBracket) // NOT string end.
                     {
                         if (!IsWhitespace(c))
-                        { buffer.Append((char)c); }
+                        { _ = buffer.Append((char)c); }
 
-                        c = stream.ReadByte();
+                        c = this.stream.ReadByte();
                         if (c == -1)
+                        {
                             throw new PostScriptParseException("Malformed hex string.");
+                        }
                     }
-                }
-                break;
+                    break;
                 case Symbol.CloseAngleBracket: // Dictionary (end).
-                {
-                    c = stream.ReadByte();
+                    c = this.stream.ReadByte();
                     if (c == -1)
+                    {
                         throw new PostScriptParseException("Malformed dictionary.");
+                    }
                     else if (c != Symbol.CloseAngleBracket)
+                    {
                         throw new PostScriptParseException("Malformed dictionary.", this);
+                    }
 
-                    tokenType = TokenTypeEnum.DictionaryEnd;
-                }
-                break;
+                    this.tokenType = TokenTypeEnum.DictionaryEnd;
+                    break;
                 case Symbol.OpenRoundBracket: // Literal string.
-                {
-                    tokenType = TokenTypeEnum.Literal;
+                    this.tokenType = TokenTypeEnum.Literal;
 
                     buffer = new StringBuilder();
-                    int level = 0;
+                    var level = 0;
                     while (true)
                     {
-                        c = stream.ReadByte();
+                        c = this.stream.ReadByte();
                         if (c == -1)
+                        {
                             break;
+                        }
                         else if (c == Symbol.OpenRoundBracket)
+                        {
                             level++;
+                        }
                         else if (c == Symbol.CloseRoundBracket)
+                        {
                             level--;
+                        }
                         else if (c == '\\')
                         {
-                            bool lineBreak = false;
-                            c = stream.ReadByte();
+                            var lineBreak = false;
+                            c = this.stream.ReadByte();
                             switch (c)
                             {
                                 case 'n':
@@ -347,133 +337,160 @@ namespace org.pdfclown.util.parsers
                                     break;
                                 case Symbol.CarriageReturn:
                                     lineBreak = true;
-                                    c = stream.ReadByte();
+                                    c = this.stream.ReadByte();
                                     if (c != Symbol.LineFeed)
-                                        stream.Skip(-1);
+                                    {
+                                        this.stream.Skip(-1);
+                                    }
+
                                     break;
                                 case Symbol.LineFeed:
                                     lineBreak = true;
                                     break;
                                 default:
-                                {
                                     // Is it outside the octal encoding?
-                                    if (c < '0' || c > '7')
+                                    if ((c < '0') || (c > '7'))
+                                    {
                                         break;
+                                    }
 
                                     // Octal.
-                                    int octal = c - '0';
-                                    c = stream.ReadByte();
+                                    var octal = c - '0';
+                                    c = this.stream.ReadByte();
                                     // Octal end?
-                                    if (c < '0' || c > '7')
-                                    { c = octal; stream.Skip(-1); break; }
+                                    if ((c < '0') || (c > '7'))
+                                    { c = octal; this.stream.Skip(-1); break; }
                                     octal = (octal << 3) + c - '0';
-                                    c = stream.ReadByte();
+                                    c = this.stream.ReadByte();
                                     // Octal end?
-                                    if (c < '0' || c > '7')
-                                    { c = octal; stream.Skip(-1); break; }
+                                    if ((c < '0') || (c > '7'))
+                                    { c = octal; this.stream.Skip(-1); break; }
                                     octal = (octal << 3) + c - '0';
                                     c = octal & 0xff;
                                     break;
-                                }
                             }
                             if (lineBreak)
+                            {
                                 continue;
+                            }
+
                             if (c == -1)
+                            {
                                 break;
+                            }
                         }
                         else if (c == Symbol.CarriageReturn)
                         {
-                            c = stream.ReadByte();
+                            c = this.stream.ReadByte();
                             if (c == -1)
+                            {
                                 break;
+                            }
                             else if (c != Symbol.LineFeed)
-                            { c = Symbol.LineFeed; stream.Skip(-1); }
+                            { c = Symbol.LineFeed; this.stream.Skip(-1); }
                         }
                         if (level == -1)
+                        {
                             break;
+                        }
 
-                        buffer.Append((char)c);
+                        _ = buffer.Append((char)c);
                     }
                     if (c == -1)
+                    {
                         throw new PostScriptParseException("Malformed literal string.");
-                }
-                break;
+                    }
+                    break;
                 case Symbol.Percent: // Comment.
-                {
-                    tokenType = TokenTypeEnum.Comment;
+                    this.tokenType = TokenTypeEnum.Comment;
 
                     buffer = new StringBuilder();
                     while (true)
                     {
-                        c = stream.ReadByte();
-                        if (c == -1
+                        c = this.stream.ReadByte();
+                        if ((c == -1)
                           || IsEOL(c))
+                        {
                             break;
+                        }
 
-                        buffer.Append((char)c);
+                        _ = buffer.Append((char)c);
                     }
-                }
-                break;
+                    break;
                 default: // Keyword.
-                {
-                    tokenType = TokenTypeEnum.Keyword;
+                    this.tokenType = TokenTypeEnum.Keyword;
 
                     buffer = new StringBuilder();
                     do
                     {
-                        buffer.Append((char)c);
-                        c = stream.ReadByte();
+                        _ = buffer.Append((char)c);
+                        c = this.stream.ReadByte();
                         if (c == -1)
+                        {
                             break;
+                        }
                     } while (!IsDelimiter(c) && !IsWhitespace(c));
                     if (c > -1)
-                    { stream.Skip(-1); } // Restores the first byte after the current token.
-                }
-                break;
+                    { this.stream.Skip(-1); } // Restores the first byte after the current token.
+                    break;
             }
 
             if (buffer != null)
             {
-                switch (tokenType)
+                switch (this.tokenType)
                 {
                     case TokenTypeEnum.Keyword:
-                    {
-                        token = buffer.ToString();
-                        switch ((string)token)
+                        this.token = buffer.ToString();
+                        switch ((string)this.token)
                         {
                             case Keyword.False:
                             case Keyword.True: // Boolean.
-                                tokenType = TokenTypeEnum.Boolean;
-                                token = Boolean.Parse((string)token);
+                                this.tokenType = TokenTypeEnum.Boolean;
+                                this.token = bool.Parse((string)this.token);
                                 break;
                             case Keyword.Null: // Null.
-                                tokenType = TokenTypeEnum.Null;
-                                token = null;
+                                this.tokenType = TokenTypeEnum.Null;
+                                this.token = null;
                                 break;
                         }
-                    }
-                    break;
+                        break;
                     case TokenTypeEnum.Name:
                     case TokenTypeEnum.Literal:
                     case TokenTypeEnum.Hex:
                     case TokenTypeEnum.Comment:
-                        token = buffer.ToString();
+                        this.token = buffer.ToString();
                         break;
                     case TokenTypeEnum.Integer:
-                        token = ConvertUtils.ParseIntInvariant(buffer.ToString());
+                        this.token = ConvertUtils.ParseIntInvariant(buffer.ToString());
                         break;
                     case TokenTypeEnum.Real:
-                        token = ConvertUtils.ParseDoubleInvariant(buffer.ToString());
+                        this.token = ConvertUtils.ParseDoubleInvariant(buffer.ToString());
                         break;
                 }
             }
             return true;
         }
 
-        public long Position
+        /**
+          <summary>Moves the pointer to the next token.</summary>
+          <param name="offset">Number of tokens to skip before reaching the intended one.</param>
+        */
+        public bool MoveNext(
+          int offset
+          )
         {
-            get
-            { return stream.Position; }
+            for (
+              var index = 0;
+              index < offset;
+              index++
+              )
+            {
+                if (!this.MoveNext())
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /**
@@ -482,7 +499,7 @@ namespace org.pdfclown.util.parsers
         public void Seek(
           long offset
           )
-        { stream.Seek(offset); }
+        { this.stream.Seek(offset); }
 
         /**
           <summary>Moves the pointer to the given relative byte position.</summary>
@@ -490,7 +507,7 @@ namespace org.pdfclown.util.parsers
         public void Skip(
           long offset
           )
-        { stream.Skip(offset); }
+        { this.stream.Skip(offset); }
 
         /**
           <summary>Moves the pointer after the next end-of-line character sequence (that is just before
@@ -501,18 +518,22 @@ namespace org.pdfclown.util.parsers
           )
         {
             int c;
-            bool found = false;
+            var found = false;
             while (true)
             {
-                c = stream.ReadByte();
+                c = this.stream.ReadByte();
                 if (c == -1)
+                {
                     return false;
+                }
                 else if (IsEOL(c))
                 { found = true; }
                 else if (found) // After EOL.
+                {
                     break;
+                }
             }
-            stream.Skip(-1); // Moves back to the first non-EOL character position (ready to read the next token).
+            this.stream.Skip(-1); // Moves back to the first non-EOL character position (ready to read the next token).
             return true;
         }
 
@@ -527,29 +548,29 @@ namespace org.pdfclown.util.parsers
             int c;
             do
             {
-                c = stream.ReadByte();
+                c = this.stream.ReadByte();
                 if (c == -1)
+                {
                     return false;
+                }
             } while (IsWhitespace(c)); // Keeps going till there's a whitespace character.
-            stream.Skip(-1); // Moves back to the first non-whitespace character position (ready to read the next token).
+            this.stream.Skip(-1); // Moves back to the first non-whitespace character position (ready to read the next token).
             return true;
         }
 
-        public IInputStream Stream
-        {
-            get
-            { return stream; }
-        }
+        public long Length => this.stream.Length;
+
+        public long Position => this.stream.Position;
+
+        public IInputStream Stream => this.stream;
 
         /**
           <summary>Gets the currently-parsed token.</summary>
         */
         public object Token
         {
-            get
-            { return token; }
-            protected set
-            { token = value; }
+            get => this.token;
+            protected set => this.token = value;
         }
 
         /**
@@ -557,38 +578,25 @@ namespace org.pdfclown.util.parsers
         */
         public TokenTypeEnum TokenType
         {
-            get
-            { return tokenType; }
-            protected set
-            { tokenType = value; }
+            get => this.tokenType;
+            protected set => this.tokenType = value;
         }
 
-        #region IDisposable
-        public void Dispose(
-          )
+        public enum TokenTypeEnum // [PS:3.3].
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            Keyword,
+            Boolean,
+            Integer,
+            Real,
+            Literal,
+            Hex,
+            Name,
+            Comment,
+            ArrayBegin,
+            ArrayEnd,
+            DictionaryBegin,
+            DictionaryEnd,
+            Null
         }
-        #endregion
-        #endregion
-
-        #region protected
-        protected virtual void Dispose(
-          bool disposing
-          )
-        {
-            if (disposing)
-            {
-                if (stream != null)
-                {
-                    stream.Dispose();
-                    stream = null;
-                }
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

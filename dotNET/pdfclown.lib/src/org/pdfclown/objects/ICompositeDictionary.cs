@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.objects
 {
+    using System;
+
     /**
       <summary>Composite dictionary.</summary>
     */

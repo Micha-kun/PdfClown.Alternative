@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
-using org.pdfclown.util.math;
-using org.pdfclown.util.metadata;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using System;
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util.math;
+    using org.pdfclown.util.metadata;
+
     /**
       <summary>Software identifier [PDF:1.7:9.1.6].</summary>
     */
@@ -39,94 +39,38 @@ namespace org.pdfclown.documents.multimedia
     public sealed class SoftwareIdentifier
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region types
-        /**
-          <summary>Software version number [PDF:1.7:9.1.6].</summary>
-        */
-        public sealed class VersionObject
-          : PdfObjectWrapper<PdfArray>,
-            IVersion
-        {
-            public VersionObject(
-              params int[] numbers
-              ) : base(new PdfArray())
-            {
-                PdfArray baseDataObject = BaseDataObject;
-                foreach (int number in numbers)
-                { baseDataObject.Add(new PdfInteger(number)); }
-            }
-
-            internal VersionObject(
-              PdfDirectObject baseObject
-              ) : base(baseObject)
-            { }
-
-            public int CompareTo(
-              IVersion value
-              )
-            { return VersionUtils.CompareTo(this, value); }
-
-            public IList<int> Numbers
-            {
-                get
-                {
-                    IList<int> numbers = new List<int>();
-                    foreach (PdfDirectObject numberObject in BaseDataObject)
-                    { numbers.Add(((PdfInteger)numberObject).IntValue); }
-                    return numbers;
-                }
-            }
-
-            public override string ToString(
-              )
-            { return VersionUtils.ToString(this); }
-        }
-        #endregion
-
-        #region static
-        #region interface
-        #region public
-        public static SoftwareIdentifier Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new SoftwareIdentifier(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public SoftwareIdentifier(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         private SoftwareIdentifier(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public SoftwareIdentifier(
+Document context
+) : base(context, new PdfDictionary())
+        { }
+
+        public static SoftwareIdentifier Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new SoftwareIdentifier(baseObject) : null; }
+
         /**
-          <summary>Gets the operating system identifiers that indicate which operating systems this
-          object applies to.</summary>
-          <remarks>The defined values are the same as those defined for SMIL 2.0's systemOperatingSystem
-          attribute. An empty list is considered to represent all operating systems.</remarks>
-        */
+<summary>Gets the operating system identifiers that indicate which operating systems this
+object applies to.</summary>
+<remarks>The defined values are the same as those defined for SMIL 2.0's systemOperatingSystem
+attribute. An empty list is considered to represent all operating systems.</remarks>
+*/
         public IList<string> OSes
         {
             get
             {
                 IList<string> oses = new List<string>();
+                var osesObject = (PdfArray)this.BaseDataObject[PdfName.OS];
+                if (osesObject != null)
                 {
-                    PdfArray osesObject = (PdfArray)BaseDataObject[PdfName.OS];
-                    if (osesObject != null)
-                    {
-                        foreach (PdfDirectObject osObject in osesObject)
-                        { oses.Add(((PdfString)osObject).StringValue); }
-                    }
+                    foreach (var osObject in osesObject)
+                    { oses.Add(((PdfString)osObject).StringValue); }
                 }
                 return oses;
             }
@@ -144,8 +88,8 @@ namespace org.pdfclown.documents.multimedia
         {
             get
             {
-                PdfString uriObject = (PdfString)BaseDataObject[PdfName.U];
-                return uriObject != null ? new Uri(uriObject.StringValue) : null;
+                var uriObject = (PdfString)this.BaseDataObject[PdfName.U];
+                return (uriObject != null) ? new Uri(uriObject.StringValue) : null;
             }
         }
 
@@ -156,7 +100,7 @@ namespace org.pdfclown.documents.multimedia
         {
             get
             {
-                PdfDictionary baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 return new Interval<VersionObject>(
                   new VersionObject((PdfArray)baseDataObject[PdfName.L]),
                   new VersionObject((PdfArray)baseDataObject[PdfName.H]),
@@ -165,10 +109,48 @@ namespace org.pdfclown.documents.multimedia
                   );
             }
         }
+        /**
+  <summary>Software version number [PDF:1.7:9.1.6].</summary>
+*/
+        public sealed class VersionObject
+          : PdfObjectWrapper<PdfArray>,
+            IVersion
+        {
+
+            internal VersionObject(
+              PdfDirectObject baseObject
+              ) : base(baseObject)
+            { }
+            public VersionObject(
+              params int[] numbers
+              ) : base(new PdfArray())
+            {
+                var baseDataObject = this.BaseDataObject;
+                foreach (var number in numbers)
+                { baseDataObject.Add(new PdfInteger(number)); }
+            }
+
+            public int CompareTo(
+              IVersion value
+              )
+            { return VersionUtils.CompareTo(this, value); }
+
+            public override string ToString(
+              )
+            { return VersionUtils.ToString(this); }
+
+            public IList<int> Numbers
+            {
+                get
+                {
+                    IList<int> numbers = new List<int>();
+                    foreach (var numberObject in this.BaseDataObject)
+                    { numbers.Add(((PdfInteger)numberObject).IntValue); }
+                    return numbers;
+                }
+            }
+        }
 
         //TODO:setters!!!
-        #endregion
-        #endregion
-        #endregion
     }
 }

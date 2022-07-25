@@ -24,175 +24,22 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.layers;
-using org.pdfclown.documents.contents.objects;
-
-using org.pdfclown.objects;
-using xobjects = org.pdfclown.documents.contents.xObjects;
-
 namespace org.pdfclown.tools
 {
+    using System.Collections.Generic;
+    using org.pdfclown.documents;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.layers;
+    using org.pdfclown.documents.contents.objects;
+
+    using org.pdfclown.objects;
+    using xobjects = org.pdfclown.documents.contents.xObjects;
+
     /**
       <summary>Tool to manage layers (aka OCGs).</summary>
     */
     public class LayerManager
     {
-        #region dynamic
-        #region interface
-        #region public
-        /**
-          <summary>Removes the specified layers from the document.</summary>
-          <param name="layers">Layers to remove (they MUST belong to the same document).</param>
-        */
-        public void Remove(
-          params Layer[] layers
-          )
-        { Remove(false, layers); }
-
-        /**
-          <summary>Removes the specified layers from the document.</summary>
-          <param name="preserveContent">Whether the layer contents have to be flattened only.</param>
-          <param name="layers">Layers to remove (they MUST belong to the same document).</param>
-        */
-        public void Remove(
-          bool preserveContent,
-          params Layer[] layers
-          )
-        {
-            var document = layers[0].Document;
-
-            // 1. Page contents.
-            var removedLayers = new HashSet<Layer>(layers);
-            var layerEntities = new HashSet<LayerEntity>(removedLayers);
-            var layerXObjects = new HashSet<xobjects::XObject>();
-            foreach (Page page in document.Pages)
-            { RemoveLayerContents(page, removedLayers, layerEntities, layerXObjects, preserveContent); }
-
-            // 2. Layer definitions.
-            HashSet<PdfReference> removedLayerReferences = new HashSet<PdfReference>();
-            foreach (var removedLayer in removedLayers)
-            { removedLayerReferences.Add((PdfReference)removedLayer.BaseObject); }
-            var layerDefinition = document.Layer;
-            // 2.1. Clean default layer configuration!
-            RemoveLayerReferences(layerDefinition.DefaultConfiguration, removedLayerReferences);
-            // 2.2. Clean alternate layer configurations!
-            foreach (var layerConfiguration in layerDefinition.AlternateConfigurations)
-            { RemoveLayerReferences(layerConfiguration, removedLayerReferences); }
-            // 2.3. Clean global layer collection!
-            RemoveLayerReferences(layerDefinition.Layers.BaseDataObject, removedLayerReferences);
-
-            // 3. Entities.
-            // 3.1. Clean the xobjects!
-            foreach (var xObject in layerXObjects)
-            {
-                if (preserveContent)
-                { xObject.Layer = null; }
-                else
-                { xObject.Delete(); }
-            }
-            // 3.2. Clean the layer entities!
-            foreach (var layerEntity in layerEntities)
-            { layerEntity.Delete(); }
-
-            // 4. Reference cleanup.
-            Optimizer.RemoveOrphanedObjects(document.File);
-        }
-        #endregion
-
-        #region private
-        private void RemoveLayerContents(
-          Page page,
-          ICollection<Layer> removedLayers,
-          ICollection<LayerEntity> layerEntities,
-          ICollection<xobjects::XObject> layerXObjects,
-          bool preserveContent
-          )
-        {
-            var pageResources = page.Resources;
-
-            // Collect the page's layer entities containing the layers!
-            HashSet<PdfName> layerEntityNames = new HashSet<PdfName>();
-            var pagePropertyLists = pageResources.PropertyLists;
-            foreach (var propertyListEntry in pagePropertyLists)
-            {
-                if (!(propertyListEntry.Value is LayerEntity))
-                    continue;
-
-                var layerEntity = (LayerEntity)propertyListEntry.Value;
-                if (layerEntities.Contains(layerEntity))
-                { layerEntityNames.Add(propertyListEntry.Key); }
-                else
-                {
-                    var members = layerEntity.VisibilityMembers;
-                    foreach (var removedLayer in removedLayers)
-                    {
-                        if (members.Contains(removedLayer))
-                        {
-                            layerEntityNames.Add(propertyListEntry.Key);
-                            layerEntities.Add(layerEntity);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Collect the page's xobjects associated to the layers!
-            HashSet<PdfName> layerXObjectNames = new HashSet<PdfName>();
-            var pageXObjects = pageResources.XObjects;
-            foreach (var xObjectEntry in pageXObjects)
-            {
-                if (layerXObjects.Contains(xObjectEntry.Value))
-                { layerXObjectNames.Add(xObjectEntry.Key); }
-                else
-                {
-                    if (layerEntities.Contains(xObjectEntry.Value.Layer))
-                    {
-                        layerXObjectNames.Add(xObjectEntry.Key);
-                        layerXObjects.Add(xObjectEntry.Value);
-                        break;
-                    }
-                }
-            }
-
-            // 1.1. Remove the layered contents from the page!
-            if (layerEntityNames.Count > 0 || (!preserveContent && layerXObjectNames.Count > 0))
-            {
-                var scanner = new ContentScanner(page);
-                RemoveLayerContents(scanner, layerEntityNames, layerXObjectNames, preserveContent);
-                scanner.Contents.Flush();
-            }
-
-            // 1.2. Clean the page's layer entities from the purged references!
-            foreach (var layerEntityName in layerEntityNames)
-            { pagePropertyLists.Remove(layerEntityName); }
-
-            // 1.3. Clean the page's xobjects from the purged references!
-            if (!preserveContent)
-            {
-                foreach (var layerXObjectName in layerXObjectNames)
-                { pageXObjects.Remove(layerXObjectName); }
-            }
-
-            // 1.4. Clean the page's annotations!
-            {
-                var pageAnnotations = page.Annotations;
-                for (int index = pageAnnotations.Count - 1; index >= 0; index--)
-                {
-                    var annotation = pageAnnotations[index];
-                    if (layerEntities.Contains(annotation.Layer))
-                    {
-                        if (preserveContent)
-                        { annotation.Layer = null; }
-                        else
-                        { annotation.Delete(); }
-                    }
-                }
-            }
-        }
 
         private void RemoveLayerContents(
           ContentScanner level,
@@ -202,11 +49,13 @@ namespace org.pdfclown.tools
           )
         {
             if (level == null)
+            {
                 return;
+            }
 
             while (level.MoveNext())
             {
-                ContentObject content = level.Current;
+                var content = level.Current;
                 if (content is MarkedContent)
                 {
                     var markedContent = (MarkedContent)content;
@@ -220,29 +69,120 @@ namespace org.pdfclown.tools
                         }
                         else
                         {
-                            level.Remove(); // Removes the layer marked content block along with its contents.
+                            _ = level.Remove(); // Removes the layer marked content block along with its contents.
                             continue;
                         }
                     }
                 }
-                else if (!preserveContent && content is XObject)
+                else if (!preserveContent && (content is XObject))
                 {
                     var xObject = (XObject)content;
                     if (layerXObjectNames.Contains(xObject.Name))
                     {
-                        level.Remove();
+                        _ = level.Remove();
                         continue;
                     }
                 }
                 if (content is ContainerObject)
                 {
                     // Scan the inner level!
-                    RemoveLayerContents(
+                    this.RemoveLayerContents(
                       level.ChildLevel,
                       layerEntityNames,
                       layerXObjectNames,
                       preserveContent
                       );
+                }
+            }
+        }
+
+        private void RemoveLayerContents(
+  Page page,
+  ICollection<Layer> removedLayers,
+  ICollection<LayerEntity> layerEntities,
+  ICollection<xobjects::XObject> layerXObjects,
+  bool preserveContent
+  )
+        {
+            var pageResources = page.Resources;
+
+            // Collect the page's layer entities containing the layers!
+            var layerEntityNames = new HashSet<PdfName>();
+            var pagePropertyLists = pageResources.PropertyLists;
+            foreach (var propertyListEntry in pagePropertyLists)
+            {
+                if (!(propertyListEntry.Value is LayerEntity))
+                {
+                    continue;
+                }
+
+                var layerEntity = (LayerEntity)propertyListEntry.Value;
+                if (layerEntities.Contains(layerEntity))
+                { _ = layerEntityNames.Add(propertyListEntry.Key); }
+                else
+                {
+                    var members = layerEntity.VisibilityMembers;
+                    foreach (var removedLayer in removedLayers)
+                    {
+                        if (members.Contains(removedLayer))
+                        {
+                            _ = layerEntityNames.Add(propertyListEntry.Key);
+                            layerEntities.Add(layerEntity);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Collect the page's xobjects associated to the layers!
+            var layerXObjectNames = new HashSet<PdfName>();
+            var pageXObjects = pageResources.XObjects;
+            foreach (var xObjectEntry in pageXObjects)
+            {
+                if (layerXObjects.Contains(xObjectEntry.Value))
+                { _ = layerXObjectNames.Add(xObjectEntry.Key); }
+                else
+                {
+                    if (layerEntities.Contains(xObjectEntry.Value.Layer))
+                    {
+                        _ = layerXObjectNames.Add(xObjectEntry.Key);
+                        layerXObjects.Add(xObjectEntry.Value);
+                        break;
+                    }
+                }
+            }
+
+            // 1.1. Remove the layered contents from the page!
+            if ((layerEntityNames.Count > 0) || (!preserveContent && (layerXObjectNames.Count > 0)))
+            {
+                var scanner = new ContentScanner(page);
+                this.RemoveLayerContents(scanner, layerEntityNames, layerXObjectNames, preserveContent);
+                scanner.Contents.Flush();
+            }
+
+            // 1.2. Clean the page's layer entities from the purged references!
+            foreach (var layerEntityName in layerEntityNames)
+            { _ = pagePropertyLists.Remove(layerEntityName); }
+
+            // 1.3. Clean the page's xobjects from the purged references!
+            if (!preserveContent)
+            {
+                foreach (var layerXObjectName in layerXObjectNames)
+                { _ = pageXObjects.Remove(layerXObjectName); }
+            }
+
+            // 1.4. Clean the page's annotations!
+
+            var pageAnnotations = page.Annotations;
+            for (var index = pageAnnotations.Count - 1; index >= 0; index--)
+            {
+                var annotation = pageAnnotations[index];
+                if (layerEntities.Contains(annotation.Layer))
+                {
+                    if (preserveContent)
+                    { annotation.Layer = null; }
+                    else
+                    { _ = annotation.Delete(); }
                 }
             }
         }
@@ -253,32 +193,22 @@ namespace org.pdfclown.tools
           )
         {
             if (layerConfiguration == null)
+            {
                 return;
+            }
 
             var layerConfigurationDictionary = layerConfiguration.BaseDataObject;
             var usageArrayObject = (PdfArray)layerConfigurationDictionary.Resolve(PdfName.AS);
             if (usageArrayObject != null)
             {
                 foreach (var usageItemObject in usageArrayObject)
-                { RemoveLayerReferences((PdfDictionary)usageItemObject.Resolve(), PdfName.OCGs, layerReferences); }
+                { this.RemoveLayerReferences((PdfDictionary)usageItemObject.Resolve(), PdfName.OCGs, layerReferences); }
             }
-            RemoveLayerReferences(layerConfigurationDictionary, PdfName.Locked, layerReferences);
-            RemoveLayerReferences(layerConfigurationDictionary, PdfName.OFF, layerReferences);
-            RemoveLayerReferences(layerConfigurationDictionary, PdfName.ON, layerReferences);
-            RemoveLayerReferences(layerConfigurationDictionary, PdfName.Order, layerReferences);
-            RemoveLayerReferences(layerConfigurationDictionary, PdfName.RBGroups, layerReferences);
-        }
-
-        private void RemoveLayerReferences(
-          PdfDictionary dictionaryObject,
-          PdfName key,
-          ICollection<PdfReference> layerReferences
-          )
-        {
-            if (dictionaryObject == null)
-                return;
-
-            RemoveLayerReferences((PdfArray)dictionaryObject.Resolve(key), layerReferences);
+            this.RemoveLayerReferences(layerConfigurationDictionary, PdfName.Locked, layerReferences);
+            this.RemoveLayerReferences(layerConfigurationDictionary, PdfName.OFF, layerReferences);
+            this.RemoveLayerReferences(layerConfigurationDictionary, PdfName.ON, layerReferences);
+            this.RemoveLayerReferences(layerConfigurationDictionary, PdfName.Order, layerReferences);
+            this.RemoveLayerReferences(layerConfigurationDictionary, PdfName.RBGroups, layerReferences);
         }
 
         private void RemoveLayerReferences(
@@ -287,9 +217,11 @@ namespace org.pdfclown.tools
           )
         {
             if (arrayObject == null)
+            {
                 return;
+            }
 
-            for (int index = arrayObject.Count - 1; index >= 0; index--)
+            for (var index = arrayObject.Count - 1; index >= 0; index--)
             {
                 PdfDataObject itemObject = arrayObject[index];
                 if (itemObject is PdfReference)
@@ -310,12 +242,80 @@ namespace org.pdfclown.tools
                     { itemObject = itemObject.Resolve(); }
                 }
                 if (itemObject is PdfArray)
-                { RemoveLayerReferences((PdfArray)itemObject, layerReferences); }
+                { this.RemoveLayerReferences((PdfArray)itemObject, layerReferences); }
             }
         }
-        #endregion
-        #endregion
-        #endregion
+
+        private void RemoveLayerReferences(
+          PdfDictionary dictionaryObject,
+          PdfName key,
+          ICollection<PdfReference> layerReferences
+          )
+        {
+            if (dictionaryObject == null)
+            {
+                return;
+            }
+
+            this.RemoveLayerReferences((PdfArray)dictionaryObject.Resolve(key), layerReferences);
+        }
+        /**
+<summary>Removes the specified layers from the document.</summary>
+<param name="layers">Layers to remove (they MUST belong to the same document).</param>
+*/
+        public void Remove(
+          params Layer[] layers
+          )
+        { this.Remove(false, layers); }
+
+        /**
+          <summary>Removes the specified layers from the document.</summary>
+          <param name="preserveContent">Whether the layer contents have to be flattened only.</param>
+          <param name="layers">Layers to remove (they MUST belong to the same document).</param>
+        */
+        public void Remove(
+          bool preserveContent,
+          params Layer[] layers
+          )
+        {
+            var document = layers[0].Document;
+
+            // 1. Page contents.
+            var removedLayers = new HashSet<Layer>(layers);
+            var layerEntities = new HashSet<LayerEntity>(removedLayers);
+            var layerXObjects = new HashSet<xobjects::XObject>();
+            foreach (var page in document.Pages)
+            { this.RemoveLayerContents(page, removedLayers, layerEntities, layerXObjects, preserveContent); }
+
+            // 2. Layer definitions.
+            var removedLayerReferences = new HashSet<PdfReference>();
+            foreach (var removedLayer in removedLayers)
+            { _ = removedLayerReferences.Add((PdfReference)removedLayer.BaseObject); }
+            var layerDefinition = document.Layer;
+            // 2.1. Clean default layer configuration!
+            this.RemoveLayerReferences(layerDefinition.DefaultConfiguration, removedLayerReferences);
+            // 2.2. Clean alternate layer configurations!
+            foreach (var layerConfiguration in layerDefinition.AlternateConfigurations)
+            { this.RemoveLayerReferences(layerConfiguration, removedLayerReferences); }
+            // 2.3. Clean global layer collection!
+            this.RemoveLayerReferences(layerDefinition.Layers.BaseDataObject, removedLayerReferences);
+
+            // 3. Entities.
+            // 3.1. Clean the xobjects!
+            foreach (var xObject in layerXObjects)
+            {
+                if (preserveContent)
+                { xObject.Layer = null; }
+                else
+                { _ = xObject.Delete(); }
+            }
+            // 3.2. Clean the layer entities!
+            foreach (var layerEntity in layerEntities)
+            { _ = layerEntity.Delete(); }
+
+            // 4. Reference cleanup.
+            Optimizer.RemoveOrphanedObjects(document.File);
+        }
     }
 }
 

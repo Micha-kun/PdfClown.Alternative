@@ -24,208 +24,40 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using org.pdfclown.bytes;
-
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+    using System.Collections.Generic;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
     /**
       <summary>PDF file writer implementing compressed cross-reference stream [PDF:1.6:3.4.7].</summary>
     */
     internal sealed class CompressedWriter
       : Writer
     {
-        #region static
-        #region fields
         /**
-          <summary>Maximum number of objects in individual object streams [PDF:1.7:H:19].</summary>
-        */
-        private static int ObjectStreamMaxEntryCount = 100;
-        #endregion
-        #endregion
+<summary>Maximum number of objects in individual object streams [PDF:1.7:H:19].</summary>
+*/
+        private static readonly int ObjectStreamMaxEntryCount = 100;
 
-        #region dynamic
-        #region constructors
         internal CompressedWriter(
-          files.File file,
-          IOutputStream stream
-          ) : base(file, stream)
+File file,
+IOutputStream stream
+) : base(file, stream)
         { }
-        #endregion
 
-        #region interface
-        #region protected
-        protected override void WriteIncremental(
-          )
-        {
-            // 1. Original content (header, body and previous trailer).
-            FileParser parser = file.Reader.Parser;
-            stream.Write(parser.Stream);
-
-            // 2. Body update (modified indirect objects insertion).
-            XRefEntry xrefStreamEntry;
-            {
-                // Create the xref stream!
-                /*
-                  NOTE: Incremental xref information structure comprises multiple sections; this update adds
-                  a new section.
-                */
-                XRefStream xrefStream = new XRefStream(file);
-
-                // 2.1. Indirect objects.
-                IndirectObjects indirectObjects = file.IndirectObjects;
-
-                // 2.1.1. Modified indirect objects serialization.
-                XRefEntry prevFreeEntry = null;
-                /*
-                  NOTE: Any uncompressed indirect object will be compressed.
-                */
-                ObjectStream objectStream = null;
-                /*
-                  NOTE: Any previously-compressed indirect object will have its original object stream
-                  updated through a new extension object stream.
-                */
-                IDictionary<int, ObjectStream> extensionObjectStreams = new Dictionary<int, ObjectStream>();
-                int indirectObjectsPrecompressCount = indirectObjects.Count;
-                foreach (PdfIndirectObject indirectObject in new List<PdfIndirectObject>(indirectObjects.ModifiedObjects.Values))
-                {
-                    if (indirectObject.IsCompressible())
-                    {
-                        if (objectStream == null
-                          || objectStream.Count >= ObjectStreamMaxEntryCount)
-                        { file.Register(objectStream = new ObjectStream()); }
-
-                        indirectObject.Compress(objectStream);
-                    }
-
-                    prevFreeEntry = AddXRefEntry(
-                      indirectObject,
-                      xrefStream,
-                      prevFreeEntry,
-                      extensionObjectStreams
-                      );
-                }
-                // 2.1.2. Additional object streams serialization.
-                for (int index = indirectObjectsPrecompressCount, limit = indirectObjects.Count; index < limit; index++)
-                {
-                    prevFreeEntry = AddXRefEntry(
-                      indirectObjects[index],
-                      xrefStream,
-                      prevFreeEntry,
-                      null
-                      );
-                }
-                if (prevFreeEntry != null)
-                {
-                    prevFreeEntry.Offset = 0; // Links back to the first free object. NOTE: The first entry in the table (object number 0) is always free.
-                }
-
-                // 2.2. XRef stream.
-                UpdateTrailer(xrefStream.Header, stream);
-                xrefStream.Header[PdfName.Prev] = PdfInteger.Get((int)parser.RetrieveXRefOffset());
-                AddXRefEntry(
-                  /*
-                    NOTE: This xref stream indirect object is purposely temporary (i.e. not registered into
-                    the file's indirect objects collection).
-                  */
-                  new PdfIndirectObject(
-                    file,
-                    xrefStream,
-                    xrefStreamEntry = new XRefEntry(indirectObjects.Count, 0, (int)stream.Length, XRefEntry.UsageEnum.InUse)
-                    ),
-                  xrefStream,
-                  null,
-                  null
-                  );
-            }
-
-            // 3. Tail.
-            WriteTail(xrefStreamEntry.Offset);
-        }
-
-        protected override void WriteLinearized(
-          )
-        { throw new NotImplementedException(); }
-
-        protected override void WriteStandard(
-          )
-        {
-            // 1. Header [PDF:1.6:3.4.1].
-            WriteHeader();
-
-            // 2. Body [PDF:1.6:3.4.2,3,7].
-            XRefEntry xrefStreamEntry;
-            {
-                // Create the xref stream!
-                /*
-                  NOTE: Standard xref information structure comprises just one section; the xref stream is
-                  generated on-the-fly and kept volatile not to interfere with the existing file structure.
-                */
-                XRefStream xrefStream = new XRefStream(file);
-
-                // 2.1. Indirect objects.
-                IndirectObjects indirectObjects = file.IndirectObjects;
-
-                // Indirect objects serialization.
-                XRefEntry prevFreeEntry = null;
-                ObjectStream objectStream = null;
-                foreach (PdfIndirectObject indirectObject in indirectObjects)
-                {
-                    if (indirectObject.IsCompressible())
-                    {
-                        if (objectStream == null
-                          || objectStream.Count >= ObjectStreamMaxEntryCount)
-                        { file.Register(objectStream = new ObjectStream()); }
-
-                        indirectObject.Compress(objectStream);
-                    }
-
-                    prevFreeEntry = AddXRefEntry(
-                      indirectObject,
-                      xrefStream,
-                      prevFreeEntry,
-                      null
-                      );
-                }
-                prevFreeEntry.Offset = 0; // Links back to the first free object. NOTE: The first entry in the table (object number 0) is always free.
-
-                // 2.2. XRef stream.
-                UpdateTrailer(xrefStream.Header, stream);
-                AddXRefEntry(
-                  /*
-                    NOTE: This xref stream indirect object is purposely temporary (i.e. not registered into
-                    the file's indirect objects collection).
-                  */
-                  new PdfIndirectObject(
-                    file,
-                    xrefStream,
-                    xrefStreamEntry = new XRefEntry(indirectObjects.Count, 0, (int)stream.Length, XRefEntry.UsageEnum.InUse)
-                    ),
-                  xrefStream,
-                  null,
-                  null
-                  );
-            }
-
-            // 3. Tail.
-            WriteTail(xrefStreamEntry.Offset);
-        }
-        #endregion
-
-        #region private
         /**
-          <summary>Adds an indirect object entry to the specified xref stream.</summary>
-          <param name="indirectObject">Indirect object.</param>
-          <param name="xrefStream">XRef stream.</param>
-          <param name="prevFreeEntry">Previous free xref entry.</param>
-          <param name="extensionObjectStreams">Object streams used in incremental updates to extend
-            modified ones.</param>
-          <returns>Current free xref entry.</returns>
-        */
+  <summary>Adds an indirect object entry to the specified xref stream.</summary>
+  <param name="indirectObject">Indirect object.</param>
+  <param name="xrefStream">XRef stream.</param>
+  <param name="prevFreeEntry">Previous free xref entry.</param>
+  <param name="extensionObjectStreams">Object streams used in incremental updates to extend
+    modified ones.</param>
+  <returns>Current free xref entry.</returns>
+*/
         private XRefEntry AddXRefEntry(
           PdfIndirectObject indirectObject,
           XRefStream xrefStream,
@@ -233,7 +65,7 @@ namespace org.pdfclown.tokens
           IDictionary<int, ObjectStream> extensionObjectStreams
           )
         {
-            XRefEntry xrefEntry = indirectObject.XrefEntry;
+            var xrefEntry = indirectObject.XrefEntry;
 
             // Add the entry to the xref stream!
             xrefStream[xrefEntry.Number] = xrefEntry;
@@ -242,29 +74,27 @@ namespace org.pdfclown.tokens
             switch (xrefEntry.Usage)
             {
                 case XRefEntry.UsageEnum.InUse:
-                {
-                    int offset = (int)stream.Length;
+                    var offset = (int)this.stream.Length;
                     // Add entry content!
-                    indirectObject.WriteTo(stream, file);
+                    indirectObject.WriteTo(this.stream, this.file);
                     // Set entry content's offset!
                     xrefEntry.Offset = offset;
-                }
-                break;
+                    break;
                 case XRefEntry.UsageEnum.InUseCompressed:
                     /*
                       NOTE: Serialization is delegated to the containing object stream.
                     */
                     if (extensionObjectStreams != null) // Incremental update.
                     {
-                        int baseStreamNumber = xrefEntry.StreamNumber;
-                        PdfIndirectObject baseStreamIndirectObject = file.IndirectObjects[baseStreamNumber];
+                        var baseStreamNumber = xrefEntry.StreamNumber;
+                        var baseStreamIndirectObject = this.file.IndirectObjects[baseStreamNumber];
                         if (baseStreamIndirectObject.IsOriginal()) // Extension stream needed in order to preserve the original object stream.
                         {
                             // Get the extension object stream associated to the original object stream!
                             ObjectStream extensionObjectStream;
                             if (!extensionObjectStreams.TryGetValue(baseStreamNumber, out extensionObjectStream))
                             {
-                                file.Register(extensionObjectStream = new ObjectStream());
+                                _ = this.file.Register(extensionObjectStream = new ObjectStream());
                                 // Link the extension to the base object stream!
                                 extensionObjectStream.BaseStream = (ObjectStream)baseStreamIndirectObject.DataObject;
                                 extensionObjectStreams[baseStreamNumber] = extensionObjectStream;
@@ -288,8 +118,157 @@ namespace org.pdfclown.tokens
             }
             return prevFreeEntry;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        protected override void WriteIncremental(
+)
+        {
+            // 1. Original content (header, body and previous trailer).
+            var parser = this.file.Reader.Parser;
+            this.stream.Write(parser.Stream);
+
+            // 2. Body update (modified indirect objects insertion).
+            XRefEntry xrefStreamEntry;
+            // Create the xref stream!
+            /*
+              NOTE: Incremental xref information structure comprises multiple sections; this update adds
+              a new section.
+            */
+            var xrefStream = new XRefStream(this.file);
+
+            // 2.1. Indirect objects.
+            var indirectObjects = this.file.IndirectObjects;
+
+            // 2.1.1. Modified indirect objects serialization.
+            XRefEntry prevFreeEntry = null;
+            /*
+              NOTE: Any uncompressed indirect object will be compressed.
+            */
+            ObjectStream objectStream = null;
+            /*
+              NOTE: Any previously-compressed indirect object will have its original object stream
+              updated through a new extension object stream.
+            */
+            IDictionary<int, ObjectStream> extensionObjectStreams = new Dictionary<int, ObjectStream>();
+            var indirectObjectsPrecompressCount = indirectObjects.Count;
+            foreach (var indirectObject in new List<PdfIndirectObject>(indirectObjects.ModifiedObjects.Values))
+            {
+                if (indirectObject.IsCompressible())
+                {
+                    if ((objectStream == null)
+                      || (objectStream.Count >= ObjectStreamMaxEntryCount))
+                    { _ = this.file.Register(objectStream = new ObjectStream()); }
+
+                    indirectObject.Compress(objectStream);
+                }
+
+                prevFreeEntry = this.AddXRefEntry(
+                  indirectObject,
+                  xrefStream,
+                  prevFreeEntry,
+                  extensionObjectStreams
+                  );
+            }
+            // 2.1.2. Additional object streams serialization.
+            for (int index = indirectObjectsPrecompressCount, limit = indirectObjects.Count; index < limit; index++)
+            {
+                prevFreeEntry = this.AddXRefEntry(
+                  indirectObjects[index],
+                  xrefStream,
+                  prevFreeEntry,
+                  null
+                  );
+            }
+            if (prevFreeEntry != null)
+            {
+                prevFreeEntry.Offset = 0; // Links back to the first free object. NOTE: The first entry in the table (object number 0) is always free.
+            }
+
+            // 2.2. XRef stream.
+            this.UpdateTrailer(xrefStream.Header, this.stream);
+            xrefStream.Header[PdfName.Prev] = PdfInteger.Get((int)parser.RetrieveXRefOffset());
+            _ = this.AddXRefEntry(
+              /*
+                NOTE: This xref stream indirect object is purposely temporary (i.e. not registered into
+                the file's indirect objects collection).
+              */
+              new PdfIndirectObject(
+                this.file,
+                xrefStream,
+                xrefStreamEntry = new XRefEntry(indirectObjects.Count, 0, (int)this.stream.Length, XRefEntry.UsageEnum.InUse)
+                ),
+              xrefStream,
+              null,
+              null
+              );
+
+            // 3. Tail.
+            this.WriteTail(xrefStreamEntry.Offset);
+        }
+
+        protected override void WriteLinearized(
+          )
+        { throw new NotImplementedException(); }
+
+        protected override void WriteStandard(
+          )
+        {
+            // 1. Header [PDF:1.6:3.4.1].
+            this.WriteHeader();
+
+            // 2. Body [PDF:1.6:3.4.2,3,7].
+            XRefEntry xrefStreamEntry;
+            // Create the xref stream!
+            /*
+              NOTE: Standard xref information structure comprises just one section; the xref stream is
+              generated on-the-fly and kept volatile not to interfere with the existing file structure.
+            */
+            var xrefStream = new XRefStream(this.file);
+
+            // 2.1. Indirect objects.
+            var indirectObjects = this.file.IndirectObjects;
+
+            // Indirect objects serialization.
+            XRefEntry prevFreeEntry = null;
+            ObjectStream objectStream = null;
+            foreach (var indirectObject in indirectObjects)
+            {
+                if (indirectObject.IsCompressible())
+                {
+                    if ((objectStream == null)
+                      || (objectStream.Count >= ObjectStreamMaxEntryCount))
+                    { _ = this.file.Register(objectStream = new ObjectStream()); }
+
+                    indirectObject.Compress(objectStream);
+                }
+
+                prevFreeEntry = this.AddXRefEntry(
+                  indirectObject,
+                  xrefStream,
+                  prevFreeEntry,
+                  null
+                  );
+            }
+            prevFreeEntry.Offset = 0; // Links back to the first free object. NOTE: The first entry in the table (object number 0) is always free.
+
+            // 2.2. XRef stream.
+            this.UpdateTrailer(xrefStream.Header, this.stream);
+            _ = this.AddXRefEntry(
+              /*
+                NOTE: This xref stream indirect object is purposely temporary (i.e. not registered into
+                the file's indirect objects collection).
+              */
+              new PdfIndirectObject(
+                this.file,
+                xrefStream,
+                xrefStreamEntry = new XRefEntry(indirectObjects.Count, 0, (int)this.stream.Length, XRefEntry.UsageEnum.InUse)
+                ),
+              xrefStream,
+              null,
+              null
+              );
+
+            // 3. Tail.
+            this.WriteTail(xrefStreamEntry.Offset);
+        }
     }
 }

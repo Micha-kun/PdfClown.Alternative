@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using System.Drawing;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+
+    using System.Collections.Generic;
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>Abstract vertexed shape annotation.</summary>
     */
@@ -38,34 +37,29 @@ namespace org.pdfclown.documents.interaction.annotations
     public abstract class VertexShape
       : Shape
     {
-        #region dynamic
-        #region constructors
-        protected VertexShape(
-          Page page,
-          RectangleF box,
-          string text,
-          PdfName subtype
-          ) : base(page, box, text, subtype)
-        { }
 
         protected VertexShape(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        protected VertexShape(
+Page page,
+RectangleF box,
+string text,
+PdfName subtype
+) : base(page, box, text, subtype)
+        { }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the coordinates of each vertex.</summary>
-        */
+<summary>Gets/Sets the coordinates of each vertex.</summary>
+*/
         public IList<PointF> Vertices
         {
             get
             {
-                PdfArray verticesObject = (PdfArray)BaseDataObject[PdfName.Vertices];
+                var verticesObject = (PdfArray)this.BaseDataObject[PdfName.Vertices];
                 IList<PointF> vertices = new List<PointF>();
-                float pageHeight = Page.Box.Height;
+                var pageHeight = this.Page.Box.Height;
                 for (
                   int index = 0,
                     length = verticesObject.Count;
@@ -85,19 +79,16 @@ namespace org.pdfclown.documents.interaction.annotations
             }
             set
             {
-                PdfArray verticesObject = new PdfArray();
-                float pageHeight = Page.Box.Height;
-                foreach (PointF vertex in value)
+                var verticesObject = new PdfArray();
+                var pageHeight = this.Page.Box.Height;
+                foreach (var vertex in value)
                 {
                     verticesObject.Add(PdfReal.Get(vertex.X)); // x.
                     verticesObject.Add(PdfReal.Get(pageHeight - vertex.Y)); // y.
                 }
 
-                BaseDataObject[PdfName.Vertices] = verticesObject;
+                this.BaseDataObject[PdfName.Vertices] = verticesObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

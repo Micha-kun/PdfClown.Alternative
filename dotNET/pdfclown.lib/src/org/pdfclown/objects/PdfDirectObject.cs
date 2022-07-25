@@ -24,14 +24,14 @@
 */
 
 
-using System;
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+
+    using org.pdfclown.tokens;
+
     /**
       <summary>Abstract PDF direct object.</summary>
     */
@@ -39,21 +39,20 @@ namespace org.pdfclown.objects
       : PdfDataObject,
         IComparable<PdfDirectObject>
     {
-        #region static
-        #region fields
         private static readonly byte[] NullChunk = Encoding.Pdf.Encode(Keyword.Null);
-        #endregion
 
-        #region interface
-        #region internal
+        protected PdfDirectObject(
+)
+        { }
+
         /**
-          <summary>Ensures that the given direct object is properly represented as string.</summary>
-          <remarks>This method is useful to force null pointers to be expressed as PDF null objects.</remarks>
-        */
+<summary>Ensures that the given direct object is properly represented as string.</summary>
+<remarks>This method is useful to force null pointers to be expressed as PDF null objects.</remarks>
+*/
         internal static string ToString(
           PdfDirectObject obj
           )
-        { return (obj == null ? Keyword.Null : obj.ToString()); }
+        { return (obj == null) ? Keyword.Null : obj.ToString(); }
 
         /**
           <summary>Ensures that the given direct object is properly serialized.</summary>
@@ -70,24 +69,9 @@ namespace org.pdfclown.objects
             else
             { obj.WriteTo(stream, context); }
         }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
-        protected PdfDirectObject(
-          )
-        { }
-        #endregion
-
-        #region public
-        #region IComparable
         public abstract int CompareTo(
-          PdfDirectObject obj
-          );
-        #endregion
-        #endregion
-        #endregion
+PdfDirectObject obj
+);
     }
 }

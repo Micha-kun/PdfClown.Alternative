@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.contents.layers;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.documents.contents.layers;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Private information meaningful to the program (application or plugin extension)
       creating the marked content [PDF:1.6:10.5.1].</summary>
@@ -38,49 +37,45 @@ namespace org.pdfclown.documents.contents
     public class PropertyList
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Wraps the specified base object into a property list object.</summary>
-          <param name="baseObject">Base object of a property list object.</param>
-          <returns>Property list object corresponding to the base object.</returns>
-        */
-        public static PropertyList Wrap(
-          PdfDirectObject baseObject
-          )
-        {
-            if (baseObject == null)
-                return null;
-
-            PdfName type = (PdfName)((PdfDictionary)baseObject.Resolve())[PdfName.Type];
-            if (Layer.TypeName.Equals(type))
-                return Layer.Wrap(baseObject);
-            else if (LayerMembership.TypeName.Equals(type))
-                return LayerMembership.Wrap(baseObject);
-            else
-                return new PropertyList(baseObject);
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public PropertyList(
-          Document context,
-          PdfDictionary baseDataObject
-          ) : base(context, baseDataObject)
-        { }
 
         protected PropertyList(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #endregion
-        #endregion
+        public PropertyList(
+Document context,
+PdfDictionary baseDataObject
+) : base(context, baseDataObject)
+        { }
+        /**
+<summary>Wraps the specified base object into a property list object.</summary>
+<param name="baseObject">Base object of a property list object.</param>
+<returns>Property list object corresponding to the base object.</returns>
+*/
+        public static PropertyList Wrap(
+          PdfDirectObject baseObject
+          )
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
+
+            var type = (PdfName)((PdfDictionary)baseObject.Resolve())[PdfName.Type];
+            if (Layer.TypeName.Equals(type))
+            {
+                return Layer.Wrap(baseObject);
+            }
+            else if (LayerMembership.TypeName.Equals(type))
+            {
+                return LayerMembership.Wrap(baseObject);
+            }
+            else
+            {
+                return new PropertyList(baseObject);
+            }
+        }
+
     }
 }

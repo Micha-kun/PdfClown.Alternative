@@ -23,17 +23,17 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-
-using System.Collections.ObjectModel;
-using org.pdfclown.documents.contents.layers;
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+
+    using System.Collections.ObjectModel;
+    using org.pdfclown.documents.contents.layers;
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>'Set the state of one or more optional content groups' action [PDF:1.6:8.5.3].</summary>
     */
@@ -41,7 +41,43 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class SetLayerState
       : Action
     {
-        #region types
+
+        internal SetLayerState(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public SetLayerState(
+          Document context
+          ) : this(context, (LayerState)null)
+        { }
+
+        /**
+          <summary>Creates a new action within the given document context.</summary>
+        */
+        public SetLayerState(
+          Document context,
+          params LayerState[] states
+          ) : base(context, PdfName.SetOCGState)
+        {
+            this.States = new LayerStates();
+            if ((states != null) && (states.Length > 0))
+            {
+                var layerStates = this.States;
+                foreach (var state in states)
+                { layerStates.Add(state); }
+            }
+        }
+
+        public LayerStates States
+        {
+            get => new LayerStates(this.BaseDataObject[PdfName.State]);
+            set => this.BaseDataObject[PdfName.State] = value.BaseObject;
+        }
+
         public enum StateModeEnum
         {
             On,
@@ -51,21 +87,109 @@ namespace org.pdfclown.documents.interaction.actions
 
         public class LayerState
         {
+
+            private LayerStates baseStates;
+
+            private readonly LayersImpl layers;
+            private StateModeEnum mode;
+
+            internal LayerState(
+              StateModeEnum mode,
+              LayersImpl layers,
+              LayerStates baseStates
+              )
+            {
+                this.mode = mode;
+                this.layers = layers;
+                this.layers.parentState = this;
+                this.Attach(baseStates);
+            }
+
+            public LayerState(
+              StateModeEnum mode,
+              params Layer[] layers
+              ) : this(mode, new LayersImpl(), null)
+            {
+                foreach (var layer in layers)
+                { this.layers.Add(layer); }
+            }
+
+            internal void Attach(
+              LayerStates baseStates
+              )
+            { this.baseStates = baseStates; }
+
+            internal void Detach(
+              )
+            { this.baseStates = null; }
+
+            public override bool Equals(
+              object obj
+              )
+            {
+                if (!(obj is LayerState))
+                {
+                    return false;
+                }
+
+                var state = (LayerState)obj;
+                if (!state.Mode.Equals(this.Mode)
+                  || (state.Layers.Count != this.Layers.Count))
+                {
+                    return false;
+                }
+
+                var layerIterator = this.Layers.GetEnumerator();
+                var stateLayerIterator = state.Layers.GetEnumerator();
+                while (layerIterator.MoveNext())
+                {
+                    _ = stateLayerIterator.MoveNext();
+                    if (!layerIterator.Current.Equals(stateLayerIterator.Current))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            public override int GetHashCode(
+              )
+            { return this.mode.GetHashCode() ^ this.layers.Count; }
+
+            public IList<Layer> Layers => this.layers;
+
+            public StateModeEnum Mode
+            {
+                get => this.mode;
+                set
+                {
+                    this.mode = value;
+
+                    if (this.baseStates != null)
+                    {
+                        var baseIndex = this.baseStates.GetBaseIndex(this);
+                        this.baseStates.BaseDataObject[baseIndex] = value.GetName();
+                    }
+                }
+            }
+
             internal class LayersImpl
               : Collection<Layer>
             {
                 internal LayerState parentState;
 
+                private LayerStates BaseStates => (this.parentState != null) ? this.parentState.baseStates : null;
+
                 protected override void ClearItems(
                   )
                 {
                     // Low-level definition.
-                    LayerStates baseStates = BaseStates;
+                    var baseStates = this.BaseStates;
                     if (baseStates != null)
                     {
-                        int itemIndex = baseStates.GetBaseIndex(parentState)
+                        var itemIndex = baseStates.GetBaseIndex(this.parentState)
                           + 1; // Name object offset.
-                        for (int count = Count; count > 0; count--)
+                        for (var count = this.Count; count > 0; count--)
                         { baseStates.BaseDataObject.RemoveAt(itemIndex); }
                     }
                     // High-level definition.
@@ -80,11 +204,11 @@ namespace org.pdfclown.documents.interaction.actions
                     // High-level definition.
                     base.InsertItem(index, item);
                     // Low-level definition.
-                    LayerStates baseStates = BaseStates;
+                    var baseStates = this.BaseStates;
                     if (baseStates != null)
                     {
-                        int baseIndex = baseStates.GetBaseIndex(parentState);
-                        int itemIndex = baseIndex
+                        var baseIndex = baseStates.GetBaseIndex(this.parentState);
+                        var itemIndex = baseIndex
                           + 1 // Name object offset.
                           + index; // Layer object offset.
                         baseStates.BaseDataObject[itemIndex] = item.BaseObject;
@@ -98,11 +222,11 @@ namespace org.pdfclown.documents.interaction.actions
                     // High-level definition.
                     base.RemoveItem(index);
                     // Low-level definition.
-                    LayerStates baseStates = BaseStates;
+                    var baseStates = this.BaseStates;
                     if (baseStates != null)
                     {
-                        int baseIndex = baseStates.GetBaseIndex(parentState);
-                        int itemIndex = baseIndex
+                        var baseIndex = baseStates.GetBaseIndex(this.parentState);
+                        var itemIndex = baseIndex
                           + 1 // Name object offset.
                           + index; // Layer object offset.
                         baseStates.BaseDataObject.RemoveAt(itemIndex);
@@ -114,100 +238,10 @@ namespace org.pdfclown.documents.interaction.actions
                   Layer item
                   )
                 {
-                    RemoveItem(index);
-                    InsertItem(index, item);
-                }
-
-                private LayerStates BaseStates
-                {
-                    get
-                    { return parentState != null ? parentState.baseStates : null; }
+                    this.RemoveItem(index);
+                    this.InsertItem(index, item);
                 }
             }
-
-            private readonly LayersImpl layers;
-            private StateModeEnum mode;
-
-            private LayerStates baseStates;
-
-            public LayerState(
-              StateModeEnum mode,
-              params Layer[] layers
-              ) : this(mode, new LayersImpl(), null)
-            {
-                foreach (var layer in layers)
-                { this.layers.Add(layer); }
-            }
-
-            internal LayerState(
-              StateModeEnum mode,
-              LayersImpl layers,
-              LayerStates baseStates
-              )
-            {
-                this.mode = mode;
-                this.layers = layers;
-                this.layers.parentState = this;
-                Attach(baseStates);
-            }
-
-            public override bool Equals(
-              object obj
-              )
-            {
-                if (!(obj is LayerState))
-                    return false;
-
-                LayerState state = (LayerState)obj;
-                if (!state.Mode.Equals(Mode)
-                  || state.Layers.Count != Layers.Count)
-                    return false;
-
-                IEnumerator<Layer> layerIterator = Layers.GetEnumerator();
-                IEnumerator<Layer> stateLayerIterator = state.Layers.GetEnumerator();
-                while (layerIterator.MoveNext())
-                {
-                    stateLayerIterator.MoveNext();
-                    if (!layerIterator.Current.Equals(stateLayerIterator.Current))
-                        return false;
-                }
-                return true;
-            }
-
-            public IList<Layer> Layers
-            {
-                get
-                { return layers; }
-            }
-
-            public StateModeEnum Mode
-            {
-                get
-                { return mode; }
-                set
-                {
-                    mode = value;
-
-                    if (baseStates != null)
-                    {
-                        int baseIndex = baseStates.GetBaseIndex(this);
-                        baseStates.BaseDataObject[baseIndex] = value.GetName();
-                    }
-                }
-            }
-
-            public override int GetHashCode(
-              )
-            { return mode.GetHashCode() ^ layers.Count; }
-
-            internal void Attach(
-              LayerStates baseStates
-              )
-            { this.baseStates = baseStates; }
-
-            internal void Detach(
-              )
-            { baseStates = null; }
         }
 
         public class LayerStates
@@ -216,162 +250,59 @@ namespace org.pdfclown.documents.interaction.actions
         {
             private IList<LayerState> items;
 
-            public LayerStates(
-              ) : base(new PdfArray())
-            { }
-
             internal LayerStates(
               PdfDirectObject baseObject
               ) : base(baseObject)
-            { Initialize(); }
+            { this.Initialize(); }
 
-            #region IList<LayerState>
-            public int IndexOf(
-              LayerState item
-              )
-            { return items.IndexOf(item); }
-
-            public void Insert(
-              int index,
-              LayerState item
-              )
-            {
-                int baseIndex = GetBaseIndex(index);
-                if (baseIndex == -1)
-                { Add(item); }
-                else
-                {
-                    PdfArray baseDataObject = BaseDataObject;
-                    // Low-level definition.
-                    baseDataObject.Insert(baseIndex++, item.Mode.GetName());
-                    foreach (Layer layer in item.Layers)
-                    { baseDataObject.Insert(baseIndex++, layer.BaseObject); }
-                    // High-level definition.
-                    items.Insert(index, item);
-                    item.Attach(this);
-                }
-            }
-
-            public void RemoveAt(
-              int index
-              )
-            {
-                LayerState layerState;
-                // Low-level definition.
-                {
-                    int baseIndex = GetBaseIndex(index);
-                    if (baseIndex == -1)
-                        throw new IndexOutOfRangeException();
-
-                    PdfArray baseDataObject = BaseDataObject;
-                    bool done = false;
-                    for (int baseCount = baseDataObject.Count; baseIndex < baseCount;)
-                    {
-                        if (baseDataObject[baseIndex] is PdfName)
-                        {
-                            if (done)
-                                break;
-
-                            done = true;
-                        }
-                        baseDataObject.RemoveAt(baseIndex);
-                    }
-                }
-                // High-level definition.
-                {
-                    layerState = items[index];
-                    items.RemoveAt(index);
-                    layerState.Detach();
-                }
-            }
+            public LayerStates(
+              ) : base(new PdfArray())
+            { }
 
             public LayerState this[
               int index
               ]
             {
-                get
-                { return items[index]; }
+                get => this.items[index];
                 set
                 {
-                    RemoveAt(index);
-                    Insert(index, value);
+                    this.RemoveAt(index);
+                    this.Insert(index, value);
                 }
             }
 
-            #region ICollection<LayerState>
-            public void Add(
-              LayerState item
-              )
-            {
-                PdfArray baseDataObject = BaseDataObject;
-                // Low-level definition.
-                baseDataObject.Add(item.Mode.GetName());
-                foreach (Layer layer in item.Layers)
-                { baseDataObject.Add(layer.BaseObject); }
-                // High-level definition.
-                items.Add(item);
-                item.Attach(this);
-            }
-
-            public void Clear(
-              )
-            {
-                // Low-level definition.
-                BaseDataObject.Clear();
-                // High-level definition.
-                foreach (LayerState item in items)
-                { item.Detach(); }
-                items.Clear();
-            }
-
-            public bool Contains(
-              LayerState item
-              )
-            { return items.Contains(item); }
-
-            public void CopyTo(
-              LayerState[] items,
-              int index
-              )
-            { throw new NotImplementedException(); }
-
-            public int Count
-            {
-                get
-                { return items.Count; }
-            }
-
-            public bool IsReadOnly
-            {
-                get
-                { return false; }
-            }
-
-            public bool Remove(
-              LayerState item
-              )
-            {
-                int index = IndexOf(item);
-                if (index == -1)
-                    return false;
-
-                RemoveAt(index);
-                return true;
-            }
-
-            #region IEnumerable<LayerState>
-            public IEnumerator<LayerState> GetEnumerator(
-              )
-            { return items.GetEnumerator(); }
-
-            #region IEnumerable
             IEnumerator IEnumerable.GetEnumerator(
-              )
+  )
             { return this.GetEnumerator(); }
-            #endregion
-            #endregion
-            #endregion
-            #endregion
+
+            private void Initialize(
+              )
+            {
+                this.items = new List<LayerState>();
+                var baseDataObject = this.BaseDataObject;
+                StateModeEnum? mode = null;
+                LayerState.LayersImpl layers = null;
+                for (
+                  int baseIndex = 0,
+                    baseCount = baseDataObject.Count;
+                  baseIndex < baseCount;
+                  baseIndex++
+                  )
+                {
+                    var baseObject = baseDataObject[baseIndex];
+                    if (baseObject is PdfName)
+                    {
+                        if (mode.HasValue)
+                        { this.items.Add(new LayerState(mode.Value, layers, this)); }
+                        mode = StateModeEnumExtension.Get((PdfName)baseObject);
+                        layers = new LayerState.LayersImpl();
+                    }
+                    else
+                    { layers.Add(Layer.Wrap(baseObject)); }
+                }
+                if (mode.HasValue)
+                { this.items.Add(new LayerState(mode.Value, layers, this)); }
+            }
 
             /**
               <summary>Gets the position of the initial base item corresponding to the specified layer
@@ -383,25 +314,23 @@ namespace org.pdfclown.documents.interaction.actions
               int index
               )
             {
-                int baseIndex = -1;
+                var baseIndex = -1;
+                var baseDataObject = this.BaseDataObject;
+                var layerStateIndex = -1;
+                for (
+                  int baseItemIndex = 0,
+                    baseItemCount = baseDataObject.Count;
+                  baseItemIndex < baseItemCount;
+                  baseItemIndex++
+                  )
                 {
-                    PdfArray baseDataObject = BaseDataObject;
-                    int layerStateIndex = -1;
-                    for (
-                      int baseItemIndex = 0,
-                        baseItemCount = baseDataObject.Count;
-                      baseItemIndex < baseItemCount;
-                      baseItemIndex++
-                      )
+                    if (baseDataObject[baseItemIndex] is PdfName)
                     {
-                        if (baseDataObject[baseItemIndex] is PdfName)
+                        layerStateIndex++;
+                        if (layerStateIndex == index)
                         {
-                            layerStateIndex++;
-                            if (layerStateIndex == index)
-                            {
-                                baseIndex = baseItemIndex;
-                                break;
-                            }
+                            baseIndex = baseItemIndex;
+                            break;
                         }
                     }
                 }
@@ -418,29 +347,31 @@ namespace org.pdfclown.documents.interaction.actions
               LayerState item
               )
             {
-                int baseIndex = -1;
+                var baseIndex = -1;
+                var baseDataObject = this.BaseDataObject;
+                for (
+                  int baseItemIndex = 0,
+                    baseItemCount = baseDataObject.Count;
+                  baseItemIndex < baseItemCount;
+                  baseItemIndex++
+                  )
                 {
-                    PdfArray baseDataObject = BaseDataObject;
-                    for (
-                      int baseItemIndex = 0,
-                        baseItemCount = baseDataObject.Count;
-                      baseItemIndex < baseItemCount;
-                      baseItemIndex++
-                      )
+                    var baseItem = baseDataObject[baseItemIndex];
+                    if ((baseItem is PdfName)
+                      && baseItem.Equals(item.Mode.GetName()))
                     {
-                        PdfDirectObject baseItem = baseDataObject[baseItemIndex];
-                        if (baseItem is PdfName
-                          && baseItem.Equals(item.Mode.GetName()))
+                        foreach (var layer in item.Layers)
                         {
-                            foreach (Layer layer in item.Layers)
+                            if (++baseItemIndex >= baseItemCount)
                             {
-                                if (++baseItemIndex >= baseItemCount)
-                                    break;
+                                break;
+                            }
 
-                                baseItem = baseDataObject[baseItemIndex];
-                                if (baseItem is PdfName
-                                  || !baseItem.Equals(layer.BaseObject))
-                                    break;
+                            baseItem = baseDataObject[baseItemIndex];
+                            if ((baseItem is PdfName)
+                              || !baseItem.Equals(layer.BaseObject))
+                            {
+                                break;
                             }
                         }
                     }
@@ -448,82 +379,125 @@ namespace org.pdfclown.documents.interaction.actions
                 return baseIndex;
             }
 
-            private void Initialize(
+            public void Add(
+  LayerState item
+  )
+            {
+                var baseDataObject = this.BaseDataObject;
+                // Low-level definition.
+                baseDataObject.Add(item.Mode.GetName());
+                foreach (var layer in item.Layers)
+                { baseDataObject.Add(layer.BaseObject); }
+                // High-level definition.
+                this.items.Add(item);
+                item.Attach(this);
+            }
+
+            public void Clear(
               )
             {
-                items = new List<LayerState>();
-                PdfArray baseDataObject = BaseDataObject;
-                StateModeEnum? mode = null;
-                LayerState.LayersImpl layers = null;
-                for (
-                  int baseIndex = 0,
-                    baseCount = baseDataObject.Count;
-                  baseIndex < baseCount;
-                  baseIndex++
-                  )
-                {
-                    PdfDirectObject baseObject = baseDataObject[baseIndex];
-                    if (baseObject is PdfName)
-                    {
-                        if (mode.HasValue)
-                        { items.Add(new LayerState(mode.Value, layers, this)); }
-                        mode = StateModeEnumExtension.Get((PdfName)baseObject);
-                        layers = new LayerState.LayersImpl();
-                    }
-                    else
-                    { layers.Add(Layer.Wrap(baseObject)); }
-                }
-                if (mode.HasValue)
-                { items.Add(new LayerState(mode.Value, layers, this)); }
+                // Low-level definition.
+                this.BaseDataObject.Clear();
+                // High-level definition.
+                foreach (var item in this.items)
+                { item.Detach(); }
+                this.items.Clear();
             }
-        }
-        #endregion
 
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public SetLayerState(
-          Document context
-          ) : this(context, (LayerState)null)
-        { }
+            public bool Contains(
+              LayerState item
+              )
+            { return this.items.Contains(item); }
 
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public SetLayerState(
-          Document context,
-          params LayerState[] states
-          ) : base(context, PdfName.SetOCGState)
-        {
-            States = new LayerStates();
-            if (states != null && states.Length > 0)
+            public void CopyTo(
+              LayerState[] items,
+              int index
+              )
+            { throw new NotImplementedException(); }
+
+            public IEnumerator<LayerState> GetEnumerator(
+  )
+            { return this.items.GetEnumerator(); }
+
+            public int IndexOf(
+  LayerState item
+  )
+            { return this.items.IndexOf(item); }
+
+            public void Insert(
+              int index,
+              LayerState item
+              )
             {
-                var layerStates = States;
-                foreach (var state in states)
-                { layerStates.Add(state); }
+                var baseIndex = this.GetBaseIndex(index);
+                if (baseIndex == -1)
+                { this.Add(item); }
+                else
+                {
+                    var baseDataObject = this.BaseDataObject;
+                    // Low-level definition.
+                    baseDataObject.Insert(baseIndex++, item.Mode.GetName());
+                    foreach (var layer in item.Layers)
+                    { baseDataObject.Insert(baseIndex++, layer.BaseObject); }
+                    // High-level definition.
+                    this.items.Insert(index, item);
+                    item.Attach(this);
+                }
             }
-        }
 
-        internal SetLayerState(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
+            public bool Remove(
+              LayerState item
+              )
+            {
+                var index = this.IndexOf(item);
+                if (index == -1)
+                {
+                    return false;
+                }
 
-        #region interface
-        #region public
-        public LayerStates States
-        {
-            get
-            { return new LayerStates(BaseDataObject[PdfName.State]); }
-            set
-            { BaseDataObject[PdfName.State] = value.BaseObject; }
+                this.RemoveAt(index);
+                return true;
+            }
+
+            public void RemoveAt(
+              int index
+              )
+            {
+                LayerState layerState;
+                // Low-level definition.
+
+                var baseIndex = this.GetBaseIndex(index);
+                if (baseIndex == -1)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+
+                var baseDataObject = this.BaseDataObject;
+                var done = false;
+                for (var baseCount = baseDataObject.Count; baseIndex < baseCount;)
+                {
+                    if (baseDataObject[baseIndex] is PdfName)
+                    {
+                        if (done)
+                        {
+                            break;
+                        }
+
+                        done = true;
+                    }
+                    baseDataObject.RemoveAt(baseIndex);
+                }
+                // High-level definition.
+
+                layerState = this.items[index];
+                this.items.RemoveAt(index);
+                layerState.Detach();
+            }
+
+            public int Count => this.items.Count;
+
+            public bool IsReadOnly => false;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 
     internal static class StateModeEnumExtension
@@ -543,11 +517,15 @@ namespace org.pdfclown.documents.interaction.actions
           )
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
 
             SetLayerState.StateModeEnum? stateMode = codes.GetKey(name);
             if (!stateMode.HasValue)
-                throw new NotSupportedException("State mode unknown: " + name);
+            {
+                throw new NotSupportedException($"State mode unknown: {name}");
+            }
 
             return stateMode.Value;
         }

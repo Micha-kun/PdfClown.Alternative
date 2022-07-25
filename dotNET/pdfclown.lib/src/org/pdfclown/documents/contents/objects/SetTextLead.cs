@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the text leading' operation [PDF:1.6:5.2].</summary>
     */
@@ -36,31 +36,22 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class SetTextLead
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "TL";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public SetTextLead(
-          double value
-          ) : base(OperatorKeyword, PdfReal.Get(value))
+double value
+) : base(OperatorKeyword, PdfReal.Get(value))
         { }
 
         public SetTextLead(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
-        { state.Lead = Value; }
+ContentScanner.GraphicsState state
+)
+        { state.Lead = this.Value; }
 
         /**
           <summary>Gets/Sets the text leading, which is a number expressed in unscaled text space units.
@@ -68,13 +59,8 @@ namespace org.pdfclown.documents.contents.objects
         */
         public double Value
         {
-            get
-            { return ((IPdfNumber)operands[0]).RawValue; }
-            set
-            { operands[0] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.operands[0]).RawValue;
+            set => this.operands[0] = PdfReal.Get(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

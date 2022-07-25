@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using System;
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Signature field [PDF:1.6:8.6.3].</summary>
     */
@@ -37,12 +37,15 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class SignatureField
       : Field
     {
+
+        internal SignatureField(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         //TODO
-        #region dynamic
-        #region constructors
         /**
-          <summary>Creates a new signature field within the given document context.</summary>
-        */
+<summary>Creates a new signature field within the given document context.</summary>
+*/
         //TODO:dictionary mandatory items (if any)!!!
         public SignatureField(
           string name,
@@ -54,32 +57,22 @@ namespace org.pdfclown.documents.interaction.forms
             )
         { }
 
-        internal SignatureField(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <returns>A <see cref="PdfDictionary"/>.</returns>
-        */
+<returns>A <see cref="PdfDictionary"/>.</returns>
+*/
         public override object Value
         {
-            get
-            { return BaseDataObject.Resolve(PdfName.V); }
+            get => this.BaseDataObject.Resolve(PdfName.V);
             set
             {
-                if (!(value == null
-                    || value is PdfDictionary))
+                if (!((value == null)
+                    || (value is PdfDictionary)))
+                {
                     throw new ArgumentException("Value MUST be a PdfDictionary");
+                }
 
-                BaseDataObject[PdfName.V] = (PdfDictionary)value;
+                this.BaseDataObject[PdfName.V] = (PdfDictionary)value;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

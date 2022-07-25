@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.objects;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Drawing;
+
+    using org.pdfclown.objects;
+    using org.pdfclown.util;
+
     /**
       <summary>Free text annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It displays text directly on the page. Unlike an ordinary text annotation, a free text
@@ -41,14 +41,133 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class StaticNote
       : Markup
     {
-        #region types
+
+        private static readonly JustificationEnum DefaultJustification = JustificationEnum.Left;
+        private static readonly LineEndStyleEnum DefaultLineEndStyle = LineEndStyleEnum.None;
+
+        internal StaticNote(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        public StaticNote(
+Page page,
+RectangleF box,
+string text
+) : base(page, PdfName.FreeText, box, text)
+        { }
+
+        private PdfArray EnsureLineEndStylesObject(
+  )
+        {
+            var endStylesObject = (PdfArray)this.BaseDataObject[PdfName.LE];
+            if (endStylesObject == null)
+            {
+                this.BaseDataObject[PdfName.LE] = endStylesObject = new PdfArray(
+                  new PdfDirectObject[]
+                  {
+            DefaultLineEndStyle.GetName(),
+            DefaultLineEndStyle.GetName()
+                  }
+                  );
+            }
+            return endStylesObject;
+        }
+
+        private TypeEnum? Type
+        {
+            get => StaticNoteTypeEnumExtension.Get(this.TypeBase);
+            set => this.TypeBase = value.HasValue ? value.Value.GetName() : null;
+        }
+
         /**
-          <summary>Callout line [PDF:1.6:8.4.5].</summary>
+<summary>Gets/Sets the border effect.</summary>
+*/
+        [PDF(VersionEnum.PDF16)]
+        public BorderEffect BorderEffect
+        {
+            get => new BorderEffect(this.BaseDataObject.Get<PdfDictionary>(PdfName.BE));
+            set => this.BaseDataObject[PdfName.BE] = PdfObjectWrapper.GetBaseObject(value);
+        }
+
+        /**
+          <summary>Gets/Sets the justification to be used in displaying the annotation's text.</summary>
         */
+        public JustificationEnum Justification
+        {
+            get => JustificationEnumExtension.Get((PdfInteger)this.BaseDataObject[PdfName.Q]);
+            set => this.BaseDataObject[PdfName.Q] = (value != DefaultJustification) ? value.GetCode() : null;
+        }
+
+        /**
+          <summary>Gets/Sets the callout line attached to the free text annotation.</summary>
+        */
+        public CalloutLine Line
+        {
+            get
+            {
+                var calloutCalloutLine = (PdfArray)this.BaseDataObject[PdfName.CL];
+                return (calloutCalloutLine != null) ? new CalloutLine(calloutCalloutLine) : null;
+            }
+            set
+            {
+                this.BaseDataObject[PdfName.CL] = PdfObjectWrapper.GetBaseObject(value);
+                if (value != null)
+                {
+                    /*
+                      NOTE: To ensure the callout would be properly rendered, we have to declare the
+                      corresponding intent.
+                    */
+                    this.Type = TypeEnum.Callout;
+                }
+            }
+        }
+
+        /**
+          <summary>Gets/Sets the style of the ending line ending.</summary>
+        */
+        public LineEndStyleEnum LineEndStyle
+        {
+            get
+            {
+                var endstylesObject = (PdfArray)this.BaseDataObject[PdfName.LE];
+                return (endstylesObject != null) ? LineEndStyleEnumExtension.Get((PdfName)endstylesObject[1]) : DefaultLineEndStyle;
+            }
+            set => this.EnsureLineEndStylesObject()[1] = value.GetName();
+        }
+
+        /**
+          <summary>Gets/Sets the style of the starting line ending.</summary>
+        */
+        public LineEndStyleEnum LineStartStyle
+        {
+            get
+            {
+                var endstylesObject = (PdfArray)this.BaseDataObject[PdfName.LE];
+                return (endstylesObject != null) ? LineEndStyleEnumExtension.Get((PdfName)endstylesObject[0]) : DefaultLineEndStyle;
+            }
+            set => this.EnsureLineEndStylesObject()[0] = value.GetName();
+        }
+
+        /**
+          <summary>Popups not supported.</summary>
+        */
+        public override Popup Popup
+        {
+            set => throw new NotSupportedException();
+        }
+        /**
+  <summary>Callout line [PDF:1.6:8.4.5].</summary>
+*/
         public class CalloutLine
           : PdfObjectWrapper<PdfArray>
         {
-            private Page page;
+            private readonly Page page;
+
+            internal CalloutLine(
+              PdfDirectObject baseObject
+              ) : base(baseObject)
+            { }
 
             public CalloutLine(
               Page page,
@@ -65,41 +184,38 @@ namespace org.pdfclown.documents.interaction.annotations
               ) : base(new PdfArray())
             {
                 this.page = page;
-                PdfArray baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
+                double pageHeight = page.Box.Height;
+                baseDataObject.Add(PdfReal.Get(start.X));
+                baseDataObject.Add(PdfReal.Get(pageHeight - start.Y));
+                if (knee.HasValue)
                 {
-                    double pageHeight = page.Box.Height;
-                    baseDataObject.Add(PdfReal.Get(start.X));
-                    baseDataObject.Add(PdfReal.Get(pageHeight - start.Y));
-                    if (knee.HasValue)
-                    {
-                        baseDataObject.Add(PdfReal.Get(knee.Value.X));
-                        baseDataObject.Add(PdfReal.Get(pageHeight - knee.Value.Y));
-                    }
-                    baseDataObject.Add(PdfReal.Get(end.X));
-                    baseDataObject.Add(PdfReal.Get(pageHeight - end.Y));
+                    baseDataObject.Add(PdfReal.Get(knee.Value.X));
+                    baseDataObject.Add(PdfReal.Get(pageHeight - knee.Value.Y));
                 }
+                baseDataObject.Add(PdfReal.Get(end.X));
+                baseDataObject.Add(PdfReal.Get(pageHeight - end.Y));
             }
-
-            internal CalloutLine(
-              PdfDirectObject baseObject
-              ) : base(baseObject)
-            { }
 
             public PointF End
             {
                 get
                 {
-                    PdfArray coordinates = BaseDataObject;
+                    var coordinates = this.BaseDataObject;
                     if (coordinates.Count < 6)
+                    {
                         return new PointF(
                           (float)((IPdfNumber)coordinates[2]).RawValue,
-                          (float)(page.Box.Height - ((IPdfNumber)coordinates[3]).RawValue)
+                          (float)(this.page.Box.Height - ((IPdfNumber)coordinates[3]).RawValue)
                           );
+                    }
                     else
+                    {
                         return new PointF(
                           (float)((IPdfNumber)coordinates[4]).RawValue,
-                          (float)(page.Box.Height - ((IPdfNumber)coordinates[5]).RawValue)
+                          (float)(this.page.Box.Height - ((IPdfNumber)coordinates[5]).RawValue)
                           );
+                    }
                 }
             }
 
@@ -107,13 +223,15 @@ namespace org.pdfclown.documents.interaction.annotations
             {
                 get
                 {
-                    PdfArray coordinates = BaseDataObject;
+                    var coordinates = this.BaseDataObject;
                     if (coordinates.Count < 6)
+                    {
                         return null;
+                    }
 
                     return new PointF(
                       (float)((IPdfNumber)coordinates[2]).RawValue,
-                      (float)(page.Box.Height - ((IPdfNumber)coordinates[3]).RawValue)
+                      (float)(this.page.Box.Height - ((IPdfNumber)coordinates[3]).RawValue)
                       );
                 }
             }
@@ -122,11 +240,11 @@ namespace org.pdfclown.documents.interaction.annotations
             {
                 get
                 {
-                    PdfArray coordinates = BaseDataObject;
+                    var coordinates = this.BaseDataObject;
 
                     return new PointF(
                       (float)((IPdfNumber)coordinates[0]).RawValue,
-                      (float)(page.Box.Height - ((IPdfNumber)coordinates[1]).RawValue)
+                      (float)(this.page.Box.Height - ((IPdfNumber)coordinates[1]).RawValue)
                       );
                 }
             }
@@ -146,145 +264,6 @@ namespace org.pdfclown.documents.interaction.annotations
             */
             TypeWriter
         }
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly JustificationEnum DefaultJustification = JustificationEnum.Left;
-        private static readonly LineEndStyleEnum DefaultLineEndStyle = LineEndStyleEnum.None;
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public StaticNote(
-          Page page,
-          RectangleF box,
-          string text
-          ) : base(page, PdfName.FreeText, box, text)
-        { }
-
-        internal StaticNote(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the border effect.</summary>
-        */
-        [PDF(VersionEnum.PDF16)]
-        public BorderEffect BorderEffect
-        {
-            get
-            { return new BorderEffect(BaseDataObject.Get<PdfDictionary>(PdfName.BE)); }
-            set
-            { BaseDataObject[PdfName.BE] = PdfObjectWrapper.GetBaseObject(value); }
-        }
-
-        /**
-          <summary>Gets/Sets the justification to be used in displaying the annotation's text.</summary>
-        */
-        public JustificationEnum Justification
-        {
-            get
-            { return JustificationEnumExtension.Get((PdfInteger)BaseDataObject[PdfName.Q]); }
-            set
-            { BaseDataObject[PdfName.Q] = value != DefaultJustification ? value.GetCode() : null; }
-        }
-
-        /**
-          <summary>Gets/Sets the callout line attached to the free text annotation.</summary>
-        */
-        public CalloutLine Line
-        {
-            get
-            {
-                PdfArray calloutCalloutLine = (PdfArray)BaseDataObject[PdfName.CL];
-                return calloutCalloutLine != null ? new CalloutLine(calloutCalloutLine) : null;
-            }
-            set
-            {
-                BaseDataObject[PdfName.CL] = PdfObjectWrapper.GetBaseObject(value);
-                if (value != null)
-                {
-                    /*
-                      NOTE: To ensure the callout would be properly rendered, we have to declare the
-                      corresponding intent.
-                    */
-                    Type = TypeEnum.Callout;
-                }
-            }
-        }
-
-        /**
-          <summary>Gets/Sets the style of the ending line ending.</summary>
-        */
-        public LineEndStyleEnum LineEndStyle
-        {
-            get
-            {
-                PdfArray endstylesObject = (PdfArray)BaseDataObject[PdfName.LE];
-                return endstylesObject != null ? LineEndStyleEnumExtension.Get((PdfName)endstylesObject[1]) : DefaultLineEndStyle;
-            }
-            set
-            { EnsureLineEndStylesObject()[1] = value.GetName(); }
-        }
-
-        /**
-          <summary>Gets/Sets the style of the starting line ending.</summary>
-        */
-        public LineEndStyleEnum LineStartStyle
-        {
-            get
-            {
-                PdfArray endstylesObject = (PdfArray)BaseDataObject[PdfName.LE];
-                return endstylesObject != null ? LineEndStyleEnumExtension.Get((PdfName)endstylesObject[0]) : DefaultLineEndStyle;
-            }
-            set
-            { EnsureLineEndStylesObject()[0] = value.GetName(); }
-        }
-
-        /**
-          <summary>Popups not supported.</summary>
-        */
-        public override Popup Popup
-        {
-            set
-            { throw new NotSupportedException(); }
-        }
-        #endregion
-
-        #region private
-        private PdfArray EnsureLineEndStylesObject(
-          )
-        {
-            PdfArray endStylesObject = (PdfArray)BaseDataObject[PdfName.LE];
-            if (endStylesObject == null)
-            {
-                BaseDataObject[PdfName.LE] = endStylesObject = new PdfArray(
-                  new PdfDirectObject[]
-                  {
-            DefaultLineEndStyle.GetName(),
-            DefaultLineEndStyle.GetName()
-                  }
-                  );
-            }
-            return endStylesObject;
-        }
-
-        private TypeEnum? Type
-        {
-            get
-            { return StaticNoteTypeEnumExtension.Get(TypeBase); }
-            set
-            { TypeBase = value.HasValue ? value.Value.GetName() : null; }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 
     internal static class StaticNoteTypeEnumExtension
@@ -303,11 +282,15 @@ namespace org.pdfclown.documents.interaction.annotations
           )
         {
             if (name == null)
+            {
                 return null;
+            }
 
             StaticNote.TypeEnum? type = codes.GetKey(name);
             if (!type.HasValue)
-                throw new NotSupportedException("Type unknown: " + name);
+            {
+                throw new NotSupportedException($"Type unknown: {name}");
+            }
 
             return type.Value;
         }

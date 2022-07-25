@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Button field [PDF:1.6:8.6.3].</summary>
     */
@@ -37,11 +36,14 @@ namespace org.pdfclown.documents.interaction.forms
     public abstract class ButtonField
       : Field
     {
-        #region dynamic
-        #region constructors
+
+        protected ButtonField(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new button field within the given document context.</summary>
-        */
+<summary>Creates a new button field within the given document context.</summary>
+*/
         protected ButtonField(
           string name,
           Widget widget
@@ -52,21 +54,6 @@ namespace org.pdfclown.documents.interaction.forms
             )
         { }
 
-        protected ButtonField(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override object Value
-        {
-            get
-            { return PdfSimpleObject<object>.GetValue(GetInheritableAttribute(PdfName.V)); }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public override object Value => PdfSimpleObject<object>.GetValue(this.GetInheritableAttribute(PdfName.V));
     }
 }

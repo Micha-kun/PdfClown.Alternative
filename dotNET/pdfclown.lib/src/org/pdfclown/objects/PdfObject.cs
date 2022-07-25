@@ -23,262 +23,40 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.bytes;
-
-using org.pdfclown.files;
-
 namespace org.pdfclown.objects
 {
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.files;
+
     /**
       <summary>Abstract PDF object.</summary>
     */
     public abstract class PdfObject
       : IVisitable
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Gets the clone of the specified object, registered inside the specified file context.</summary>
-          <param name="object">Object to clone into the specified file context.</param>
-          <param name="context">File context of the cloning.</param>
-        */
-        public static PdfObject Clone(
-          PdfObject @object,
-          File context
-          )
-        { return @object == null ? null : @object.Clone(context); }
 
-        /**
-          <summary>Ensures an indirect reference to be resolved into its corresponding data object.</summary>
-          <param name="object">Object to resolve.</param>
-        */
-        public static PdfDataObject Resolve(
-          PdfObject @object
-          )
-        { return @object == null ? null : @object.Resolve(); }
-
-        /**
-          <summary>Ensures a data object to be unresolved into its corresponding indirect reference, if
-          available.</summary>
-          <param name="object">Object to unresolve.</param>
-          <returns><see cref="PdfReference"/>, if available; <code>object</code>, otherwise.</returns>
-        */
-        public static PdfDirectObject Unresolve(
-          PdfDataObject @object
-          )
-        { return @object == null ? null : @object.Unresolve(); }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         protected PdfObject(
-          )
+)
         { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Creates a shallow copy of this object.</summary>
-        */
-        public object Clone(
-          )
-        {
-            PdfObject clone = (PdfObject)MemberwiseClone();
-            clone.Parent = null;
-            return clone;
-        }
 
         /**
-          <summary>Creates a deep copy of this object using the default cloner of the specified file
-          context.</summary>
-        */
-        public virtual PdfObject Clone(
-          File context
-          )
-        { return Clone(context.Cloner); }
-
-        /**
-          <summary>Creates a deep copy of this object using the specified cloner.</summary>
-        */
-        public virtual PdfObject Clone(
-          Cloner cloner
-          )
-        { return Accept(cloner, null); }
-
-        /**
-          <summary>Gets the indirect object containing this object.</summary>
-          <seealso cref="DataContainer"/>
-          <seealso cref="IndirectObject"/>
-        */
-        public virtual PdfIndirectObject Container
-        {
-            get
-            {
-                PdfObject parent = Parent;
-                return parent != null ? parent.Container : null;
-            }
-        }
-
-        /**
-          <summary>Gets the indirect object containing the data associated to this object.</summary>
-          <seealso cref="Container"/>
-          <seealso cref="IndirectObject"/>
-        */
-        public PdfIndirectObject DataContainer
-        {
-            get
-            {
-                PdfIndirectObject indirectObject = IndirectObject;
-                return indirectObject != null ? indirectObject : Container;
-            }
-        }
-
-        /**
-          <summary>Removes the object from its file context.</summary>
-          <remarks>Only indirect objects can be removed through this method; direct objects have to be
-          explicitly removed from their parent object. The object is no more usable after this method
-          returns.</remarks>
-          <returns>Whether the object was removed from its file context.</returns>
-        */
-        public virtual bool Delete(
-          )
-        {
-            PdfIndirectObject indirectObject = IndirectObject;
-            return indirectObject != null ? indirectObject.Delete() : false;
-        }
-
-        /**
-          <summary>Gets the file containing this object.</summary>
-        */
-        public virtual File File
-        {
-            get
-            {
-                PdfIndirectObject dataContainer = DataContainer;
-                return dataContainer != null ? dataContainer.File : null;
-            }
-        }
-
-        /**
-          <summary>Gets the indirect object corresponding to this object.</summary>
-          <seealso cref="Container"/>
-          <seealso cref="DataContainer"/>
-        */
-        public virtual PdfIndirectObject IndirectObject
-        {
-            get
-            { return Parent as PdfIndirectObject; }
-        }
-
-        /**
-          <summary>Gets/Sets the parent of this object.</summary>
-          <seealso cref="Container"/>
-        */
-        public abstract PdfObject Parent
-        {
-            get;
-            internal set;
-        }
-
-        /**
-          <summary>Gets the indirect reference of this object.</summary>
-        */
-        public virtual PdfReference Reference
-        {
-            get
-            {
-                PdfIndirectObject indirectObject = IndirectObject;
-                return indirectObject != null ? indirectObject.Reference : null;
-            }
-        }
-
-        /**
-          <summary>Ensures this object to be resolved into its corresponding data object.</summary>
-          <seealso cref="Unresolve()"/>
-        */
-        public PdfDataObject Resolve(
-          )
-        { return this is IPdfIndirectObject ? ((IPdfIndirectObject)this).DataObject : (PdfDataObject)this; }
-
-        /**
-          <summary>Swaps contents between this object and the other one.</summary>
-          <param name="other">Object whose contents have to be swapped with this one's.</param>
-          <returns>This object.</returns>
-        */
-        public abstract PdfObject Swap(
-          PdfObject other
-          );
-
-        /**
-          <summary>Ensures this object to be unresolved into its corresponding indirect reference, if
-          available.</summary>
-          <returns><see cref="PdfReference"/>, if available; <code>this</code>, otherwise.</returns>
-          <seealso cref="Resolve()"/>
-        */
-        public PdfDirectObject Unresolve(
-          )
-        {
-            PdfReference reference = Reference;
-            return reference != null ? reference : (PdfDirectObject)this;
-        }
-
-        /**
-          <summary>Gets/Sets whether the detection of object state changes is enabled.</summary>
-        */
-        public abstract bool Updateable
-        {
-            get;
-            set;
-        }
-
-        /**
-          <summary>Gets/Sets whether the initial state of this object has been modified.</summary>
-        */
-        public abstract bool Updated
-        {
-            get;
-            protected internal set;
-        }
-
-        /**
-          <summary>Serializes this object to the specified stream.</summary>
-          <param name="stream">Target stream.</param>
-          <param name="context">File context.</param>
-        */
-        public abstract void WriteTo(
-          IOutputStream stream,
-          File context
-          );
-
-        #region IVisitable
-        public abstract PdfObject Accept(
-          IVisitor visitor,
-          object data
-          );
-        #endregion
-        #endregion
-
-        #region protected
-        /**
-          <summary>Updates the state of this object.</summary>
-        */
+  <summary>Updates the state of this object.</summary>
+*/
         protected internal void Update(
           )
         {
-            if (!Updateable || Updated)
+            if (!this.Updateable || this.Updated)
+            {
                 return;
+            }
 
-            Updated = true;
-            Virtual = false;
+            this.Updated = true;
+            this.Virtual = false;
 
             // Propagate the update to the ascendants!
-            if (Parent != null)
-            { Parent.Update(); }
+            if (this.Parent != null)
+            { this.Parent.Update(); }
         }
 
         /**
@@ -289,14 +67,12 @@ namespace org.pdfclown.objects
             get;
             set;
         }
-        #endregion
 
-        #region internal
         /**
-          <summary>Ensures that the specified object is decontextualized from this object.</summary>
-          <param name="obj">Object to decontextualize from this object.</param>
-          <seealso cref="Include(PdfDataObject)"/>
-        */
+  <summary>Ensures that the specified object is decontextualized from this object.</summary>
+  <param name="obj">Object to decontextualize from this object.</param>
+  <seealso cref="Include(PdfDataObject)"/>
+*/
         internal void Exclude(
           PdfDataObject obj
           )
@@ -324,8 +100,209 @@ namespace org.pdfclown.objects
             }
             return obj;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public abstract PdfObject Accept(
+  IVisitor visitor,
+  object data
+  );
+
+        /**
+<summary>Creates a shallow copy of this object.</summary>
+*/
+        public object Clone(
+          )
+        {
+            var clone = (PdfObject)this.MemberwiseClone();
+            clone.Parent = null;
+            return clone;
+        }
+
+        /**
+          <summary>Creates a deep copy of this object using the default cloner of the specified file
+          context.</summary>
+        */
+        public virtual PdfObject Clone(
+          File context
+          )
+        { return this.Clone(context.Cloner); }
+
+        /**
+          <summary>Creates a deep copy of this object using the specified cloner.</summary>
+        */
+        public virtual PdfObject Clone(
+          Cloner cloner
+          )
+        { return this.Accept(cloner, null); }
+        /**
+<summary>Gets the clone of the specified object, registered inside the specified file context.</summary>
+<param name="object">Object to clone into the specified file context.</param>
+<param name="context">File context of the cloning.</param>
+*/
+        public static PdfObject Clone(
+          PdfObject @object,
+          File context
+          )
+        { return (@object == null) ? null : @object.Clone(context); }
+
+        /**
+          <summary>Removes the object from its file context.</summary>
+          <remarks>Only indirect objects can be removed through this method; direct objects have to be
+          explicitly removed from their parent object. The object is no more usable after this method
+          returns.</remarks>
+          <returns>Whether the object was removed from its file context.</returns>
+        */
+        public virtual bool Delete(
+          )
+        {
+            var indirectObject = this.IndirectObject;
+            return (indirectObject != null) && indirectObject.Delete();
+        }
+
+        /**
+          <summary>Ensures this object to be resolved into its corresponding data object.</summary>
+          <seealso cref="Unresolve()"/>
+        */
+        public PdfDataObject Resolve(
+          )
+        { return (this is IPdfIndirectObject) ? ((IPdfIndirectObject)this).DataObject : ((PdfDataObject)this); }
+
+        /**
+          <summary>Ensures an indirect reference to be resolved into its corresponding data object.</summary>
+          <param name="object">Object to resolve.</param>
+        */
+        public static PdfDataObject Resolve(
+          PdfObject @object
+          )
+        { return (@object == null) ? null : @object.Resolve(); }
+
+        /**
+          <summary>Swaps contents between this object and the other one.</summary>
+          <param name="other">Object whose contents have to be swapped with this one's.</param>
+          <returns>This object.</returns>
+        */
+        public abstract PdfObject Swap(
+          PdfObject other
+          );
+
+        /**
+          <summary>Ensures this object to be unresolved into its corresponding indirect reference, if
+          available.</summary>
+          <returns><see cref="PdfReference"/>, if available; <code>this</code>, otherwise.</returns>
+          <seealso cref="Resolve()"/>
+        */
+        public PdfDirectObject Unresolve(
+          )
+        {
+            var reference = this.Reference;
+            return (reference != null) ? reference : ((PdfDirectObject)this);
+        }
+
+        /**
+          <summary>Ensures a data object to be unresolved into its corresponding indirect reference, if
+          available.</summary>
+          <param name="object">Object to unresolve.</param>
+          <returns><see cref="PdfReference"/>, if available; <code>object</code>, otherwise.</returns>
+        */
+        public static PdfDirectObject Unresolve(
+          PdfDataObject @object
+          )
+        { return (@object == null) ? null : @object.Unresolve(); }
+
+        /**
+          <summary>Serializes this object to the specified stream.</summary>
+          <param name="stream">Target stream.</param>
+          <param name="context">File context.</param>
+        */
+        public abstract void WriteTo(
+          IOutputStream stream,
+          File context
+          );
+
+        /**
+          <summary>Gets the indirect object containing this object.</summary>
+          <seealso cref="DataContainer"/>
+          <seealso cref="IndirectObject"/>
+        */
+        public virtual PdfIndirectObject Container
+        {
+            get
+            {
+                var parent = this.Parent;
+                return (parent != null) ? parent.Container : null;
+            }
+        }
+
+        /**
+          <summary>Gets the indirect object containing the data associated to this object.</summary>
+          <seealso cref="Container"/>
+          <seealso cref="IndirectObject"/>
+        */
+        public PdfIndirectObject DataContainer
+        {
+            get
+            {
+                var indirectObject = this.IndirectObject;
+                return (indirectObject != null) ? indirectObject : this.Container;
+            }
+        }
+
+        /**
+          <summary>Gets the file containing this object.</summary>
+        */
+        public virtual File File
+        {
+            get
+            {
+                var dataContainer = this.DataContainer;
+                return (dataContainer != null) ? dataContainer.File : null;
+            }
+        }
+
+        /**
+          <summary>Gets the indirect object corresponding to this object.</summary>
+          <seealso cref="Container"/>
+          <seealso cref="DataContainer"/>
+        */
+        public virtual PdfIndirectObject IndirectObject => this.Parent as PdfIndirectObject;
+
+        /**
+          <summary>Gets/Sets the parent of this object.</summary>
+          <seealso cref="Container"/>
+        */
+        public abstract PdfObject Parent
+        {
+            get;
+            internal set;
+        }
+
+        /**
+          <summary>Gets the indirect reference of this object.</summary>
+        */
+        public virtual PdfReference Reference
+        {
+            get
+            {
+                var indirectObject = this.IndirectObject;
+                return (indirectObject != null) ? indirectObject.Reference : null;
+            }
+        }
+
+        /**
+          <summary>Gets/Sets whether the detection of object state changes is enabled.</summary>
+        */
+        public abstract bool Updateable
+        {
+            get;
+            set;
+        }
+
+        /**
+          <summary>Gets/Sets whether the initial state of this object has been modified.</summary>
+        */
+        public abstract bool Updated
+        {
+            get;
+            protected internal set;
+        }
     }
 }

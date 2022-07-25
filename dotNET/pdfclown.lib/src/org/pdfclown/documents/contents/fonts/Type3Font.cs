@@ -24,12 +24,11 @@
 */
 
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Type 3 font [PDF:1.6:5.5.4].</summary>
     */
@@ -37,34 +36,18 @@ namespace org.pdfclown.documents.contents.fonts
     public sealed class Type3Font
       : SimpleFont
     {
-        #region dynamic
-        #region constructors
         internal Type3Font(
-          Document context
-          ) : base(context)
+Document context
+) : base(context)
         { }
 
         internal Type3Font(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        public override double Ascent
-        {
-            get
-            { return 0; }
-        }
+        public override double Ascent => 0;
 
-        public override double Descent
-        {
-            get
-            { return 0; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public override double Descent => 0;
     }
 }

@@ -24,13 +24,12 @@
 */
 
 
-using System;
-
-using System.Collections.Generic;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.functions
 {
+
+    using System.Collections.Generic;
+    using org.pdfclown.objects;
+
     /**
       <summary>Exponential interpolation of one input value and <code>n</code> output values
       [PDF:1.6:3.9.2].</summary>
@@ -44,21 +43,16 @@ namespace org.pdfclown.documents.functions
     public sealed class Type2Function
       : Function
     {
-        #region dynamic
-        #region constructors
         //TODO:implement function creation!
 
         internal Type2Function(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override double[] Calculate(
-          double[] inputs
-          )
+double[] inputs
+)
         {
             // FIXME: Auto-generated method stub
             return null;
@@ -73,30 +67,28 @@ namespace org.pdfclown.documents.functions
             get
             {
                 IList<double[]> outputBounds;
+                var lowOutputBoundsObject = (PdfArray)this.Dictionary[PdfName.C0];
+                var highOutputBoundsObject = (PdfArray)this.Dictionary[PdfName.C1];
+                if (lowOutputBoundsObject == null)
                 {
-                    PdfArray lowOutputBoundsObject = (PdfArray)Dictionary[PdfName.C0];
-                    PdfArray highOutputBoundsObject = (PdfArray)Dictionary[PdfName.C1];
-                    if (lowOutputBoundsObject == null)
+                    outputBounds = new List<double[]>();
+                    outputBounds.Add(new double[] { 0, 1 });
+                }
+                else
+                {
+                    outputBounds = new List<double[]>();
+                    var lowOutputBoundsObjectIterator = lowOutputBoundsObject.GetEnumerator();
+                    var highOutputBoundsObjectIterator = highOutputBoundsObject.GetEnumerator();
+                    while (lowOutputBoundsObjectIterator.MoveNext()
+                      && highOutputBoundsObjectIterator.MoveNext())
                     {
-                        outputBounds = new List<double[]>();
-                        outputBounds.Add(new double[] { 0, 1 });
-                    }
-                    else
-                    {
-                        outputBounds = new List<double[]>();
-                        IEnumerator<PdfDirectObject> lowOutputBoundsObjectIterator = lowOutputBoundsObject.GetEnumerator();
-                        IEnumerator<PdfDirectObject> highOutputBoundsObjectIterator = highOutputBoundsObject.GetEnumerator();
-                        while (lowOutputBoundsObjectIterator.MoveNext()
-                          && highOutputBoundsObjectIterator.MoveNext())
-                        {
-                            outputBounds.Add(
-                              new double[]
-                              {
+                        outputBounds.Add(
+                          new double[]
+                          {
                   ((IPdfNumber)lowOutputBoundsObjectIterator.Current).RawValue,
                   ((IPdfNumber)highOutputBoundsObjectIterator.Current).RawValue
-                              }
-                              );
-                        }
+                          }
+                          );
                     }
                 }
                 return outputBounds;
@@ -106,13 +98,6 @@ namespace org.pdfclown.documents.functions
         /**
           <summary>Gets the interpolation exponent.</summary>
         */
-        public double Exponent
-        {
-            get
-            { return ((IPdfNumber)Dictionary[PdfName.N]).RawValue; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public double Exponent => ((IPdfNumber)this.Dictionary[PdfName.N]).RawValue;
     }
 }

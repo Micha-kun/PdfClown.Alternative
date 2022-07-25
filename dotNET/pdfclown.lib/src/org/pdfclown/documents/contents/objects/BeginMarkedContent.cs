@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Begin marked-content sequence' operation [PDF:1.6:10.5].</summary>
     */
@@ -36,18 +36,18 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class BeginMarkedContent
       : ContentMarker
     {
-        #region static
-        #region fields
         public static readonly string PropertyListOperatorKeyword = "BDC";
         public static readonly string SimpleOperatorKeyword = "BMC";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
+        internal BeginMarkedContent(
+          string @operator,
+          IList<PdfDirectObject> operands
+          ) : base(@operator, operands)
+        { }
+
         public BeginMarkedContent(
-          PdfName tag
-          ) : base(tag)
+PdfName tag
+) : base(tag)
         { }
 
         public BeginMarkedContent(
@@ -56,28 +56,8 @@ namespace org.pdfclown.documents.contents.objects
           ) : base(tag, properties)
         { }
 
-        internal BeginMarkedContent(
-          string @operator,
-          IList<PdfDirectObject> operands
-          ) : base(@operator, operands)
-        { }
-        #endregion
+        protected override string PropertyListOperator => PropertyListOperatorKeyword;
 
-        #region interface
-        #region protected
-        protected override string PropertyListOperator
-        {
-            get
-            { return PropertyListOperatorKeyword; }
-        }
-
-        protected override string SimpleOperator
-        {
-            get
-            { return SimpleOperatorKeyword; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        protected override string SimpleOperator => SimpleOperatorKeyword;
     }
 }

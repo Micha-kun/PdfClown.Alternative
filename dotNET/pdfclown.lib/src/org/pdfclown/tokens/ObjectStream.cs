@@ -24,16 +24,16 @@
 */
 
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
     /**
       <summary>Object stream containing a sequence of PDF objects [PDF:1.6:3.4.6].</summary>
       <remarks>The purpose of object streams is to allow a greater number of PDF objects
@@ -44,13 +44,253 @@ namespace org.pdfclown.tokens
       : PdfStream,
         IDictionary<int, PdfDataObject>
     {
-        #region types
+
+        /**
+<summary>Compressed objects map.</summary>
+<remarks>This map is initially populated with offset values;
+when a compressed object is required, its offset is used to retrieve it.</remarks>
+*/
+        private IDictionary<int, ObjectEntry> entries;
+        private FileParser parser;
+
+        public ObjectStream(
+  ) : base(new PdfDictionary(new PdfName[] { PdfName.Type }, new PdfDirectObject[] { PdfName.ObjStm }))
+        { }
+
+        public ObjectStream(
+          PdfDictionary header,
+          IBuffer body
+          ) : base(header, body)
+        { }
+
+        public PdfDataObject this[
+          int key
+          ]
+        {
+            get
+            {
+                var entry = this.Entries[key];
+                return (entry != null) ? entry.DataObject : null;
+            }
+            set => this.Entries[key] = new ObjectEntry(value, this.parser);
+        }
+
+        void ICollection<KeyValuePair<int, PdfDataObject>>.Add(
+  KeyValuePair<int, PdfDataObject> entry
+  )
+        { this.Add(entry.Key, entry.Value); }
+
+        bool ICollection<KeyValuePair<int, PdfDataObject>>.Contains(
+          KeyValuePair<int, PdfDataObject> entry
+          )
+        { return ((ICollection<KeyValuePair<int, PdfDataObject>>)this.Entries).Contains(entry); }
+
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<int, PdfDataObject>>)this).GetEnumerator(); }
+
+        IEnumerator<KeyValuePair<int, PdfDataObject>> IEnumerable<KeyValuePair<int, PdfDataObject>>.GetEnumerator(
+  )
+        {
+            foreach (var key in this.Keys)
+            { yield return new KeyValuePair<int, PdfDataObject>(key, this[key]); }
+        }
+
+        /**
+          <summary>Serializes the object stream entries into the stream body.</summary>
+        */
+        private void Flush(
+          IOutputStream stream
+          )
+        {
+            // 1. Body.
+            int dataByteOffset;
+            // Serializing the entries into the stream buffer...
+            IBuffer indexBuffer = new bytes.Buffer();
+            IBuffer dataBuffer = new bytes.Buffer();
+            var indirectObjects = this.File.IndirectObjects;
+            var objectIndex = -1;
+            var context = this.File;
+            foreach (var entry in this.Entries)
+            {
+                var objectNumber = entry.Key;
+
+                // Update the xref entry!
+                var xrefEntry = indirectObjects[objectNumber].XrefEntry;
+                xrefEntry.Offset = ++objectIndex;
+
+                /*
+                  NOTE: The entry offset MUST be updated only after its serialization, in order not to
+                  interfere with its possible data-object retrieval from the old serialization.
+                */
+                var entryValueOffset = (int)dataBuffer.Length;
+
+                // Index.
+                _ = indexBuffer
+                  .Append(objectNumber.ToString()).Append(Chunk.Space) // Object number.
+                  .Append(entryValueOffset.ToString()).Append(Chunk.Space); // Byte offset (relative to the first one).
+
+                // Data.
+                entry.Value.DataObject.WriteTo(dataBuffer, context);
+                entry.Value.offset = entryValueOffset;
+            }
+
+            // Get the stream buffer!
+            var body = this.Body;
+
+            // Delete the old entries!
+            body.Clear();
+
+            // Add the new entries!
+            _ = body.Append(indexBuffer);
+            dataByteOffset = (int)body.Length;
+            _ = body.Append(dataBuffer);
+
+            // 2. Header.
+
+            var header = this.Header;
+            header[PdfName.N] = PdfInteger.Get(this.Entries.Count);
+            header[PdfName.First] = PdfInteger.Get(dataByteOffset);
+        }
+
+        private IDictionary<int, ObjectEntry> Entries
+        {
+            get
+            {
+                if (this.entries == null)
+                {
+                    this.entries = new Dictionary<int, ObjectEntry>();
+
+                    var body = this.Body;
+                    if (body.Length > 0)
+                    {
+                        this.parser = new FileParser(this.Body, this.File);
+                        var baseOffset = ((PdfInteger)this.Header[PdfName.First]).IntValue;
+                        for (
+                          int index = 0,
+                            length = ((PdfInteger)this.Header[PdfName.N]).IntValue;
+                          index < length;
+                          index++
+                          )
+                        {
+                            var objectNumber = ((PdfInteger)this.parser.ParsePdfObject(1)).IntValue;
+                            var objectOffset = baseOffset + ((PdfInteger)this.parser.ParsePdfObject(1)).IntValue;
+                            this.entries[objectNumber] = new ObjectEntry(objectOffset, this.parser);
+                        }
+                    }
+                }
+                return this.entries;
+            }
+        }
+
+        public override PdfObject Accept(
+IVisitor visitor,
+object data
+)
+        { return visitor.Visit(this, data); }
+
+        public void Add(
+  int key,
+  PdfDataObject value
+  )
+        { this.Entries.Add(key, new ObjectEntry(value, this.parser)); }
+
+        public void Clear(
+          )
+        {
+            if (this.entries == null)
+            { this.entries = new Dictionary<int, ObjectEntry>(); }
+            else
+            { this.entries.Clear(); }
+        }
+
+        public bool ContainsKey(
+          int key
+          )
+        { return this.Entries.ContainsKey(key); }
+
+        public void CopyTo(
+          KeyValuePair<int, PdfDataObject>[] entries,
+          int index
+          )
+        { throw new NotImplementedException(); }
+
+        public bool Remove(
+          int key
+          )
+        { return this.Entries.Remove(key); }
+
+        public bool Remove(
+          KeyValuePair<int, PdfDataObject> entry
+          )
+        {
+            PdfDataObject value;
+            if (this.TryGetValue(entry.Key, out value)
+              && value.Equals(entry.Value))
+            {
+                return this.Entries.Remove(entry.Key);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public bool TryGetValue(
+          int key,
+          out PdfDataObject value
+          )
+        {
+            value = this[key];
+            return (value != null)
+              || this.ContainsKey(key);
+        }
+
+        public override void WriteTo(
+          IOutputStream stream,
+          File context
+          )
+        {
+            if (this.entries != null)
+            { this.Flush(stream); }
+
+            base.WriteTo(stream, context);
+        }
+
+        /**
+          <summary>Gets/Sets the object stream extended by this one.</summary>
+          <remarks>Both streams are considered part of a collection of object streams  whose links form
+          a directed acyclic graph.</remarks>
+        */
+        public ObjectStream BaseStream
+        {
+            get => (ObjectStream)this.Header.Resolve(PdfName.Extends);
+            set => this.Header[PdfName.Extends] = value.Reference;
+        }
+
+        public int Count => this.Entries.Count;
+
+        public bool IsReadOnly => false;
+
+        public ICollection<int> Keys => this.Entries.Keys;
+
+        public ICollection<PdfDataObject> Values
+        {
+            get
+            {
+                IList<PdfDataObject> values = new List<PdfDataObject>();
+                foreach (var key in this.Entries.Keys)
+                { values.Add(this[key]); }
+                return values;
+            }
+        }
+
         private sealed class ObjectEntry
         {
+
+            private readonly FileParser parser;
             internal PdfDataObject dataObject;
             internal int offset;
-
-            private FileParser parser;
 
             private ObjectEntry(
               FileParser parser
@@ -79,290 +319,15 @@ namespace org.pdfclown.tokens
             {
                 get
                 {
-                    if (dataObject == null)
+                    if (this.dataObject == null)
                     {
-                        parser.Seek(offset);
-                        parser.MoveNext();
-                        dataObject = parser.ParsePdfObject();
+                        this.parser.Seek(this.offset);
+                        _ = this.parser.MoveNext();
+                        this.dataObject = this.parser.ParsePdfObject();
                     }
-                    return dataObject;
+                    return this.dataObject;
                 }
             }
         }
-        #endregion
-
-        #region dynamic
-        #region fields
-        /**
-          <summary>Compressed objects map.</summary>
-          <remarks>This map is initially populated with offset values;
-          when a compressed object is required, its offset is used to retrieve it.</remarks>
-        */
-        private IDictionary<int, ObjectEntry> entries;
-        private FileParser parser;
-        #endregion
-
-        #region constructors
-        public ObjectStream(
-          ) : base(new PdfDictionary(new PdfName[] { PdfName.Type }, new PdfDirectObject[] { PdfName.ObjStm }))
-        { }
-
-        public ObjectStream(
-          PdfDictionary header,
-          IBuffer body
-          ) : base(header, body)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
-        { return visitor.Visit(this, data); }
-
-        /**
-          <summary>Gets/Sets the object stream extended by this one.</summary>
-          <remarks>Both streams are considered part of a collection of object streams  whose links form
-          a directed acyclic graph.</remarks>
-        */
-        public ObjectStream BaseStream
-        {
-            get
-            { return (ObjectStream)Header.Resolve(PdfName.Extends); }
-            set
-            { Header[PdfName.Extends] = value.Reference; }
-        }
-
-        public override void WriteTo(
-          IOutputStream stream,
-          File context
-          )
-        {
-            if (entries != null)
-            { Flush(stream); }
-
-            base.WriteTo(stream, context);
-        }
-
-        #region IDictionary
-        public void Add(
-          int key,
-          PdfDataObject value
-          )
-        { Entries.Add(key, new ObjectEntry(value, parser)); }
-
-        public bool ContainsKey(
-          int key
-          )
-        { return Entries.ContainsKey(key); }
-
-        public ICollection<int> Keys
-        {
-            get
-            { return Entries.Keys; }
-        }
-
-        public bool Remove(
-          int key
-          )
-        { return Entries.Remove(key); }
-
-        public PdfDataObject this[
-          int key
-          ]
-        {
-            get
-            {
-                ObjectEntry entry = Entries[key];
-                return (entry != null ? entry.DataObject : null);
-            }
-            set
-            { Entries[key] = new ObjectEntry(value, parser); }
-        }
-
-        public bool TryGetValue(
-          int key,
-          out PdfDataObject value
-          )
-        {
-            value = this[key];
-            return (value != null
-              || ContainsKey(key));
-        }
-
-        public ICollection<PdfDataObject> Values
-        {
-            get
-            {
-                IList<PdfDataObject> values = new List<PdfDataObject>();
-                foreach (int key in Entries.Keys)
-                { values.Add(this[key]); }
-                return values;
-            }
-        }
-
-        #region ICollection
-        void ICollection<KeyValuePair<int, PdfDataObject>>.Add(
-          KeyValuePair<int, PdfDataObject> entry
-          )
-        { Add(entry.Key, entry.Value); }
-
-        public void Clear(
-          )
-        {
-            if (entries == null)
-            { entries = new Dictionary<int, ObjectEntry>(); }
-            else
-            { entries.Clear(); }
-        }
-
-        bool ICollection<KeyValuePair<int, PdfDataObject>>.Contains(
-          KeyValuePair<int, PdfDataObject> entry
-          )
-        { return ((ICollection<KeyValuePair<int, PdfDataObject>>)Entries).Contains(entry); }
-
-        public void CopyTo(
-          KeyValuePair<int, PdfDataObject>[] entries,
-          int index
-          )
-        { throw new NotImplementedException(); }
-
-        public int Count
-        {
-            get
-            { return Entries.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get
-            { return false; }
-        }
-
-        public bool Remove(
-          KeyValuePair<int, PdfDataObject> entry
-          )
-        {
-            PdfDataObject value;
-            if (TryGetValue(entry.Key, out value)
-              && value.Equals(entry.Value))
-                return Entries.Remove(entry.Key);
-            else
-                return false;
-        }
-
-        #region IEnumerable<KeyValuePair<int,PdfDataObject>>
-        IEnumerator<KeyValuePair<int, PdfDataObject>> IEnumerable<KeyValuePair<int, PdfDataObject>>.GetEnumerator(
-          )
-        {
-            foreach (int key in Keys)
-            { yield return new KeyValuePair<int, PdfDataObject>(key, this[key]); }
-        }
-
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<KeyValuePair<int, PdfDataObject>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-
-        #region private
-        private IDictionary<int, ObjectEntry> Entries
-        {
-            get
-            {
-                if (entries == null)
-                {
-                    entries = new Dictionary<int, ObjectEntry>();
-
-                    IBuffer body = Body;
-                    if (body.Length > 0)
-                    {
-                        parser = new FileParser(Body, File);
-                        int baseOffset = ((PdfInteger)Header[PdfName.First]).IntValue;
-                        for (
-                          int index = 0,
-                            length = ((PdfInteger)Header[PdfName.N]).IntValue;
-                          index < length;
-                          index++
-                          )
-                        {
-                            int objectNumber = ((PdfInteger)parser.ParsePdfObject(1)).IntValue;
-                            int objectOffset = baseOffset + ((PdfInteger)parser.ParsePdfObject(1)).IntValue;
-                            entries[objectNumber] = new ObjectEntry(objectOffset, parser);
-                        }
-                    }
-                }
-                return entries;
-            }
-        }
-
-        /**
-          <summary>Serializes the object stream entries into the stream body.</summary>
-        */
-        private void Flush(
-          IOutputStream stream
-          )
-        {
-            // 1. Body.
-            int dataByteOffset;
-            {
-                // Serializing the entries into the stream buffer...
-                IBuffer indexBuffer = new bytes.Buffer();
-                IBuffer dataBuffer = new bytes.Buffer();
-                IndirectObjects indirectObjects = File.IndirectObjects;
-                int objectIndex = -1;
-                File context = File;
-                foreach (KeyValuePair<int, ObjectEntry> entry in Entries)
-                {
-                    int objectNumber = entry.Key;
-
-                    // Update the xref entry!
-                    XRefEntry xrefEntry = indirectObjects[objectNumber].XrefEntry;
-                    xrefEntry.Offset = ++objectIndex;
-
-                    /*
-                      NOTE: The entry offset MUST be updated only after its serialization, in order not to
-                      interfere with its possible data-object retrieval from the old serialization.
-                    */
-                    int entryValueOffset = (int)dataBuffer.Length;
-
-                    // Index.
-                    indexBuffer
-                      .Append(objectNumber.ToString()).Append(Chunk.Space) // Object number.
-                      .Append(entryValueOffset.ToString()).Append(Chunk.Space); // Byte offset (relative to the first one).
-
-                    // Data.
-                    entry.Value.DataObject.WriteTo(dataBuffer, context);
-                    entry.Value.offset = entryValueOffset;
-                }
-
-                // Get the stream buffer!
-                IBuffer body = Body;
-
-                // Delete the old entries!
-                body.Clear();
-
-                // Add the new entries!
-                body.Append(indexBuffer);
-                dataByteOffset = (int)body.Length;
-                body.Append(dataBuffer);
-            }
-
-            // 2. Header.
-            {
-                PdfDictionary header = Header;
-                header[PdfName.N] = PdfInteger.Get(Entries.Count);
-                header[PdfName.First] = PdfInteger.Get(dataByteOffset);
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

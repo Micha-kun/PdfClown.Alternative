@@ -24,13 +24,12 @@
 */
 
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Page annotations [PDF:1.6:3.6.2].</summary>
     */
@@ -38,14 +37,10 @@ namespace org.pdfclown.documents
     public sealed class PageAnnotations
       : PageElements<Annotation>
     {
-        #region dynamic
-        #region constructors
         internal PageAnnotations(
-          PdfDirectObject baseObject,
-          Page page
-          ) : base(baseObject, page)
+PdfDirectObject baseObject,
+Page page
+) : base(baseObject, page)
         { }
-        #endregion
-        #endregion
     }
 }

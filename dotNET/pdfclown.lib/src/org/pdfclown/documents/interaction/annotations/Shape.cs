@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.Drawing;
+
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.objects;
+
     /**
       <summary>Abstract shape annotation.</summary>
     */
@@ -38,34 +37,27 @@ namespace org.pdfclown.documents.interaction.annotations
     public abstract class Shape
       : Markup
     {
-        #region dynamic
-        #region constructors
-        protected Shape(
-          Page page,
-          RectangleF box,
-          string text,
-          PdfName subtype
-          ) : base(page, subtype, box, text)
-        { }
 
         protected Shape(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        protected Shape(
+Page page,
+RectangleF box,
+string text,
+PdfName subtype
+) : base(page, subtype, box, text)
+        { }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the border effect.</summary>
-        */
+<summary>Gets/Sets the border effect.</summary>
+*/
         [PDF(VersionEnum.PDF15)]
         public BorderEffect BorderEffect
         {
-            get
-            { return new BorderEffect(BaseDataObject.Get<PdfDictionary>(PdfName.BE)); }
-            set
-            { BaseDataObject[PdfName.BE] = PdfObjectWrapper.GetBaseObject(value); }
+            get => new BorderEffect(this.BaseDataObject.Get<PdfDictionary>(PdfName.BE));
+            set => this.BaseDataObject[PdfName.BE] = PdfObjectWrapper.GetBaseObject(value);
         }
 
         /**
@@ -75,9 +67,9 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfArray fillColorObject = (PdfArray)BaseDataObject[PdfName.IC];
+                var fillColorObject = (PdfArray)this.BaseDataObject[PdfName.IC];
                 //TODO:use baseObject constructor!!!
-                return fillColorObject != null
+                return (fillColorObject != null)
                   ? new DeviceRGBColor(
                     ((IPdfNumber)fillColorObject[0]).RawValue,
                     ((IPdfNumber)fillColorObject[1]).RawValue,
@@ -85,11 +77,7 @@ namespace org.pdfclown.documents.interaction.annotations
                     )
                   : null;
             }
-            set
-            { BaseDataObject[PdfName.IC] = PdfObjectWrapper.GetBaseObject(value); }
+            set => this.BaseDataObject[PdfName.IC] = PdfObjectWrapper.GetBaseObject(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

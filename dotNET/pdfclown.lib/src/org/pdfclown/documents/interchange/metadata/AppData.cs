@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.contents.xObjects;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interchange.metadata
 {
+    using System;
+    using org.pdfclown.documents.contents.xObjects;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Private application data dictionary [PDF:1.7:10.4].</summary>
     */
@@ -37,39 +37,30 @@ namespace org.pdfclown.documents.interchange.metadata
     public class AppData
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        internal static AppData Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new AppData(baseObject) : null; }
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        internal AppData(
-          Document context
-          ) : base(context, new PdfDictionary())
-        { }
 
         private AppData(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
+        internal AppData(
+Document context
+) : base(context, new PdfDictionary())
+        { }
+
+        internal static AppData Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new AppData(baseObject) : null; }
+
         /**
-          <summary>Gets/Sets the private data associated to the application.</summary>
-          <remarks>It can be any type, although dictionary is its typical form.</remarks>
-        */
+  <summary>Gets/Sets the private data associated to the application.</summary>
+  <remarks>It can be any type, although dictionary is its typical form.</remarks>
+*/
         public PdfDataObject Data
         {
-            get
-            { return BaseDataObject[PdfName.Private]; }
-            set
-            { BaseDataObject[PdfName.Private] = PdfObject.Unresolve(value); }
+            get => this.BaseDataObject[PdfName.Private];
+            set => this.BaseDataObject[PdfName.Private] = PdfObject.Unresolve(value);
         }
 
         /**
@@ -81,12 +72,8 @@ namespace org.pdfclown.documents.interchange.metadata
         */
         public DateTime ModificationDate
         {
-            get
-            { return (DateTime)PdfSimpleObject<object>.GetValue(BaseDataObject[PdfName.LastModified]); }
-            internal set
-            { BaseDataObject[PdfName.LastModified] = new PdfDate(value); }
+            get => (DateTime)PdfSimpleObject<object>.GetValue(this.BaseDataObject[PdfName.LastModified]);
+            internal set => this.BaseDataObject[PdfName.LastModified] = new PdfDate(value);
         }
-        #endregion
-        #endregion
     }
 }

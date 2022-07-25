@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Set the character spacing' operation [PDF:1.6:5.2].</summary>
     */
@@ -36,46 +36,32 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class SetCharSpace
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "Tc";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public SetCharSpace(
-          double value
-          ) : base(
-            OperatorKeyword,
-            new List<PdfDirectObject>(
-              new PdfDirectObject[] { PdfReal.Get(value) }
-              )
-            )
+double value
+) : base(
+OperatorKeyword,
+new List<PdfDirectObject>(
+new PdfDirectObject[] { PdfReal.Get(value) }
+)
+)
         { }
 
         public SetCharSpace(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
-        { state.CharSpace = Value; }
+ContentScanner.GraphicsState state
+)
+        { state.CharSpace = this.Value; }
 
         public double Value
         {
-            get
-            { return ((IPdfNumber)operands[0]).RawValue; }
-            set
-            { operands[0] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.operands[0]).RawValue;
+            set => this.operands[0] = PdfReal.Get(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

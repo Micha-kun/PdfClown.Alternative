@@ -23,16 +23,16 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-
-using System.Drawing.Drawing2D;
-using org.pdfclown.documents.contents.fonts;
-using org.pdfclown.objects;
-using drawing = System.Drawing;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System;
+    using System.Collections.Generic;
+
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.documents.contents.fonts;
+    using org.pdfclown.objects;
+    using drawing = System.Drawing;
+
     /**
       <summary>Abstract 'show a text string' operation [PDF:1.6:5.3.2].</summary>
     */
@@ -40,26 +40,10 @@ namespace org.pdfclown.documents.contents.objects
     public abstract class ShowText
       : Operation
     {
-        #region types
-        public interface IScanner
-        {
-            /**
-              <summary>Notifies the scanner about a text character.</summary>
-              <param name="textChar">Scanned character.</param>
-              <param name="textCharBox">Bounding box of the scanned character.</param>
-            */
-            void ScanChar(
-              char textChar,
-              drawing::RectangleF textCharBox
-              );
-        }
-        #endregion
 
-        #region dynamic
-        #region constructors
         protected ShowText(
-          string @operator
-          ) : base(@operator)
+string @operator
+) : base(@operator)
         { }
 
         protected ShowText(
@@ -73,14 +57,11 @@ namespace org.pdfclown.documents.contents.objects
           IList<PdfDirectObject> operands
           ) : base(@operator, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
         public override void Scan(
-          ContentScanner.GraphicsState state
-          )
-        { Scan(state, null); }
+ContentScanner.GraphicsState state
+)
+        { this.Scan(state, null); }
 
         /**
           <summary>Executes scanning on this operation.</summary>
@@ -102,18 +83,21 @@ namespace org.pdfclown.documents.contents.objects
             */
 
             double contextHeight = state.Scanner.ContextSize.Height;
-            Font font = state.Font;
-            double fontSize = state.FontSize;
-            double scaledFactor = Font.GetScalingFactor(fontSize) * state.Scale;
-            bool wordSpaceSupported = !(font is CompositeFont);
-            double wordSpace = wordSpaceSupported ? state.WordSpace * state.Scale : 0;
-            double charSpace = state.CharSpace * state.Scale;
-            Matrix ctm = state.Ctm.Clone();
-            Matrix tm = state.Tm;
+            var font = state.Font;
+            var fontSize = state.FontSize;
+            var scaledFactor = Font.GetScalingFactor(fontSize) * state.Scale;
+            var wordSpaceSupported = !(font is CompositeFont);
+            var wordSpace = wordSpaceSupported ? (state.WordSpace * state.Scale) : 0;
+            var charSpace = state.CharSpace * state.Scale;
+            var ctm = state.Ctm.Clone();
+
+            _ = state.Tm;
+
+            Matrix tm;
             if (this is ShowTextToNextLine)
             {
-                ShowTextToNextLine showTextToNextLine = (ShowTextToNextLine)this;
-                double? newWordSpace = showTextToNextLine.WordSpace;
+                var showTextToNextLine = (ShowTextToNextLine)this;
+                var newWordSpace = showTextToNextLine.WordSpace;
                 if (newWordSpace != null)
                 {
                     if (textScanner == null)
@@ -121,7 +105,7 @@ namespace org.pdfclown.documents.contents.objects
                     if (wordSpaceSupported)
                     { wordSpace = newWordSpace.Value * state.Scale; }
                 }
-                double? newCharSpace = showTextToNextLine.CharSpace;
+                var newCharSpace = showTextToNextLine.CharSpace;
                 if (newCharSpace != null)
                 {
                     if (textScanner == null)
@@ -134,14 +118,14 @@ namespace org.pdfclown.documents.contents.objects
             else
             { tm = state.Tm.Clone(); }
 
-            foreach (object textElement in Value)
+            foreach (var textElement in this.Value)
             {
                 if (textElement is byte[]) // Text string.
                 {
-                    string textString = font.Decode((byte[])textElement);
-                    foreach (char textChar in textString)
+                    var textString = font.Decode((byte[])textElement);
+                    foreach (var textChar in textString)
                     {
-                        double charWidth = font.GetWidth(textChar) * scaledFactor;
+                        var charWidth = font.GetWidth(textChar) * scaledFactor;
 
                         if (textScanner != null)
                         {
@@ -149,14 +133,14 @@ namespace org.pdfclown.documents.contents.objects
                               NOTE: The text rendering matrix is recomputed before each glyph is painted
                               during a text-showing operation.
                             */
-                            Matrix trm = ctm.Clone();
+                            var trm = ctm.Clone();
                             trm.Multiply(tm);
-                            double charHeight = font.GetHeight(textChar, fontSize);
-                            drawing::RectangleF charBox = new drawing::RectangleF(
+                            var charHeight = font.GetHeight(textChar, fontSize);
+                            var charBox = new drawing::RectangleF(
                               trm.Elements[4],
-                              (float)(contextHeight - trm.Elements[5] - font.GetAscent(fontSize) * trm.Elements[3]),
-                              (float)charWidth * trm.Elements[0],
-                              (float)charHeight * trm.Elements[3]
+                              (float)(contextHeight - trm.Elements[5] - (font.GetAscent(fontSize) * trm.Elements[3])),
+                              ((float)charWidth) * trm.Elements[0],
+                              ((float)charHeight) * trm.Elements[3]
                               );
                             textScanner.ScanChar(textChar, charBox);
                         }
@@ -165,11 +149,11 @@ namespace org.pdfclown.documents.contents.objects
                           NOTE: After the glyph is painted, the text matrix is updated
                           according to the glyph displacement and any applicable spacing parameter.
                         */
-                        tm.Translate((float)(charWidth + charSpace + (textChar == ' ' ? wordSpace : 0)), 0);
+                        tm.Translate((float)(charWidth + charSpace + ((textChar == ' ') ? wordSpace : 0)), 0);
                     }
                 }
                 else // Text position adjustment.
-                { tm.Translate((float)(-Convert.ToSingle(textElement) * scaledFactor), 0); }
+                { tm.Translate((float)((-Convert.ToSingle(textElement)) * scaledFactor), 0); }
             }
 
             if (textScanner == null)
@@ -206,13 +190,21 @@ namespace org.pdfclown.documents.contents.objects
         */
         public virtual IList<object> Value
         {
-            get
-            { return new List<object>() { Text }; }
-            set
-            { Text = (byte[])value[0]; }
+            get => new List<object> { this.Text };
+            set => this.Text = (byte[])value[0];
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public interface IScanner
+        {
+            /**
+              <summary>Notifies the scanner about a text character.</summary>
+              <param name="textChar">Scanned character.</param>
+              <param name="textCharBox">Bounding box of the scanned character.</param>
+            */
+            void ScanChar(
+              char textChar,
+              drawing::RectangleF textCharBox
+              );
+        }
     }
 }

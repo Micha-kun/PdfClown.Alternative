@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.util.math
 {
+    using System;
+
     /**
       <summary>An interval of comparable objects.</summary>
     */
@@ -65,12 +65,12 @@ namespace org.pdfclown.util.math
           T value
           )
         {
-            int lowCompare = (low != null ? low.CompareTo(value) : -1);
-            int highCompare = (high != null ? high.CompareTo(value) : 1);
-            return (lowCompare < 0
-                || (lowCompare == 0 && lowInclusive))
-              && (highCompare > 0
-                || (highCompare == 0 && highInclusive));
+            var lowCompare = (this.low != null) ? this.low.CompareTo(value) : (-1);
+            var highCompare = (this.high != null) ? this.high.CompareTo(value) : 1;
+            return ((lowCompare < 0)
+                || ((lowCompare == 0) && this.lowInclusive))
+              && ((highCompare > 0)
+                || ((highCompare == 0) && this.highInclusive));
         }
 
         /**
@@ -78,10 +78,8 @@ namespace org.pdfclown.util.math
         */
         public T High
         {
-            get
-            { return high; }
-            set
-            { high = value; }
+            get => this.high;
+            set => this.high = value;
         }
 
         /**
@@ -89,10 +87,8 @@ namespace org.pdfclown.util.math
         */
         public bool HighInclusive
         {
-            get
-            { return highInclusive; }
-            set
-            { highInclusive = value; }
+            get => this.highInclusive;
+            set => this.highInclusive = value;
         }
 
         /**
@@ -100,10 +96,8 @@ namespace org.pdfclown.util.math
         */
         public T Low
         {
-            get
-            { return low; }
-            set
-            { low = value; }
+            get => this.low;
+            set => this.low = value;
         }
 
         /**
@@ -111,10 +105,8 @@ namespace org.pdfclown.util.math
         */
         public bool LowInclusive
         {
-            get
-            { return lowInclusive; }
-            set
-            { lowInclusive = value; }
+            get => this.lowInclusive;
+            set => this.lowInclusive = value;
         }
     }
 }

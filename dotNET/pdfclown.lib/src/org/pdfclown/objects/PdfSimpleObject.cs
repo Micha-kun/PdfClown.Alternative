@@ -23,13 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Reflection;
-using org.pdfclown.files;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using org.pdfclown.files;
+
     /**
       <summary>Abstract PDF simple object.</summary>
     */
@@ -37,49 +35,96 @@ namespace org.pdfclown.objects
       : PdfDirectObject,
         IPdfSimpleObject<TValue>
     {
-        #region static
-        #region interface
-        #region public
+
+        private TValue value;
+
+        public PdfSimpleObject(
+  )
+        { }
+
+        protected internal override bool Virtual
+        {
+            get => false;
+            set
+            {/* NOOP */}
+        }
+
+        public override PdfObject Clone(
+File context
+)
+        { return this; } // NOTE: Simple objects are immutable.
+
+        public override bool Equals(
+          object @object
+          )
+        {
+            return base.Equals(@object)
+              || ((@object != null)
+                && @object.GetType().Equals(this.GetType())
+                && ((PdfSimpleObject<TValue>)@object).RawValue.Equals(this.RawValue));
+        }
         /**
-          <summary>Gets the object equivalent to the given value.</summary>
-        */
+<summary>Gets the object equivalent to the given value.</summary>
+*/
         public static PdfDirectObject Get(
           object value
           )
         {
             if (value == null)
+            {
                 return null;
+            }
 
-            if (value is Int32)
+            if (value is int)
+            {
                 return PdfInteger.Get((int)value);
-            else if (value is Double || value is Single)
+            }
+            else if ((value is double) || (value is float))
+            {
                 return PdfReal.Get(value);
+            }
             else if (value is string)
+            {
                 return PdfTextString.Get((string)value);
+            }
             else if (value is DateTime)
+            {
                 return PdfDate.Get((DateTime)value);
-            else if (value is Boolean)
-                return PdfBoolean.Get((Boolean)value);
+            }
+            else if (value is bool)
+            {
+                return PdfBoolean.Get((bool)value);
+            }
             else
+            {
                 throw new NotImplementedException();
+            }
         }
 
         public static double? GetDoubleValue(
           PdfObject obj
           )
         {
-            object value = GetValue(obj);
-            if (value == null || value is Double)
-                return (Double)value;
+            var value = GetValue(obj);
+            if ((value == null) || (value is double))
+            {
+                return (double)value;
+            }
             else
+            {
                 return Convert.ToDouble(value);
+            }
         }
+
+        public override int GetHashCode(
+          )
+        { return this.RawValue.GetHashCode(); }
 
         /**
           <summary>Gets the value corresponding to the given object.</summary>
           <param name="obj">Object to extract the value from.</param>
         */
-        public static Object GetValue(
+        public static object GetValue(
           PdfObject obj
           )
         { return GetValue(obj, null); }
@@ -98,65 +143,11 @@ namespace org.pdfclown.objects
             obj = Resolve(obj);
             if (obj != null)
             {
-                PropertyInfo valueProperty = obj.GetType().GetProperty("Value");
+                var valueProperty = obj.GetType().GetProperty("Value");
                 if (valueProperty != null)
                 { value = valueProperty.GetGetMethod().Invoke(obj, null); }
             }
-            return (value != null ? value : defaultValue);
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
-        private TValue value;
-        #endregion
-
-        #region constructors
-        public PdfSimpleObject(
-          )
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public override PdfObject Clone(
-          File context
-          )
-        { return this; } // NOTE: Simple objects are immutable.
-
-        public override bool Equals(
-          object @object
-          )
-        {
-            return base.Equals(@object)
-              || (@object != null
-                && @object.GetType().Equals(GetType())
-                && ((PdfSimpleObject<TValue>)@object).RawValue.Equals(RawValue));
-        }
-
-        public override int GetHashCode(
-          )
-        { return RawValue.GetHashCode(); }
-
-        public sealed override PdfObject Parent
-        {
-            get
-            { return null; } // NOTE: As simple objects are immutable, no parent can be associated.
-            internal set
-            {/* NOOP: As simple objects are immutable, no parent can be associated. */}
-        }
-
-        /**
-          <summary>Gets/Sets the low-level representation of the value.</summary>
-        */
-        public virtual TValue RawValue
-        {
-            get
-            { return value; }
-            protected set
-            { this.value = value; }
+            return (value != null) ? value : defaultValue;
         }
 
         public override PdfObject Swap(
@@ -166,20 +157,34 @@ namespace org.pdfclown.objects
 
         public override string ToString(
           )
-        { return Value.ToString(); }
+        { return this.Value.ToString(); }
+
+        public sealed override PdfObject Parent
+        {
+            get => null;  // NOTE: As simple objects are immutable, no parent can be associated.
+            internal set
+            {/* NOOP: As simple objects are immutable, no parent can be associated. */}
+        }
+
+        /**
+          <summary>Gets/Sets the low-level representation of the value.</summary>
+        */
+        public virtual TValue RawValue
+        {
+            get => this.value;
+            protected set => this.value = value;
+        }
 
         public override bool Updateable
         {
-            get
-            { return false; } // NOTE: Simple objects are immutable.
+            get => false;  // NOTE: Simple objects are immutable.
             set
             {/* NOOP: As simple objects are immutable, no update can be done. */}
         }
 
         public sealed override bool Updated
         {
-            get
-            { return false; } // NOTE: Simple objects are immutable.
+            get => false;  // NOTE: Simple objects are immutable.
             protected internal set
             {/* NOOP: As simple objects are immutable, no update can be done. */}
         }
@@ -189,23 +194,8 @@ namespace org.pdfclown.objects
         */
         public virtual object Value
         {
-            get
-            { return value; }
-            protected set
-            { this.value = (TValue)value; }
+            get => this.value;
+            protected set => this.value = (TValue)value;
         }
-        #endregion
-
-        #region protected
-        protected internal override bool Virtual
-        {
-            get
-            { return false; }
-            set
-            {/* NOOP */}
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

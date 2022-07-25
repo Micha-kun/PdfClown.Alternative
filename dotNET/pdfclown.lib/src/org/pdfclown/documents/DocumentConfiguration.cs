@@ -24,74 +24,36 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.files;
-using org.pdfclown.objects;
-using org.pdfclown.util.io;
-using io = System.IO;
-
 namespace org.pdfclown.documents
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text.RegularExpressions;
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+    using org.pdfclown.util.io;
+    using io = System.IO;
+
     /**
       <summary>Document configuration.</summary>
     */
     public sealed class DocumentConfiguration
     {
-        #region dynamic
-        #region fields
         private CompatibilityModeEnum compatibilityMode = CompatibilityModeEnum.Loose;
-        private EncodingFallbackEnum encodingFallback = EncodingFallbackEnum.Substitution;
-        private string stampPath;
 
-        private Document document;
+        private readonly Document document;
+        private EncodingFallbackEnum encodingFallback = EncodingFallbackEnum.Substitution;
 
         private IDictionary<Stamp.StandardTypeEnum, FormXObject> importedStamps;
-        #endregion
+        private string stampPath;
 
-        #region constructors
         internal DocumentConfiguration(
-          Document document
-          )
+  Document document
+  )
         { this.document = document; }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the document's version compatibility mode.</summary>
-        */
-        public CompatibilityModeEnum CompatibilityMode
-        {
-            get
-            { return compatibilityMode; }
-            set
-            { compatibilityMode = value; }
-        }
-
-        /**
-          <summary>Gets the document associated with this configuration.</summary>
-        */
-        public Document Document
-        {
-            get
-            { return document; }
-        }
-
-        /**
-          <summary>Gets/Sets the encoding behavior in case of missing character mapping.</summary>
-        */
-        public EncodingFallbackEnum EncodingFallback
-        {
-            get
-            { return encodingFallback; }
-            set
-            { encodingFallback = value; }
-        }
 
         /**
           <summary>Gets the stamp appearance corresponding to the specified stamp type.</summary>
@@ -104,17 +66,19 @@ namespace org.pdfclown.documents
           )
         {
             if (!type.HasValue
-              || stampPath == null)
+              || (this.stampPath == null))
+            {
                 return null;
+            }
 
             FormXObject stamp = null;
-            if (importedStamps != null)
-            { importedStamps.TryGetValue(type.Value, out stamp); }
+            if (this.importedStamps != null)
+            { _ = this.importedStamps.TryGetValue(type.Value, out stamp); }
             else
-            { importedStamps = new Dictionary<Stamp.StandardTypeEnum, FormXObject>(); }
+            { this.importedStamps = new Dictionary<Stamp.StandardTypeEnum, FormXObject>(); }
             if (stamp == null)
             {
-                if (io::File.GetAttributes(stampPath).HasFlag(io::FileAttributes.Directory)) // Acrobat standard stamps directory.
+                if (io::File.GetAttributes(this.stampPath).HasFlag(io::FileAttributes.Directory)) // Acrobat standard stamps directory.
                 {
                     string stampFileName;
                     switch (type.Value)
@@ -159,24 +123,47 @@ namespace org.pdfclown.documents
                         default:
                             throw new NotSupportedException("Unknown stamp type");
                     }
-                    using (var stampFile = new File(io::Path.Combine(stampPath, stampFileName)))
+                    using (var stampFile = new File(io::Path.Combine(this.stampPath, stampFileName)))
                     {
-                        PdfString stampPageKey = new PdfString(type.Value.GetName().StringValue + "=" + String.Join(" ", Regex.Split(type.Value.GetName().StringValue.Substring(2), "(?!^)(?=\\p{Lu})")));
-                        Page stampPage = stampFile.Document.ResolveName<Page>(stampPageKey);
-                        importedStamps[type.Value] = (stamp = (FormXObject)stampPage.ToXObject(Document));
+                        var stampPageKey = new PdfString($"{type.Value.GetName().StringValue}={string.Join(" ", Regex.Split(type.Value.GetName().StringValue.Substring(2), "(?!^)(?=\\p{Lu})"))}");
+                        var stampPage = stampFile.Document.ResolveName<Page>(stampPageKey);
+                        this.importedStamps[type.Value] = stamp = (FormXObject)stampPage.ToXObject(this.Document);
                         stamp.Box = stampPage.ArtBox.Value;
                     }
                 }
                 else // Standard stamps template (std-stamps.pdf).
                 {
-                    using (var stampFile = new File(stampPath))
+                    using (var stampFile = new File(this.stampPath))
                     {
-                        FormXObject stampXObject = stampFile.Document.Pages[0].Resources.Get<FormXObject>(type.Value.GetName());
-                        importedStamps[type.Value] = (stamp = (FormXObject)stampXObject.Clone(Document));
+                        var stampXObject = stampFile.Document.Pages[0].Resources.Get<FormXObject>(type.Value.GetName());
+                        this.importedStamps[type.Value] = stamp = (FormXObject)stampXObject.Clone(this.Document);
                     }
                 }
             }
             return stamp;
+        }
+
+        /**
+<summary>Gets/Sets the document's version compatibility mode.</summary>
+*/
+        public CompatibilityModeEnum CompatibilityMode
+        {
+            get => this.compatibilityMode;
+            set => this.compatibilityMode = value;
+        }
+
+        /**
+          <summary>Gets the document associated with this configuration.</summary>
+        */
+        public Document Document => this.document;
+
+        /**
+          <summary>Gets/Sets the encoding behavior in case of missing character mapping.</summary>
+        */
+        public EncodingFallbackEnum EncodingFallback
+        {
+            get => this.encodingFallback;
+            set => this.encodingFallback = value;
         }
 
         /**
@@ -192,19 +179,17 @@ namespace org.pdfclown.documents
         */
         public string StampPath
         {
-            get
-            { return stampPath; }
+            get => this.stampPath;
             set
             {
                 if (!IOUtils.Exists(value))
+                {
                     throw new ArgumentException(null, new io::FileNotFoundException());
+                }
 
-                stampPath = value;
+                this.stampPath = value;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }
 

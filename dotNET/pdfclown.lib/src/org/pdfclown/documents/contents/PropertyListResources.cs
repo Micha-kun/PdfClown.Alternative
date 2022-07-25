@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Property list resources collection [PDF:1.6:3.7.2].</summary>
     */
@@ -36,27 +35,19 @@ namespace org.pdfclown.documents.contents
     public sealed class PropertyListResources
       : ResourceItems<PropertyList>
     {
-        #region dynamic
-        #region constructors
-        public PropertyListResources(
-          Document context
-          ) : base(context)
-        { }
 
         internal PropertyListResources(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public PropertyListResources(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override PropertyList Wrap(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return PropertyList.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

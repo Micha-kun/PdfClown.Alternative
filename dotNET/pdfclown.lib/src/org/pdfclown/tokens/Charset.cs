@@ -1,8 +1,7 @@
-using System;
-using text = System.Text;
-
 namespace org.pdfclown.tokens
 {
+    using text = System.Text;
+
     internal static class Charset
     {
         public static readonly text::Encoding ISO88591 = text::Encoding.GetEncoding("ISO-8859-1");

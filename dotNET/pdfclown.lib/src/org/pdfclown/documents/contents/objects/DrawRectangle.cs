@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Append a rectangle to the current path as a complete subpath' operation
       [PDF:1.6:4.4.1].</summary>
@@ -39,60 +38,43 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class DrawRectangle
       : Operation
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "re";
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public DrawRectangle(
-          double x,
-          double y,
-          double width,
-          double height
-          ) : base(
-            OperatorKeyword,
-            new List<PdfDirectObject>(
-              new PdfDirectObject[]
-              {
-            PdfReal.Get(x),
-            PdfReal.Get(y),
-            PdfReal.Get(width),
-            PdfReal.Get(height)
-              }
-              )
-            )
-        { }
 
         public DrawRectangle(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
-        public double Height
-        {
-            get
-            { return ((IPdfNumber)operands[3]).RawValue; }
-            set
-            { operands[3] = PdfReal.Get(value); }
-        }
+        public DrawRectangle(
+double x,
+double y,
+double width,
+double height
+) : base(
+OperatorKeyword,
+new List<PdfDirectObject>(
+new PdfDirectObject[]
+{
+            PdfReal.Get(x),
+            PdfReal.Get(y),
+            PdfReal.Get(width),
+            PdfReal.Get(height)
+}
+)
+)
+        { }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            GraphicsPath pathObject = state.Scanner.RenderObject;
+            var pathObject = state.Scanner.RenderObject;
             if (pathObject != null)
             {
-                double x = X,
-                  y = Y,
-                  width = Width,
-                  height = Height;
+                double x = this.X,
+                  y = this.Y,
+                  width = this.Width,
+                  height = this.Height;
                 pathObject.AddRectangle(
                   new RectangleF((float)x, (float)y, (float)width, (float)height)
                   );
@@ -100,31 +82,28 @@ namespace org.pdfclown.documents.contents.objects
             }
         }
 
+        public double Height
+        {
+            get => ((IPdfNumber)this.operands[3]).RawValue;
+            set => this.operands[3] = PdfReal.Get(value);
+        }
+
         public double Width
         {
-            get
-            { return ((IPdfNumber)operands[2]).RawValue; }
-            set
-            { operands[2] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.operands[2]).RawValue;
+            set => this.operands[2] = PdfReal.Get(value);
         }
 
         public double X
         {
-            get
-            { return ((IPdfNumber)operands[0]).RawValue; }
-            set
-            { operands[0] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.operands[0]).RawValue;
+            set => this.operands[0] = PdfReal.Get(value);
         }
 
         public double Y
         {
-            get
-            { return ((IPdfNumber)operands[1]).RawValue; }
-            set
-            { operands[1] = PdfReal.Get(value); }
+            get => ((IPdfNumber)this.operands[1]).RawValue;
+            set => this.operands[1] = PdfReal.Get(value);
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

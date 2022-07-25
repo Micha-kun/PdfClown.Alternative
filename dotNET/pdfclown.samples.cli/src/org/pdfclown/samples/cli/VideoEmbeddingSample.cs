@@ -1,13 +1,11 @@
-
-using System;
-using System.Drawing;
-using org.pdfclown.documents;
-
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.files;
-
 namespace org.pdfclown.samples.cli
 {
+    using System.Drawing;
+    using org.pdfclown.documents;
+
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.files;
+
     /**
       <summary>This sample demonstrates how to insert screen annotations to display media clips inside
       a PDF document.</summary>
@@ -19,24 +17,24 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Instantiate the PDF file!
-            File file = new File();
-            Document document = file.Document;
+            var file = new File();
+            var document = file.Document;
 
             // 2. Insert a new page!
-            Page page = new Page(document);
+            var page = new Page(document);
             document.Pages.Add(page);
 
             // 3. Insert a video into the page!
-            new Screen(
+            _ = new Screen(
               page,
               new RectangleF(10, 10, 320, 180),
               "PJ Harvey - Dress (part)",
-              GetResourcePath("video" + System.IO.Path.DirectorySeparatorChar + "pj_clip.mp4"),
+              this.GetResourcePath($"video{System.IO.Path.DirectorySeparatorChar}pj_clip.mp4"),
               "video/mp4"
               );
 
             // 4. Serialize the PDF file!
-            Serialize(file, "Video embedding", "inserting screen annotations to display media clips inside a PDF document", "video embedding");
+            _ = this.Serialize(file, "Video embedding", "inserting screen annotations to display media clips inside a PDF document", "video embedding");
         }
     }
 }

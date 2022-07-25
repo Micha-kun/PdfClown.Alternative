@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.fonts
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>Composite font associated to a Type 2 CIDFont, containing glyph descriptions based on
       the TrueType font format [PDF:1.6:5.6.3].</summary>
@@ -40,17 +40,15 @@ namespace org.pdfclown.documents.contents.fonts
     public sealed class Type2Font
       : CompositeFont
     {
-        #region constructors
-        internal Type2Font(
-          Document context,
-          OpenFontParser parser
-          ) : base(context, parser)
-        { }
 
         internal Type2Font(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        internal Type2Font(
+  Document context,
+  OpenFontParser parser
+  ) : base(context, parser)
+        { }
     }
 }

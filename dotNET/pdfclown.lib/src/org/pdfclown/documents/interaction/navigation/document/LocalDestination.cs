@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.navigation.document
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Local interaction target [PDF:1.6:8.2.1].</summary>
     */
@@ -36,16 +36,19 @@ namespace org.pdfclown.documents.interaction.navigation.document
     public sealed class LocalDestination
       : Destination
     {
-        #region dynamic
-        #region constructors
+
+        internal LocalDestination(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         public LocalDestination(
-          Page page
-          ) : this(
-            page,
-            ModeEnum.Fit,
-            null,
-            null
-            )
+Page page
+) : this(
+page,
+ModeEnum.Fit,
+null,
+null
+)
         { }
 
         public LocalDestination(
@@ -62,31 +65,21 @@ namespace org.pdfclown.documents.interaction.navigation.document
             )
         { }
 
-        internal LocalDestination(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the target page.</summary>
-        */
+<summary>Gets/Sets the target page.</summary>
+*/
         public override object Page
         {
-            get
-            { return documents.Page.Wrap(BaseDataObject[0]); }
+            get => documents.Page.Wrap(this.BaseDataObject[0]);
             set
             {
                 if (!(value is Page))
+                {
                     throw new ArgumentException("It MUST be a Page object.");
+                }
 
-                BaseDataObject[0] = ((Page)value).BaseObject;
+                this.BaseDataObject[0] = ((Page)value).BaseObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

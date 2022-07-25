@@ -24,17 +24,17 @@
 */
 
 
-using System;
-using System.Globalization;
-using System.Text;
-
-using System.Text.RegularExpressions;
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-using tokens = org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using System.Globalization;
+    using System.Text;
+
+    using System.Text.RegularExpressions;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+    using tokens = org.pdfclown.tokens;
+
     /**
       <summary>PDF name object [PDF:1.6:3.2.4].</summary>
     */
@@ -642,9 +642,9 @@ namespace org.pdfclown.objects
               This is tipically the case of names parsed from a previously-serialized PDF file.
             */
             if (escaped)
-            { RawValue = value; }
+            { this.RawValue = value; }
             else
-            { Value = value; }
+            { this.Value = value; }
         }
         #endregion
 
@@ -661,16 +661,14 @@ namespace org.pdfclown.objects
           )
         {
             if (!(obj is PdfName))
+            {
                 throw new ArgumentException("Object MUST be a PdfName");
+            }
 
-            return RawValue.CompareTo(((PdfName)obj).RawValue);
+            return this.RawValue.CompareTo(((PdfName)obj).RawValue);
         }
 
-        public string StringValue
-        {
-            get
-            { return (string)Value; }
-        }
+        public string StringValue => (string)this.Value;
 
         public override string ToString(
           )
@@ -678,18 +676,18 @@ namespace org.pdfclown.objects
             /*
               NOTE: The textual representation of a name concerns unescaping reserved characters.
             */
-            string value = RawValue;
-            StringBuilder buffer = new StringBuilder();
-            int index = 0;
-            Match escapedMatch = EscapedPattern.Match(value);
+            var value = this.RawValue;
+            var buffer = new StringBuilder();
+            var index = 0;
+            var escapedMatch = EscapedPattern.Match(value);
             while (escapedMatch.Success)
             {
-                int start = escapedMatch.Index;
+                var start = escapedMatch.Index;
                 if (start > index)
-                { buffer.Append(value.Substring(index, start - index)); }
+                { _ = buffer.Append(value.Substring(index, start - index)); }
 
-                buffer.Append(
-                  (char)Int32.Parse(
+                _ = buffer.Append(
+                  (char)int.Parse(
                     escapedMatch.Groups[1].Value,
                     NumberStyles.HexNumber
                     )
@@ -699,34 +697,33 @@ namespace org.pdfclown.objects
                 escapedMatch = escapedMatch.NextMatch();
             }
             if (index < value.Length)
-            { buffer.Append(value.Substring(index)); }
+            { _ = buffer.Append(value.Substring(index)); }
 
             return buffer.ToString();
         }
 
         public override object Value
         {
-            get
-            { return base.Value; }
+            get => base.Value;
             protected set
             {
                 /*
                   NOTE: Before being accepted, any character sequence identifying a name MUST be normalized
                   escaping reserved characters.
                 */
-                StringBuilder buffer = new StringBuilder();
+                var buffer = new StringBuilder();
                 {
-                    string stringValue = (string)value;
-                    int index = 0;
-                    Match unescapedMatch = UnescapedPattern.Match(stringValue);
+                    var stringValue = (string)value;
+                    var index = 0;
+                    var unescapedMatch = UnescapedPattern.Match(stringValue);
                     while (unescapedMatch.Success)
                     {
-                        int start = unescapedMatch.Index;
+                        var start = unescapedMatch.Index;
                         if (start > index)
-                        { buffer.Append(stringValue.Substring(index, start - index)); }
+                        { _ = buffer.Append(stringValue.Substring(index, start - index)); }
 
-                        buffer.Append(
-                          '#' + String.Format(
+                        _ = buffer.Append(
+                          '#' + string.Format(
                             "{0:x}",
                             (int)unescapedMatch.Groups[0].Value[0]
                             )
@@ -736,9 +733,9 @@ namespace org.pdfclown.objects
                         unescapedMatch = unescapedMatch.NextMatch();
                     }
                     if (index < stringValue.Length)
-                    { buffer.Append(stringValue.Substring(index)); }
+                    { _ = buffer.Append(stringValue.Substring(index)); }
                 }
-                RawValue = buffer.ToString();
+                this.RawValue = buffer.ToString();
             }
         }
 
@@ -746,7 +743,7 @@ namespace org.pdfclown.objects
           IOutputStream stream,
           File context
           )
-        { stream.Write(NamePrefixChunk); stream.Write(RawValue); }
+        { stream.Write(NamePrefixChunk); stream.Write(this.RawValue); }
         #endregion
         #endregion
         #endregion

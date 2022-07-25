@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.navigation.page;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using org.pdfclown.documents.interaction.navigation.page;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Control drawing during a sequence of actions' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,37 +36,27 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class DoTransition
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public DoTransition(
-          Document context,
-          Transition transition
-          ) : base(context, PdfName.Trans)
-        { Transition = transition; }
 
         internal DoTransition(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the transition effect to be used for the update of the display.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public DoTransition(
+          Document context,
+          Transition transition
+          ) : base(context, PdfName.Trans)
+        { this.Transition = transition; }
+
+        /**
+<summary>Gets/Sets the transition effect to be used for the update of the display.</summary>
+*/
         public Transition Transition
         {
-            get
-            { return Transition.Wrap(BaseDataObject[PdfName.Trans]); }
-            set
-            { BaseDataObject[PdfName.Trans] = value.BaseObject; }
+            get => Transition.Wrap(this.BaseDataObject[PdfName.Trans]);
+            set => this.BaseDataObject[PdfName.Trans] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

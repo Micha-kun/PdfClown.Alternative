@@ -157,7 +157,7 @@ namespace org.pdfclown.files
           )
         { return (PdfDictionary)new ImplicitContainer(this, trailer).DataObject; }
 
-        private string TempPath => (this.path == null) ? null : ($"{this.path}.tmp");
+        private string TempPath => (this.path == null) ? null : $"{this.path}.tmp";
 
         public void Dispose(
   )

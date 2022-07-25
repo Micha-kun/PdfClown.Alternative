@@ -23,8 +23,6 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.documents.contents.layers
 {
     /**

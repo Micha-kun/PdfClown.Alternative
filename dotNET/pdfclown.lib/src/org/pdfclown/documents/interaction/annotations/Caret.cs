@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using System.Drawing;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+
+    using System.Collections.Generic;
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>Caret annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It displays a visual symbol that indicates the presence of text edits.</remarks>
@@ -39,44 +38,31 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Caret
       : Markup
     {
-        #region types
-        /**
-          <summary>Symbol type [PDF:1.6:8.4.5].</summary>
-        */
-        public enum SymbolTypeEnum
-        {
-            /**
-              <summary>None.</summary>
-            */
-            None,
-            /**
-              <summary>New paragraph.</summary>
-            */
-            NewParagraph
-        };
-        #endregion
-
-        #region static
-        #region fields
-        private static readonly SymbolTypeEnum DefaultSymbolType = SymbolTypeEnum.None;
 
         private static readonly Dictionary<SymbolTypeEnum, PdfName> SymbolTypeEnumCodes;
-        #endregion
 
-        #region constructors
         static Caret()
         {
             SymbolTypeEnumCodes = new Dictionary<SymbolTypeEnum, PdfName>();
             SymbolTypeEnumCodes[SymbolTypeEnum.NewParagraph] = PdfName.P;
             SymbolTypeEnumCodes[SymbolTypeEnum.None] = PdfName.None;
         }
-        #endregion
 
-        #region interface
-        #region private
+        internal Caret(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
+        public Caret(
+Page page,
+RectangleF box,
+string text
+) : base(page, PdfName.Caret, box, text)
+        { }
+
         /**
-          <summary>Gets the code corresponding to the given value.</summary>
-        */
+<summary>Gets the code corresponding to the given value.</summary>
+*/
         private static PdfName ToCode(
           SymbolTypeEnum value
           )
@@ -89,46 +75,39 @@ namespace org.pdfclown.documents.interaction.annotations
           PdfName value
           )
         {
-            foreach (KeyValuePair<SymbolTypeEnum, PdfName> symbolType in SymbolTypeEnumCodes)
+            foreach (var symbolType in SymbolTypeEnumCodes)
             {
                 if (symbolType.Value.Equals(value))
+                {
                     return symbolType.Key;
+                }
             }
             return DefaultSymbolType;
         }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
-        public Caret(
-          Page page,
-          RectangleF box,
-          string text
-          ) : base(page, PdfName.Caret, box, text)
-        { }
-
-        internal Caret(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the symbol to be used in displaying the annotation.</summary>
-        */
+<summary>Gets/Sets the symbol to be used in displaying the annotation.</summary>
+*/
         public SymbolTypeEnum SymbolType
         {
-            get
-            { return ToSymbolTypeEnum((PdfName)BaseDataObject[PdfName.Sy]); }
-            set
-            { BaseDataObject[PdfName.Sy] = value != DefaultSymbolType ? ToCode(value) : null; }
+            get => ToSymbolTypeEnum((PdfName)this.BaseDataObject[PdfName.Sy]);
+            set => this.BaseDataObject[PdfName.Sy] = (value != DefaultSymbolType) ? ToCode(value) : null;
         }
-        #endregion
-        #endregion
-        #endregion
+        /**
+  <summary>Symbol type [PDF:1.6:8.4.5].</summary>
+*/
+        public enum SymbolTypeEnum
+        {
+            /**
+              <summary>None.</summary>
+            */
+            None,
+            /**
+              <summary>New paragraph.</summary>
+            */
+            NewParagraph
+        };
+
+        private static readonly SymbolTypeEnum DefaultSymbolType = SymbolTypeEnum.None;
     }
 }

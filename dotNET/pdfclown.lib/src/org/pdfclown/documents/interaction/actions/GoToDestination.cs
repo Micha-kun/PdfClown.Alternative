@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Abstract 'go to destination' action.</summary>
     */
@@ -39,40 +39,33 @@ namespace org.pdfclown.documents.interaction.actions
         IGoToAction
       where T : Destination
     {
-        #region dynamic
-        #region constructors
-        protected GoToDestination(
-          Document context,
-          PdfName actionType,
-          T destination
-          ) : base(context, actionType)
-        { Destination = destination; }
 
         protected GoToDestination(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        protected GoToDestination(
+Document context,
+PdfName actionType,
+T destination
+) : base(context, actionType)
+        { this.Destination = destination; }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the destination to jump to.</summary>
-        */
+<summary>Gets/Sets the destination to jump to.</summary>
+*/
         public T Destination
         {
-            get
-            { return Document.ResolveName<T>(BaseDataObject[PdfName.D]); }
+            get => this.Document.ResolveName<T>(this.BaseDataObject[PdfName.D]);
             set
             {
                 if (value == null)
+                {
                     throw new ArgumentException("Destination MUST be defined.");
+                }
 
-                BaseDataObject[PdfName.D] = value.NamedBaseObject;
+                this.BaseDataObject[PdfName.D] = value.NamedBaseObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

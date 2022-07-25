@@ -24,47 +24,29 @@
 */
 
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-
-using System.Reflection;
-using org.pdfclown.documents;
-using org.pdfclown.documents.interchange.metadata;
-using org.pdfclown.files;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+
+    using System.Reflection;
+    using org.pdfclown.documents;
+    using org.pdfclown.documents.interchange.metadata;
+    using org.pdfclown.files;
+
     /**
       <summary>Base high-level representation of a weakly-typed PDF object.</summary>
     */
     public abstract class PdfObjectWrapper
       : IPdfObjectWrapper
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Gets the PDF object backing the specified wrapper.</summary>
-          <param name="wrapper">Object to extract the base from.</param>
-        */
-        public static PdfDirectObject GetBaseObject(
-          PdfObjectWrapper wrapper
-          )
-        { return (wrapper != null ? wrapper.BaseObject : null); }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region fields
         private PdfDirectObject baseObject;
-        #endregion
 
-        #region constructors
         /**
-          <summary>Instantiates an empty wrapper.</summary>
-        */
+  <summary>Instantiates an empty wrapper.</summary>
+*/
         protected PdfObjectWrapper(
           )
         { }
@@ -77,204 +59,7 @@ namespace org.pdfclown.objects
         protected PdfObjectWrapper(
           PdfDirectObject baseObject
           )
-        { BaseObject = baseObject; }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets a clone of the object, registered inside the specified document context using
-          the default object cloner.</summary>
-        */
-        public virtual object Clone(
-          Document context
-          )
-        { return Clone(context.File.Cloner); }
-
-        /**
-          <summary>Gets a clone of the object, registered using the specified object cloner.</summary>
-        */
-        public virtual object Clone(
-          Cloner cloner
-          )
-        {
-            PdfObjectWrapper clone = (PdfObjectWrapper)base.MemberwiseClone();
-            clone.BaseObject = (PdfDirectObject)BaseObject.Clone(cloner);
-            return clone;
-        }
-
-        /**
-          <summary>Gets the indirect object containing the base object.</summary>
-        */
-        public PdfIndirectObject Container
-        {
-            get
-            { return baseObject.Container; }
-        }
-
-        /**
-          <summary>Gets the indirect object containing the base data object.</summary>
-        */
-        public PdfIndirectObject DataContainer
-        {
-            get
-            { return baseObject.DataContainer; }
-        }
-
-        /**
-          <summary>Removes the object from its document context.</summary>
-          <remarks>Only indirect objects can be removed through this method; direct objects have to be
-          explicitly removed from their parent object. The object is no more usable after this method
-          returns.</remarks>
-          <returns>Whether the object was removed from its document context.</returns>
-        */
-        public virtual bool Delete(
-          )
-        { return baseObject.Delete(); }
-
-        /**
-          <summary>Gets the document context.</summary>
-        */
-        public Document Document
-        {
-            get
-            {
-                File file = File;
-                return file != null ? file.Document : null;
-            }
-        }
-
-        public override bool Equals(
-          object other
-          )
-        {
-            return other != null
-              && other.GetType().Equals(GetType())
-              && ((PdfObjectWrapper)other).baseObject.Equals(baseObject);
-        }
-
-        /**
-          <summary>Gets the file context.</summary>
-        */
-        public File File
-        {
-            get
-            { return baseObject.File; }
-        }
-
-        public override int GetHashCode(
-          )
-        { return baseObject.GetHashCode(); }
-
-        public override string ToString(
-          )
-        { return String.Format("{0} {{{1}}}", GetType().Name, BaseObject is PdfReference ? (PdfObject)BaseObject.DataContainer : BaseObject); }
-
-        #region IPdfObjectWrapper
-        public virtual PdfDirectObject BaseObject
-        {
-            get
-            { return baseObject; }
-            protected set
-            { baseObject = value; }
-        }
-        #endregion
-        #endregion
-
-        #region protected
-        /**
-          <summary>Checks whether the specified feature is compatible with the
-            <see cref="Document.Version">document's conformance version</see>.</summary>
-          <param name="feature">Entity whose compatibility has to be checked. Supported types:
-            <list type="bullet">
-              <item><see cref="VersionEnum"/></item>
-              <item><see cref="string">Property name</see> resolvable to an <see cref="MemberInfo">annotated getter method</see></item>
-              <item><see cref="MemberInfo"/></item>
-            </list>
-          </param>
-        */
-        internal void CheckCompatibility(
-          object feature
-          )
-        {
-            /*
-              TODO: Caching!
-            */
-            var compatibilityMode = Document.Configuration.CompatibilityMode;
-            if (compatibilityMode == CompatibilityModeEnum.Passthrough) // No check required.
-                return;
-
-            if (feature is Enum)
-            {
-                Type enumType = feature.GetType();
-                if (enumType.GetCustomAttributes(typeof(FlagsAttribute), true).Length > 0)
-                {
-                    int featureEnumValues = Convert.ToInt32(feature);
-                    List<Enum> featureEnumItems = new List<Enum>();
-                    foreach (int enumValue in Enum.GetValues(enumType))
-                    {
-                        if ((featureEnumValues & enumValue) == enumValue)
-                        { featureEnumItems.Add((Enum)Enum.ToObject(enumType, enumValue)); }
-                    }
-                    if (featureEnumItems.Count > 1)
-                    { feature = featureEnumItems; }
-                }
-            }
-            if (feature is ICollection)
-            {
-                foreach (Object featureItem in (ICollection)feature)
-                { CheckCompatibility(featureItem); }
-                return;
-            }
-
-            Version featureVersion;
-            if (feature is VersionEnum) // Explicit version.
-            { featureVersion = ((VersionEnum)feature).GetVersion(); }
-            else // Implicit version (element annotation).
-            {
-                PDF annotation;
-                {
-                    if (feature is string) // Property name.
-                    { feature = GetType().GetProperty((string)feature); }
-                    else if (feature is Enum) // Enum constant.
-                    { feature = feature.GetType().GetField(feature.ToString()); }
-                    if (!(feature is MemberInfo))
-                        throw new ArgumentException("Feature type '" + feature.GetType().Name + "' not supported.");
-
-                    while (true)
-                    {
-                        object[] annotations = ((MemberInfo)feature).GetCustomAttributes(typeof(PDF), true);
-                        if (annotations.Length > 0)
-                        {
-                            annotation = (PDF)annotations[0];
-                            break;
-                        }
-
-                        feature = ((MemberInfo)feature).DeclaringType;
-                        if (feature == null) // Element hierarchy walk complete.
-                            return; // NOTE: As no annotation is available, we assume the feature has no specific compatibility requirements.
-                    }
-                }
-                featureVersion = annotation.Value.GetVersion();
-            }
-            // Is the feature version compatible?
-            if (Document.Version.CompareTo(featureVersion) >= 0)
-                return;
-
-            // The feature version is NOT compatible: how to solve the conflict?
-            switch (compatibilityMode)
-            {
-                case CompatibilityModeEnum.Loose: // Accepts the feature version.
-                                                  // Synchronize the document version!
-                    Document.Version = featureVersion;
-                    break;
-                case CompatibilityModeEnum.Strict: // Refuses the feature version.
-                                                   // Throw a violation to the document version!
-                    throw new Exception("Incompatible feature (version " + featureVersion + " was required against document version " + Document.Version);
-                default:
-                    throw new NotImplementedException("Unhandled compatibility mode: " + compatibilityMode);
-            }
-        }
+        { this.BaseObject = baseObject; }
 
         /**
           <summary>Retrieves the name possibly associated to this object, walking through the document's
@@ -283,9 +68,11 @@ namespace org.pdfclown.objects
         protected virtual PdfString RetrieveName(
           )
         {
-            object names = Document.Names.Get(GetType());
+            object names = this.Document.Names.Get(this.GetType());
             if (names == null)
+            {
                 return null;
+            }
 
             /*
               NOTE: Due to variance issues, we have to go the reflection way (gosh!).
@@ -300,12 +87,199 @@ namespace org.pdfclown.objects
         protected PdfDirectObject RetrieveNamedBaseObject(
           )
         {
-            PdfString name = RetrieveName();
-            return name != null ? name : BaseObject;
+            var name = this.RetrieveName();
+            return (name != null) ? name : this.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+  <summary>Checks whether the specified feature is compatible with the
+    <see cref="Document.Version">document's conformance version</see>.</summary>
+  <param name="feature">Entity whose compatibility has to be checked. Supported types:
+    <list type="bullet">
+      <item><see cref="VersionEnum"/></item>
+      <item><see cref="string">Property name</see> resolvable to an <see cref="MemberInfo">annotated getter method</see></item>
+      <item><see cref="MemberInfo"/></item>
+    </list>
+  </param>
+*/
+        internal void CheckCompatibility(
+          object feature
+          )
+        {
+            /*
+              TODO: Caching!
+            */
+            var compatibilityMode = this.Document.Configuration.CompatibilityMode;
+            if (compatibilityMode == CompatibilityModeEnum.Passthrough) // No check required.
+            {
+                return;
+            }
+
+            if (feature is Enum)
+            {
+                var enumType = feature.GetType();
+                if (enumType.GetCustomAttributes(typeof(FlagsAttribute), true).Length > 0)
+                {
+                    var featureEnumValues = Convert.ToInt32(feature);
+                    var featureEnumItems = new List<Enum>();
+                    foreach (int enumValue in Enum.GetValues(enumType))
+                    {
+                        if ((featureEnumValues & enumValue) == enumValue)
+                        { featureEnumItems.Add((Enum)Enum.ToObject(enumType, enumValue)); }
+                    }
+                    if (featureEnumItems.Count > 1)
+                    { feature = featureEnumItems; }
+                }
+            }
+            if (feature is ICollection)
+            {
+                foreach (var featureItem in (ICollection)feature)
+                { this.CheckCompatibility(featureItem); }
+                return;
+            }
+
+            pdfclown.Version featureVersion;
+            if (feature is VersionEnum) // Explicit version.
+            { featureVersion = ((VersionEnum)feature).GetVersion(); }
+            else // Implicit version (element annotation).
+            {
+                PDF annotation;
+                if (feature is string) // Property name.
+                { feature = this.GetType().GetProperty((string)feature); }
+                else if (feature is Enum) // Enum constant.
+                { feature = feature.GetType().GetField(feature.ToString()); }
+                if (!(feature is MemberInfo))
+                {
+                    throw new ArgumentException($"Feature type '{feature.GetType().Name}' not supported.");
+                }
+
+                while (true)
+                {
+                    var annotations = ((MemberInfo)feature).GetCustomAttributes(typeof(PDF), true);
+                    if (annotations.Length > 0)
+                    {
+                        annotation = (PDF)annotations[0];
+                        break;
+                    }
+
+                    feature = ((MemberInfo)feature).DeclaringType;
+                    if (feature == null) // Element hierarchy walk complete.
+                    {
+                        return; // NOTE: As no annotation is available, we assume the feature has no specific compatibility requirements.
+                    }
+                }
+                featureVersion = annotation.Value.GetVersion();
+            }
+            // Is the feature version compatible?
+            if (this.Document.Version.CompareTo(featureVersion) >= 0)
+            {
+                return;
+            }
+
+            // The feature version is NOT compatible: how to solve the conflict?
+            switch (compatibilityMode)
+            {
+                case CompatibilityModeEnum.Loose: // Accepts the feature version.
+                                                  // Synchronize the document version!
+                    this.Document.Version = featureVersion;
+                    break;
+                case CompatibilityModeEnum.Strict: // Refuses the feature version.
+                                                   // Throw a violation to the document version!
+                    throw new Exception($"Incompatible feature (version {featureVersion} was required against document version {this.Document.Version}");
+                default:
+                    throw new NotImplementedException($"Unhandled compatibility mode: {compatibilityMode}");
+            }
+        }
+
+        /**
+<summary>Gets a clone of the object, registered inside the specified document context using
+the default object cloner.</summary>
+*/
+        public virtual object Clone(
+          Document context
+          )
+        { return this.Clone(context.File.Cloner); }
+
+        /**
+          <summary>Gets a clone of the object, registered using the specified object cloner.</summary>
+        */
+        public virtual object Clone(
+          Cloner cloner
+          )
+        {
+            var clone = (PdfObjectWrapper)base.MemberwiseClone();
+            clone.BaseObject = (PdfDirectObject)this.BaseObject.Clone(cloner);
+            return clone;
+        }
+
+        /**
+          <summary>Removes the object from its document context.</summary>
+          <remarks>Only indirect objects can be removed through this method; direct objects have to be
+          explicitly removed from their parent object. The object is no more usable after this method
+          returns.</remarks>
+          <returns>Whether the object was removed from its document context.</returns>
+        */
+        public virtual bool Delete(
+          )
+        { return this.baseObject.Delete(); }
+
+        public override bool Equals(
+          object other
+          )
+        {
+            return (other != null)
+              && other.GetType().Equals(this.GetType())
+              && ((PdfObjectWrapper)other).baseObject.Equals(this.baseObject);
+        }
+        /**
+<summary>Gets the PDF object backing the specified wrapper.</summary>
+<param name="wrapper">Object to extract the base from.</param>
+*/
+        public static PdfDirectObject GetBaseObject(
+          PdfObjectWrapper wrapper
+          )
+        { return (wrapper != null) ? wrapper.BaseObject : null; }
+
+        public override int GetHashCode(
+          )
+        { return this.baseObject.GetHashCode(); }
+
+        public override string ToString(
+          )
+        { return $"{this.GetType().Name} {{{((this.BaseObject is PdfReference) ? ((PdfObject)this.BaseObject.DataContainer) : this.BaseObject)}}}"; }
+
+        public virtual PdfDirectObject BaseObject
+        {
+            get => this.baseObject;
+            protected set => this.baseObject = value;
+        }
+
+        /**
+          <summary>Gets the indirect object containing the base object.</summary>
+        */
+        public PdfIndirectObject Container => this.baseObject.Container;
+
+        /**
+          <summary>Gets the indirect object containing the base data object.</summary>
+        */
+        public PdfIndirectObject DataContainer => this.baseObject.DataContainer;
+
+        /**
+          <summary>Gets the document context.</summary>
+        */
+        public Document Document
+        {
+            get
+            {
+                var file = this.File;
+                return (file != null) ? file.Document : null;
+            }
+        }
+
+        /**
+          <summary>Gets the file context.</summary>
+        */
+        public File File => this.baseObject.File;
     }
 
     /**
@@ -333,11 +307,9 @@ namespace org.pdfclown.objects
       : PdfObjectWrapper
       where TDataObject : PdfDataObject
     {
-        #region dynamic
-        #region constructors
         /**
-          <summary>Instantiates an empty wrapper.</summary>
-        */
+<summary>Instantiates an empty wrapper.</summary>
+*/
         protected PdfObjectWrapper(
           )
         { }
@@ -363,7 +335,7 @@ namespace org.pdfclown.objects
         protected PdfObjectWrapper(
           Document context,
           TDataObject baseDataObject
-          ) : this(context != null ? context.File : null, baseDataObject)
+          ) : this((context != null) ? context.File : null, baseDataObject)
         { }
 
         /**
@@ -377,19 +349,27 @@ namespace org.pdfclown.objects
         protected PdfObjectWrapper(
           File context,
           TDataObject baseDataObject
-          ) : this(context != null ? context.Register(baseDataObject) : (PdfDirectObject)(PdfDataObject)baseDataObject)
+          ) : this((context != null) ? context.Register(baseDataObject) : ((PdfDirectObject)(PdfDataObject)baseDataObject))
         { }
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets the underlying data object.</summary>
-        */
-        public TDataObject BaseDataObject
+        private PdfDictionary Dictionary
         {
             get
-            { return (TDataObject)PdfObject.Resolve(BaseObject); }
+            {
+                var baseDataObject = this.BaseDataObject;
+                if (baseDataObject is PdfDictionary)
+                {
+                    return baseDataObject as PdfDictionary;
+                }
+                else if (baseDataObject is PdfStream)
+                {
+                    return (baseDataObject as PdfStream).Header;
+                }
+                else
+                {
+                    return null;
+                }
+            }
         }
 
         /**
@@ -397,7 +377,12 @@ namespace org.pdfclown.objects
         */
         public bool Exists(
           )
-        { return !BaseDataObject.Virtual; }
+        { return !this.BaseDataObject.Virtual; }
+
+        /**
+<summary>Gets the underlying data object.</summary>
+*/
+        public TDataObject BaseDataObject => (TDataObject)PdfObject.Resolve(this.BaseObject);
 
         /**
           <summary>Gets/Sets the metadata associated to this object.</summary>
@@ -410,39 +395,24 @@ namespace org.pdfclown.objects
         {
             get
             {
-                PdfDictionary dictionary = Dictionary;
+                var dictionary = this.Dictionary;
                 if (dictionary == null)
+                {
                     return null;
+                }
 
                 return new Metadata(dictionary.Get<PdfStream>(PdfName.Metadata, false));
             }
             set
             {
-                PdfDictionary dictionary = Dictionary;
+                var dictionary = this.Dictionary;
                 if (dictionary == null)
+                {
                     throw new NotSupportedException("Metadata can be attached only to PdfDictionary/PdfStream base data objects.");
+                }
 
                 dictionary[PdfName.Metadata] = PdfObjectWrapper.GetBaseObject(value);
             }
         }
-        #endregion
-
-        #region private
-        private PdfDictionary Dictionary
-        {
-            get
-            {
-                TDataObject baseDataObject = BaseDataObject;
-                if (baseDataObject is PdfDictionary)
-                    return baseDataObject as PdfDictionary;
-                else if (baseDataObject is PdfStream)
-                    return (baseDataObject as PdfStream).Header;
-                else
-                    return null;
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

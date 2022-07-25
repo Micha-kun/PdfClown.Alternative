@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-
-using System.Collections.Generic;
-using System.IO;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System;
+
+    using System.Collections.Generic;
+    using System.IO;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Show one or more text strings, allowing individual glyph positioning'
       operation [PDF:1.6:5.3.2].</summary>
@@ -39,49 +39,39 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class ShowAdjustedText
       : ShowText
     {
-        #region static
-        #region fields
         public static readonly string OperatorKeyword = "TJ";
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        /**
-          <param name="value">Each element can be either a byte array (encoded text) or a number.
-            If the element is a byte array (encoded text), this operator shows the text glyphs.
-            If it is a number (glyph adjustment), the operator adjusts the next glyph position by that amount.</param>
-        */
-        public ShowAdjustedText(
-          IList<object> value
-          ) : base(OperatorKeyword, (PdfDirectObject)new PdfArray())
-        { Value = value; }
 
         internal ShowAdjustedText(
           IList<PdfDirectObject> operands
           ) : base(OperatorKeyword, operands)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        /**
+<param name="value">Each element can be either a byte array (encoded text) or a number.
+If the element is a byte array (encoded text), this operator shows the text glyphs.
+If it is a number (glyph adjustment), the operator adjusts the next glyph position by that amount.</param>
+*/
+        public ShowAdjustedText(
+          IList<object> value
+          ) : base(OperatorKeyword, (PdfDirectObject)new PdfArray())
+        { this.Value = value; }
+
         public override byte[] Text
         {
             get
             {
-                MemoryStream textStream = new MemoryStream();
-                foreach (PdfDirectObject element in ((PdfArray)operands[0]))
+                var textStream = new MemoryStream();
+                foreach (var element in (PdfArray)this.operands[0])
                 {
                     if (element is PdfString)
                     {
-                        byte[] elementValue = ((PdfString)element).RawValue;
+                        var elementValue = ((PdfString)element).RawValue;
                         textStream.Write(elementValue, 0, elementValue.Length);
                     }
                 }
                 return textStream.ToArray();
             }
-            set
-            { Value = new List<object>() { (object)value }; }
+            set => this.Value = new List<object> { value };
         }
 
         public override IList<object> Value
@@ -89,7 +79,7 @@ namespace org.pdfclown.documents.contents.objects
             get
             {
                 var value = new List<object>();
-                foreach (PdfDirectObject element in ((PdfArray)operands[0]))
+                foreach (var element in (PdfArray)this.operands[0])
                 {
                     //TODO:horrible workaround to the lack of generic covariance...
                     if (element is IPdfNumber)
@@ -105,16 +95,18 @@ namespace org.pdfclown.documents.contents.objects
                           );
                     }
                     else
-                        throw new NotSupportedException("Element type " + element.GetType().Name + " not supported.");
+                    {
+                        throw new NotSupportedException($"Element type {element.GetType().Name} not supported.");
+                    }
                 }
                 return value;
             }
             set
             {
-                PdfArray elements = (PdfArray)operands[0];
+                var elements = (PdfArray)this.operands[0];
                 elements.Clear();
-                bool textItemExpected = true;
-                foreach (object valueItem in value)
+                var textItemExpected = true;
+                foreach (var valueItem in value)
                 {
                     PdfDirectObject element;
                     if (textItemExpected)
@@ -127,8 +119,5 @@ namespace org.pdfclown.documents.contents.objects
                 }
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

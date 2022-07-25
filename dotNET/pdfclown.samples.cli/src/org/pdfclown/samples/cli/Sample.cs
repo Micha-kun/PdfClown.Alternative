@@ -1,49 +1,53 @@
-
-using System;
-using System.Collections.Generic;
-using System.IO;
-
-using org.pdfclown.documents;
-using org.pdfclown.documents.interchange.metadata;
-using files = org.pdfclown.files;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+
+    using org.pdfclown.documents;
+    using files = org.pdfclown.files;
+
     /**
       <summary>Abstract sample.</summary>
     */
     public abstract class Sample
     {
-        #region dynamic
-        #region fields
         private string inputPath;
         private string outputPath;
 
         private bool quit;
-        #endregion
 
-        #region interface
-        #region public
-        /**
-          <summary>Gets whether the sample was exited before its completion.</summary>
-        */
-        public bool IsQuit(
-          )
-        { return quit; }
+        private void ApplyDocumentSettings(
+  Document document,
+  string title,
+  string subject,
+  string keywords
+  )
+        {
+            if (title == null)
+            {
+                return;
+            }
 
-        /**
-          <summary>Executes the sample.</summary>
-          <returns>Whether the sample has been completed.</returns>
-        */
-        public abstract void Run(
-          );
-        #endregion
+            // Viewer preferences.
+            var view = document.ViewerPreferences;
+            view.DocTitleDisplayed = true;
 
-        #region protected
+            // Document metadata.
+            var info = document.Information;
+            info.Author = "Stefano";
+            info.CreationDate = DateTime.Now;
+            info.Creator = this.GetType().FullName;
+            info.Title = $"PDF Clown - {title} sample";
+            info.Subject = $"Sample about {subject} using PDF Clown";
+            info.Keywords = keywords;
+        }
+
         protected string GetIndentation(
-          int level
-          )
-        { return new String(' ', level); }
+  int level
+  )
+        { return new string(' ', level); }
 
         /**
           <summary>Gets the path used to serialize output files.</summary>
@@ -52,7 +56,7 @@ namespace org.pdfclown.samples.cli
         protected string GetOutputPath(
           string fileName
           )
-        { return outputPath + (fileName != null ? Path.DirectorySeparatorChar + fileName : string.Empty); }
+        { return $"{this.outputPath}{((fileName != null) ? $"{Path.DirectorySeparatorChar}{fileName}" : string.Empty)}"; }
 
         /**
           <summary>Gets the path to a sample resource.</summary>
@@ -61,16 +65,7 @@ namespace org.pdfclown.samples.cli
         protected string GetResourcePath(
           string resourceName
           )
-        { return inputPath + Path.DirectorySeparatorChar + resourceName; }
-
-        /**
-          <summary>Gets the path used to serialize output files.</summary>
-        */
-        protected string OutputPath
-        {
-            get
-            { return GetOutputPath(null); }
-        }
+        { return $"{this.inputPath}{Path.DirectorySeparatorChar}{resourceName}"; }
 
         /**
           <summary>Prompts a message to the user.</summary>
@@ -107,11 +102,10 @@ namespace org.pdfclown.samples.cli
           )
         {
             Console.WriteLine();
-            foreach (KeyValuePair<string, string> option in options)
+            foreach (var option in options)
             {
                 Console.WriteLine(
-                    (option.Key.Equals(string.Empty) ? "ENTER" : "[" + option.Key + "]")
-                      + " " + option.Value
+                    $"{(option.Key.Equals(string.Empty) ? "ENTER" : $"[{option.Key}]")} {option.Value}"
                     );
             }
             Console.Write("Please select: ");
@@ -122,22 +116,22 @@ namespace org.pdfclown.samples.cli
           string inputDescription
           )
         {
-            string resourcePath = Path.GetFullPath(inputPath + "pdf");
-            Console.WriteLine("\nAvailable PDF files (" + resourcePath + "):");
+            var resourcePath = Path.GetFullPath($"{this.inputPath}pdf");
+            Console.WriteLine($"\nAvailable PDF files ({resourcePath}):");
 
             // Get the list of available PDF files!
-            string[] filePaths = Directory.GetFiles(resourcePath + Path.DirectorySeparatorChar, "*.pdf");
+            var filePaths = Directory.GetFiles($"{resourcePath}{Path.DirectorySeparatorChar}", "*.pdf");
 
             // Display files!
-            for (int index = 0; index < filePaths.Length; index++)
-            { Console.WriteLine("[{0}] {1}", index, System.IO.Path.GetFileName(filePaths[index])); }
+            for (var index = 0; index < filePaths.Length; index++)
+            { Console.WriteLine($"[{index}] {System.IO.Path.GetFileName(filePaths[index])}"); }
 
             while (true)
             {
                 // Get the user's choice!
-                Console.Write(inputDescription + ": ");
+                Console.Write($"{inputDescription}: ");
                 try
-                { return filePaths[Int32.Parse(Console.ReadLine())]; }
+                { return filePaths[int.Parse(Console.ReadLine())]; }
                 catch
                 {/* NOOP */}
             }
@@ -154,17 +148,19 @@ namespace org.pdfclown.samples.cli
           bool skip
           )
         {
-            int pageIndex = page.Index;
-            if (pageIndex > 0 && !skip)
+            var pageIndex = page.Index;
+            if ((pageIndex > 0) && !skip)
             {
                 IDictionary<string, string> options = new Dictionary<string, string>();
                 options[string.Empty] = "Scan next page";
                 options["Q"] = "End scanning";
-                if (!PromptChoice(options).Equals(string.Empty))
+                if (!this.PromptChoice(options).Equals(string.Empty))
+                {
                     return false;
+                }
             }
 
-            Console.WriteLine("\nScanning page " + (pageIndex + 1) + "...\n");
+            Console.WriteLine($"\nScanning page {pageIndex + 1}...\n");
             return true;
         }
 
@@ -178,7 +174,7 @@ namespace org.pdfclown.samples.cli
           string inputDescription,
           int pageCount
           )
-        { return PromptPageChoice(inputDescription, 0, pageCount); }
+        { return this.PromptPageChoice(inputDescription, 0, pageCount); }
 
         /**
           <summary>Prompts the user for a page index to select.</summary>
@@ -195,7 +191,7 @@ namespace org.pdfclown.samples.cli
         {
             int pageIndex;
             try
-            { pageIndex = Int32.Parse(PromptChoice(inputDescription + " [" + (startIndex + 1) + "-" + endIndex + "]: ")) - 1; }
+            { pageIndex = int.Parse(this.PromptChoice($"{inputDescription} [{startIndex + 1}-{endIndex}]: ")) - 1; }
             catch
             { pageIndex = startIndex; }
             if (pageIndex < startIndex)
@@ -211,7 +207,7 @@ namespace org.pdfclown.samples.cli
         */
         protected void Quit(
           )
-        { quit = true; }
+        { this.quit = true; }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -221,7 +217,7 @@ namespace org.pdfclown.samples.cli
         protected string Serialize(
           files::File file
           )
-        { return Serialize(file, null, null, null); }
+        { return this.Serialize(file, null, null, null); }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -233,7 +229,7 @@ namespace org.pdfclown.samples.cli
           files::File file,
           files::SerializationModeEnum? serializationMode
           )
-        { return Serialize(file, serializationMode, null, null, null); }
+        { return this.Serialize(file, serializationMode, null, null, null); }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -245,7 +241,7 @@ namespace org.pdfclown.samples.cli
           files::File file,
           string fileName
           )
-        { return Serialize(file, fileName, null, null); }
+        { return this.Serialize(file, fileName, null, null); }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -259,7 +255,7 @@ namespace org.pdfclown.samples.cli
           string fileName,
           files::SerializationModeEnum? serializationMode
           )
-        { return Serialize(file, fileName, serializationMode, null, null, null); }
+        { return this.Serialize(file, fileName, serializationMode, null, null, null); }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -275,7 +271,7 @@ namespace org.pdfclown.samples.cli
           string subject,
           string keywords
           )
-        { return Serialize(file, null, title, subject, keywords); }
+        { return this.Serialize(file, null, title, subject, keywords); }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -293,7 +289,7 @@ namespace org.pdfclown.samples.cli
           string subject,
           string keywords
           )
-        { return Serialize(file, GetType().Name, serializationMode, title, subject, keywords); }
+        { return this.Serialize(file, this.GetType().Name, serializationMode, title, subject, keywords); }
 
         /**
           <summary>Serializes the given PDF Clown file object.</summary>
@@ -314,7 +310,7 @@ namespace org.pdfclown.samples.cli
           string keywords
           )
         {
-            ApplyDocumentSettings(file.Document, title, subject, keywords);
+            this.ApplyDocumentSettings(file.Document, title, subject, keywords);
 
             Console.WriteLine();
 
@@ -328,13 +324,13 @@ namespace org.pdfclown.samples.cli
                     Console.WriteLine("[1] Incremental update");
                     Console.Write("Please select a serialization mode: ");
                     try
-                    { serializationMode = (files::SerializationModeEnum)Int32.Parse(Console.ReadLine()); }
+                    { serializationMode = (files::SerializationModeEnum)int.Parse(Console.ReadLine()); }
                     catch
                     { serializationMode = files::SerializationModeEnum.Standard; }
                 }
             }
 
-            string outputFilePath = outputPath + fileName + "." + serializationMode + ".pdf";
+            var outputFilePath = $"{this.outputPath}{fileName}.{serializationMode}.pdf";
 
             // Save the file!
             /*
@@ -344,52 +340,40 @@ namespace org.pdfclown.samples.cli
             { file.Save(outputFilePath, serializationMode.Value); }
             catch (Exception e)
             {
-                Console.WriteLine("File writing failed: " + e.Message);
+                Console.WriteLine($"File writing failed: {e.Message}");
                 Console.WriteLine(e.StackTrace);
             }
-            Console.WriteLine("\nOutput: " + outputFilePath);
+            Console.WriteLine($"\nOutput: {outputFilePath}");
 
             return outputFilePath;
         }
-        #endregion
 
-        #region internal
+        /**
+          <summary>Gets the path used to serialize output files.</summary>
+        */
+        protected string OutputPath => this.GetOutputPath(null);
+
         internal void Initialize(
-          string inputPath,
-          string outputPath
-          )
+  string inputPath,
+  string outputPath
+  )
         {
             this.inputPath = inputPath;
             this.outputPath = outputPath;
         }
-        #endregion
 
-        #region private
-        private void ApplyDocumentSettings(
-          Document document,
-          string title,
-          string subject,
-          string keywords
+        /**
+<summary>Gets whether the sample was exited before its completion.</summary>
+*/
+        public bool IsQuit(
           )
-        {
-            if (title == null)
-                return;
+        { return this.quit; }
 
-            // Viewer preferences.
-            var view = document.ViewerPreferences;
-            view.DocTitleDisplayed = true;
-
-            // Document metadata.
-            Information info = document.Information;
-            info.Author = "Stefano";
-            info.CreationDate = DateTime.Now;
-            info.Creator = GetType().FullName;
-            info.Title = "PDF Clown - " + title + " sample";
-            info.Subject = "Sample about " + subject + " using PDF Clown";
-            info.Keywords = keywords;
-        }
-        #endregion
-        #endregion
-        #endregion
+        /**
+          <summary>Executes the sample.</summary>
+          <returns>Whether the sample has been completed.</returns>
+        */
+        public abstract void Run(
+          );
     }
 }

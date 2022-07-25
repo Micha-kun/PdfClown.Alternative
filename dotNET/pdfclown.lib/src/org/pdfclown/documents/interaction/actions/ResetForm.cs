@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Reset selected interactive form fields to their default values' action
       [PDF:1.6:8.6.4].</summary>
@@ -37,24 +36,18 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class ResetForm
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public ResetForm(
-          Document context
-          ) : base(context, PdfName.ResetForm)
-        { }
 
         internal ResetForm(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public ResetForm(
+          Document context
+          ) : base(context, PdfName.ResetForm)
+        { }
 
-        #region interface
-        #endregion
-        #endregion
     }
 }

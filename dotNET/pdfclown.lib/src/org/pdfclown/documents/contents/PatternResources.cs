@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.contents.colorSpaces;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.documents.contents.colorSpaces;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Pattern resources collection [PDF:1.6:3.7.2].</summary>
     */
@@ -37,27 +36,19 @@ namespace org.pdfclown.documents.contents
     public sealed class PatternResources
       : ResourceItems<Pattern>
     {
-        #region dynamic
-        #region constructors
-        public PatternResources(
-          Document context
-          ) : base(context)
-        { }
 
         internal PatternResources(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public PatternResources(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override Pattern Wrap(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return Pattern.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

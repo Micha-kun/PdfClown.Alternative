@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using org.pdfclown.tokens;
+
     /**
       <summary>Visitor interface.</summary>
       <remarks>Implementations are expected to be functional (traversal results are propagated through

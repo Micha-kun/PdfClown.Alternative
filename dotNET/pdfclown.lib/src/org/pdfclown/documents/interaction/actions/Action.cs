@@ -23,12 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-
-using system = System;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>Action to be performed by the viewer application [PDF:1.6:8.5].</summary>
     */
@@ -36,88 +34,15 @@ namespace org.pdfclown.documents.interaction.actions
     public class Action
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Wraps an action base object into an action object.</summary>
-          <param name="baseObject">Action base object.</param>
-          <returns>Action object associated to the base object.</returns>
-        */
-        public static Action Wrap(
+
+        protected Action(
           PdfDirectObject baseObject
-          )
-        {
-            if (baseObject == null)
-                return null;
+          ) : base(baseObject)
+        { }
 
-            PdfDictionary dataObject = (PdfDictionary)baseObject.Resolve();
-            PdfName actionType = (PdfName)dataObject[PdfName.S];
-            if (actionType == null
-              || (dataObject.ContainsKey(PdfName.Type)
-                  && !dataObject[PdfName.Type].Equals(PdfName.Action)))
-                return null;
-
-            if (actionType.Equals(PdfName.GoTo))
-                return new GoToLocal(baseObject);
-            else if (actionType.Equals(PdfName.GoToR))
-                return new GoToRemote(baseObject);
-            else if (actionType.Equals(PdfName.GoToE))
-                return new GoToEmbedded(baseObject);
-            else if (actionType.Equals(PdfName.Launch))
-                return new Launch(baseObject);
-            else if (actionType.Equals(PdfName.Thread))
-                return new GoToThread(baseObject);
-            else if (actionType.Equals(PdfName.URI))
-                return new GoToURI(baseObject);
-            else if (actionType.Equals(PdfName.Sound))
-                return new PlaySound(baseObject);
-            else if (actionType.Equals(PdfName.Movie))
-                return new PlayMovie(baseObject);
-            else if (actionType.Equals(PdfName.Hide))
-                return new ToggleVisibility(baseObject);
-            else if (actionType.Equals(PdfName.Named))
-            {
-                PdfName actionName = (PdfName)dataObject[PdfName.N];
-                if (actionName.Equals(PdfName.NextPage))
-                    return new GoToNextPage(baseObject);
-                else if (actionName.Equals(PdfName.PrevPage))
-                    return new GoToPreviousPage(baseObject);
-                else if (actionName.Equals(PdfName.FirstPage))
-                    return new GoToFirstPage(baseObject);
-                else if (actionName.Equals(PdfName.LastPage))
-                    return new GoToLastPage(baseObject);
-                else // Custom named action.
-                    return new NamedAction(baseObject);
-            }
-            else if (actionType.Equals(PdfName.SubmitForm))
-                return new SubmitForm(baseObject);
-            else if (actionType.Equals(PdfName.ResetForm))
-                return new ResetForm(baseObject);
-            else if (actionType.Equals(PdfName.ImportData))
-                return new ImportData(baseObject);
-            else if (actionType.Equals(PdfName.JavaScript))
-                return new JavaScript(baseObject);
-            else if (actionType.Equals(PdfName.SetOCGState))
-                return new SetLayerState(baseObject);
-            else if (actionType.Equals(PdfName.Rendition))
-                return new Render(baseObject);
-            else if (actionType.Equals(PdfName.Trans))
-                return new DoTransition(baseObject);
-            else if (actionType.Equals(PdfName.GoTo3DView))
-                return new GoTo3dView(baseObject);
-            else // Custom action.
-                return new Action(baseObject);
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
         protected Action(
           Document context,
           PdfName actionType
@@ -137,31 +62,139 @@ namespace org.pdfclown.documents.interaction.actions
               )
             )
         { }
-
-        protected Action(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the actions to be performed after the current one.</summary>
-        */
+<summary>Wraps an action base object into an action object.</summary>
+<param name="baseObject">Action base object.</param>
+<returns>Action object associated to the base object.</returns>
+*/
+        public static Action Wrap(
+          PdfDirectObject baseObject
+          )
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
+
+            var dataObject = (PdfDictionary)baseObject.Resolve();
+            var actionType = (PdfName)dataObject[PdfName.S];
+            if ((actionType == null)
+              || (dataObject.ContainsKey(PdfName.Type)
+                  && !dataObject[PdfName.Type].Equals(PdfName.Action)))
+            {
+                return null;
+            }
+
+            if (actionType.Equals(PdfName.GoTo))
+            {
+                return new GoToLocal(baseObject);
+            }
+            else if (actionType.Equals(PdfName.GoToR))
+            {
+                return new GoToRemote(baseObject);
+            }
+            else if (actionType.Equals(PdfName.GoToE))
+            {
+                return new GoToEmbedded(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Launch))
+            {
+                return new Launch(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Thread))
+            {
+                return new GoToThread(baseObject);
+            }
+            else if (actionType.Equals(PdfName.URI))
+            {
+                return new GoToURI(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Sound))
+            {
+                return new PlaySound(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Movie))
+            {
+                return new PlayMovie(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Hide))
+            {
+                return new ToggleVisibility(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Named))
+            {
+                var actionName = (PdfName)dataObject[PdfName.N];
+                if (actionName.Equals(PdfName.NextPage))
+                {
+                    return new GoToNextPage(baseObject);
+                }
+                else if (actionName.Equals(PdfName.PrevPage))
+                {
+                    return new GoToPreviousPage(baseObject);
+                }
+                else if (actionName.Equals(PdfName.FirstPage))
+                {
+                    return new GoToFirstPage(baseObject);
+                }
+                else if (actionName.Equals(PdfName.LastPage))
+                {
+                    return new GoToLastPage(baseObject);
+                }
+                else // Custom named action.
+                {
+                    return new NamedAction(baseObject);
+                }
+            }
+            else if (actionType.Equals(PdfName.SubmitForm))
+            {
+                return new SubmitForm(baseObject);
+            }
+            else if (actionType.Equals(PdfName.ResetForm))
+            {
+                return new ResetForm(baseObject);
+            }
+            else if (actionType.Equals(PdfName.ImportData))
+            {
+                return new ImportData(baseObject);
+            }
+            else if (actionType.Equals(PdfName.JavaScript))
+            {
+                return new JavaScript(baseObject);
+            }
+            else if (actionType.Equals(PdfName.SetOCGState))
+            {
+                return new SetLayerState(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Rendition))
+            {
+                return new Render(baseObject);
+            }
+            else if (actionType.Equals(PdfName.Trans))
+            {
+                return new DoTransition(baseObject);
+            }
+            else if (actionType.Equals(PdfName.GoTo3DView))
+            {
+                return new GoTo3dView(baseObject);
+            }
+            else // Custom action.
+            {
+                return new Action(baseObject);
+            }
+        }
+
+        /**
+<summary>Gets/Sets the actions to be performed after the current one.</summary>
+*/
         [PDF(VersionEnum.PDF12)]
         public ChainedActions Actions
         {
             get
             {
-                PdfDirectObject nextObject = BaseDataObject[PdfName.Next];
-                return nextObject != null ? new ChainedActions(nextObject, this) : null;
+                var nextObject = this.BaseDataObject[PdfName.Next];
+                return (nextObject != null) ? new ChainedActions(nextObject, this) : null;
             }
-            set
-            { BaseDataObject[PdfName.Next] = value.BaseObject; }
+            set => this.BaseDataObject[PdfName.Next] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

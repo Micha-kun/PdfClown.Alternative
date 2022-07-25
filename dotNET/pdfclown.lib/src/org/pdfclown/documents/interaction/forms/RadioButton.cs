@@ -23,14 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+
     /**
       <summary>Radio button field [PDF:1.6:8.6.3].</summary>
     */
@@ -38,56 +37,48 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class RadioButton
       : ButtonField
     {
-        #region dynamic
-        #region constructors
+
+        internal RadioButton(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new radiobutton within the given document context.</summary>
-          <param name="name"></param>
-          <param name="widgets">Dual-state widgets representing the available options.</param>
-          <param name="value"></param>
-        */
+<summary>Creates a new radiobutton within the given document context.</summary>
+<param name="name"></param>
+<param name="widgets">Dual-state widgets representing the available options.</param>
+<param name="value"></param>
+*/
         public RadioButton(
           string name,
           Widget[] widgets,
           string value
           ) : base(name, widgets[0])
         {
-            Flags = EnumUtils.Mask(
-              EnumUtils.Mask(Flags, FlagsEnum.Radio, true),
+            this.Flags = EnumUtils.Mask(
+              EnumUtils.Mask(this.Flags, FlagsEnum.Radio, true),
               FlagsEnum.NoToggleToOff,
               true
               );
 
-            FieldWidgets fieldWidgets = Widgets;
+            var fieldWidgets = this.Widgets;
             for (int index = 1, length = widgets.Length; index < length; index++)
             { fieldWidgets.Add(widgets[index]); }
 
-            Value = value;
+            this.Value = value;
         }
 
-        internal RadioButton(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets whether all the field buttons can be deselected at the same time.</summary>
-        */
+<summary>Gets/Sets whether all the field buttons can be deselected at the same time.</summary>
+*/
         public bool Toggleable
         {
-            get
-            { return (Flags & FlagsEnum.NoToggleToOff) != FlagsEnum.NoToggleToOff; }
-            set
-            { Flags = EnumUtils.Mask(Flags, FlagsEnum.NoToggleToOff, !value); }
+            get => (this.Flags & FlagsEnum.NoToggleToOff) != FlagsEnum.NoToggleToOff;
+            set => this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.NoToggleToOff, !value);
         }
 
         public override object Value
         {
-            get
-            { return base.Value; }
+            get => base.Value;
             set
             {
                 /*
@@ -95,10 +86,10 @@ namespace org.pdfclown.documents.interaction.forms
                   of whichever child field is currently in the on state; the default value for this entry is
                   Off.
                 */
-                PdfName selectedValue = new PdfName((string)value);
-                bool selected = false;
+                var selectedValue = new PdfName((string)value);
+                var selected = false;
                 // Selecting the current appearance state for each widget...
-                foreach (Widget widget in Widgets)
+                foreach (var widget in this.Widgets)
                 {
                     PdfName currentState;
                     if (widget.Value.Equals(value)) // Selected state.
@@ -112,11 +103,8 @@ namespace org.pdfclown.documents.interaction.forms
                     widget.BaseDataObject[PdfName.AS] = currentState;
                 }
                 // Select the current widget!
-                BaseDataObject[PdfName.V] = (selected ? selectedValue : null);
+                this.BaseDataObject[PdfName.V] = selected ? selectedValue : null;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,17 +23,17 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.files;
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.forms;
-using org.pdfclown.documents.multimedia;
-
-using org.pdfclown.objects;
-using drawing = System.Drawing;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System.IO;
+    using org.pdfclown.documents.files;
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.forms;
+    using org.pdfclown.documents.multimedia;
+
+    using org.pdfclown.objects;
+    using drawing = System.Drawing;
+
     /**
       <summary>Screen annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It specifies a region of a page upon which media clips may be played.</remarks>
@@ -42,8 +42,6 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Screen
       : Annotation
     {
-        #region static
-        #region fields
         private const string PlayerPlaceholder = "%player%";
         /**
           <summary>Script for preview and rendering control.</summary>
@@ -59,57 +57,36 @@ namespace org.pdfclown.documents.interaction.annotations
             + "});"
           + "var " + PlayerPlaceholder + "=app.media.openPlayer({settings:settings,events:events});"
           + "}";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
-        public Screen(
-          Page page,
-          drawing::RectangleF box,
-          String text,
-          String mediaPath,
-          String mimeType
-          ) : this(
-            page, box, text,
-            new MediaRendition(
-              new MediaClipData(
-                FileSpecification.Get(
-                  EmbeddedFile.Get(page.Document, mediaPath),
-                  System.IO.Path.GetFileName(mediaPath)
-                  ),
-                mimeType
-                )
-              )
-            )
+        internal Screen(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
         { }
 
         public Screen(
           Page page,
           drawing::RectangleF box,
-          String text,
+          string text,
           Rendition rendition
           ) : base(page, PdfName.Screen, box, text)
         {
-            Render render = new Render(this, Render.OperationEnum.PlayResume, rendition);
-            {
-                // Adding preview and play/pause control...
-                /*
-                  NOTE: Mouse-related actions don't work when the player is active; therefore, in order to let
-                  the user control the rendering of the media clip (play/pause) just by mouse-clicking on the
-                  player, we can only rely on the player's focus event. Furthermore, as the player's focus can
-                  only be altered setting it on another widget, we have to define an ancillary field on the
-                  same page (so convoluted!).
-                */
-                string playerReference = "__player" + ((PdfReference)render.BaseObject).ObjectNumber;
-                Document.Form.Fields.Add(new TextField(playerReference, new Widget(page, new drawing::RectangleF(box.X, box.Y, 0, 0)), string.Empty)); // Ancillary field.
-                render.Script = RenderScript.Replace(PlayerPlaceholder, playerReference);
-            }
-            Actions.OnPageOpen = render;
+            var render = new Render(this, Render.OperationEnum.PlayResume, rendition);
+            // Adding preview and play/pause control...
+            /*
+              NOTE: Mouse-related actions don't work when the player is active; therefore, in order to let
+              the user control the rendering of the media clip (play/pause) just by mouse-clicking on the
+              player, we can only rely on the player's focus event. Furthermore, as the player's focus can
+              only be altered setting it on another widget, we have to define an ancillary field on the
+              same page (so convoluted!).
+            */
+            var playerReference = $"__player{((PdfReference)render.BaseObject).ObjectNumber}";
+            this.Document.Form.Fields.Add(new TextField(playerReference, new Widget(page, new drawing::RectangleF(box.X, box.Y, 0, 0)), string.Empty)); // Ancillary field.
+            render.Script = RenderScript.Replace(PlayerPlaceholder, playerReference);
+            this.Actions.OnPageOpen = render;
 
             if (rendition is MediaRendition)
             {
-                PdfObjectWrapper data = ((MediaRendition)rendition).Clip.Data;
+                var data = ((MediaRendition)rendition).Clip.Data;
                 if (data is FileSpecification)
                 {
                     // Adding fallback annotation...
@@ -118,19 +95,32 @@ namespace org.pdfclown.documents.interaction.annotations
                       degrades to a file attachment that can be opened on the same location of the corresponding
                       screen annotation.
                     */
-                    FileAttachment attachment = new FileAttachment(page, box, text, (FileSpecification)data);
-                    BaseDataObject[PdfName.T] = PdfString.Get(((FileSpecification)data).Path);
+                    var attachment = new FileAttachment(page, box, text, (FileSpecification)data);
+                    this.BaseDataObject[PdfName.T] = PdfString.Get(((FileSpecification)data).Path);
                     // Force empty appearance to ensure no default icon is drawn on the canvas!
                     attachment.BaseDataObject[PdfName.AP] = new PdfDictionary(new PdfName[] { PdfName.D, PdfName.R, PdfName.N }, new PdfDirectObject[] { new PdfDictionary(), new PdfDictionary(), new PdfDictionary() });
                 }
             }
         }
 
-        internal Screen(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
+        public Screen(
+Page page,
+drawing::RectangleF box,
+string text,
+string mediaPath,
+string mimeType
+) : this(
+page, box, text,
+new MediaRendition(
+new MediaClipData(
+FileSpecification.Get(
+  EmbeddedFile.Get(page.Document, mediaPath),
+  Path.GetFileName(mediaPath)
+  ),
+mimeType
+)
+)
+)
         { }
-        #endregion
-        #endregion
     }
 }

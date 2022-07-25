@@ -1,16 +1,13 @@
-
-using System;
-using System.Drawing;
-using org.pdfclown.documents;
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.samples.cli
 {
+    using System.Drawing;
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
     /**
       <summary>This sample demonstrates how to manipulate the named destinations within a PDF document.</summary>
     */
@@ -21,14 +18,14 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Opening the PDF file...
-            string filePath = PromptFileChoice("Please select a PDF file");
+            var filePath = this.PromptFileChoice("Please select a PDF file");
             using (var file = new File(filePath))
             {
-                Document document = file.Document;
-                Pages pages = document.Pages;
+                var document = file.Document;
+                var pages = document.Pages;
 
                 // 2. Inserting page destinations...
-                NamedDestinations destinations = document.Names.Destinations;
+                var destinations = document.Names.Destinations;
                 /*
                   NOTE: Here we are registering page 1 multiple times to test tree structure sorting and splitting.
                 */
@@ -45,7 +42,7 @@ namespace org.pdfclown.samples.cli
                 destinations[new PdfString("Z38e1142")] = page1Destination;
                 if (pages.Count > 1)
                 {
-                    LocalDestination page2Destination = new LocalDestination(pages[1], Destination.ModeEnum.FitHorizontal, 0, null);
+                    var page2Destination = new LocalDestination(pages[1], Destination.ModeEnum.FitHorizontal, 0, null);
                     destinations[new PdfString("N84afaba6")] = page2Destination;
 
                     // Let the viewer go to the second page on document opening!
@@ -57,7 +54,7 @@ namespace org.pdfclown.samples.cli
                       page2Destination // Its name ("N84afaba6") is retrieved behind the scenes.
                       );
                     // Define a link to the second page on the first one!
-                    new Link(
+                    _ = new Link(
                       pages[0],
                       new RectangleF(0, 0, 100, 50),
                       "Link annotation",
@@ -65,11 +62,11 @@ namespace org.pdfclown.samples.cli
                       );
 
                     if (pages.Count > 2)
-                    { destinations[new PdfString("1845505298")] = new LocalDestination(pages[2], Destination.ModeEnum.XYZ, new PointF(50, Single.NaN), null); }
+                    { destinations[new PdfString("1845505298")] = new LocalDestination(pages[2], Destination.ModeEnum.XYZ, new PointF(50, float.NaN), null); }
                 }
 
                 // 3. Serialize the PDF file!
-                Serialize(file, "Named destinations", "manipulating named destinations", "named destinations, creation");
+                _ = this.Serialize(file, "Named destinations", "manipulating named destinations", "named destinations, creation");
             }
         }
     }

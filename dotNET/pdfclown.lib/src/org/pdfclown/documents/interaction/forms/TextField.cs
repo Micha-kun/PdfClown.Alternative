@@ -24,24 +24,20 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.objects;
-using org.pdfclown.documents.contents.tokens;
-using org.pdfclown.documents.contents.xObjects;
-using org.pdfclown.documents.interaction.annotations;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
-using org.pdfclown.util;
-using bytes = org.pdfclown.bytes;
-using fonts = org.pdfclown.documents.contents.fonts;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using System;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.objects;
+    using org.pdfclown.documents.contents.tokens;
+    using org.pdfclown.documents.contents.xObjects;
+    using org.pdfclown.documents.interaction.annotations;
+    using org.pdfclown.objects;
+
+    using org.pdfclown.util;
+    using bytes = org.pdfclown.bytes;
+    using fonts = org.pdfclown.documents.contents.fonts;
+
     /**
       <summary>Text field [PDF:1.6:8.6.3].</summary>
     */
@@ -49,11 +45,14 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class TextField
       : Field
     {
-        #region dynamic
-        #region constructors
+
+        internal TextField(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new text field within the given document context.</summary>
-        */
+<summary>Creates a new text field within the given document context.</summary>
+*/
         public TextField(
           string name,
           Widget widget,
@@ -63,219 +62,91 @@ namespace org.pdfclown.documents.interaction.forms
             name,
             widget
             )
-        { Value = value; }
+        { this.Value = value; }
 
-        internal TextField(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets whether the field can contain multiple lines of text.</summary>
-        */
-        public bool IsMultiline
-        {
-            get
-            { return (Flags & FlagsEnum.Multiline) == FlagsEnum.Multiline; }
-            set
-            { Flags = EnumUtils.Mask(Flags, FlagsEnum.Multiline, value); }
-        }
-
-        /**
-          <summary>Gets/Sets whether the field is intended for entering a secure password.</summary>
-        */
-        public bool IsPassword
-        {
-            get
-            { return (Flags & FlagsEnum.Password) == FlagsEnum.Password; }
-            set
-            { Flags = EnumUtils.Mask(Flags, FlagsEnum.Password, value); }
-        }
-
-        /**
-          <summary>Gets/Sets the justification to be used in displaying this field's text.</summary>
-        */
-        public JustificationEnum Justification
-        {
-            get
-            { return JustificationEnumExtension.Get((PdfInteger)BaseDataObject[PdfName.Q]); }
-            set
-            { BaseDataObject[PdfName.Q] = value.GetCode(); }
-        }
-
-        /**
-          <summary>Gets/Sets the maximum length of the field's text, in characters.</summary>
-          <remarks>It corresponds to the maximum integer value in case no explicit limit is defined.</remarks>
-        */
-        public int MaxLength
-        {
-            get
-            {
-                PdfInteger maxLengthObject = (PdfInteger)PdfObject.Resolve(GetInheritableAttribute(PdfName.MaxLen));
-                return maxLengthObject != null ? maxLengthObject.IntValue : Int32.MaxValue;
-            }
-            set
-            { BaseDataObject[PdfName.MaxLen] = (value != Int32.MaxValue ? PdfInteger.Get(value) : null); }
-        }
-
-        /**
-          <summary>Gets/Sets whether text entered in the field is spell-checked.</summary>
-        */
-        public bool SpellChecked
-        {
-            get
-            { return (Flags & FlagsEnum.DoNotSpellCheck) != FlagsEnum.DoNotSpellCheck; }
-            set
-            { Flags = EnumUtils.Mask(Flags, FlagsEnum.DoNotSpellCheck, !value); }
-        }
-
-        /**
-          <returns>Either a string or an <see cref="IBuffer"/>.</returns>
-        */
-        public override object Value
-        {
-            get
-            {
-                PdfDataObject valueObject = PdfObject.Resolve(GetInheritableAttribute(PdfName.V));
-                if (valueObject is PdfString)
-                    return ((PdfString)valueObject).Value;
-                else if (valueObject is PdfStream)
-                    return ((PdfStream)valueObject).Body;
-                else
-                    return null;
-            }
-            set
-            {
-                if (!(value == null
-                    || value is string
-                    || value is bytes::IBuffer))
-                    throw new ArgumentException("Value MUST be either a String or an IBuffer");
-
-                if (value != null)
-                {
-                    PdfDataObject oldValueObject = BaseDataObject.Resolve(PdfName.V);
-                    bytes::IBuffer valueObjectBuffer = null;
-                    if (oldValueObject is PdfStream)
-                    {
-                        valueObjectBuffer = ((PdfStream)oldValueObject).Body;
-                        valueObjectBuffer.SetLength(0);
-                    }
-                    if (value is string)
-                    {
-                        if (valueObjectBuffer != null)
-                        { valueObjectBuffer.Append((string)value); }
-                        else
-                        { BaseDataObject[PdfName.V] = new PdfTextString((string)value); }
-                    }
-                    else // IBuffer.
-                    {
-                        if (valueObjectBuffer != null)
-                        { valueObjectBuffer.Append((bytes::IBuffer)value); }
-                        else
-                        { BaseDataObject[PdfName.V] = File.Register(new PdfStream((bytes::IBuffer)value)); }
-                    }
-                }
-                else
-                { BaseDataObject[PdfName.V] = null; }
-
-                RefreshAppearance();
-            }
-        }
-        #endregion
-
-        #region private
         private void RefreshAppearance(
-          )
+  )
         {
-            Widget widget = Widgets[0];
+            var widget = this.Widgets[0];
             FormXObject normalAppearance;
-            {
-                AppearanceStates normalAppearances = widget.Appearance.Normal;
-                normalAppearance = normalAppearances[null];
-                if (normalAppearance == null)
-                { normalAppearances[null] = normalAppearance = new FormXObject(Document, widget.Box.Size); }
-            }
+            var normalAppearances = widget.Appearance.Normal;
+            normalAppearance = normalAppearances[null];
+            if (normalAppearance == null)
+            { normalAppearances[null] = normalAppearance = new FormXObject(this.Document, widget.Box.Size); }
             PdfName fontName = null;
             double fontSize = 0;
+            var defaultAppearanceState = this.DefaultAppearanceState;
+            if (defaultAppearanceState == null)
             {
-                PdfString defaultAppearanceState = DefaultAppearanceState;
-                if (defaultAppearanceState == null)
+                // Retrieving the font to define the default appearance...
+                fonts::Font defaultFont = null;
+                PdfName defaultFontName = null;
+                // Field fonts.
+                var normalAppearanceFonts = normalAppearance.Resources.Fonts;
+                foreach (var entry in normalAppearanceFonts)
                 {
-                    // Retrieving the font to define the default appearance...
-                    fonts::Font defaultFont = null;
-                    PdfName defaultFontName = null;
+                    if (!entry.Value.Symbolic)
                     {
-                        // Field fonts.
-                        FontResources normalAppearanceFonts = normalAppearance.Resources.Fonts;
-                        foreach (KeyValuePair<PdfName, fonts::Font> entry in normalAppearanceFonts)
-                        {
-                            if (!entry.Value.Symbolic)
-                            {
-                                defaultFont = entry.Value;
-                                defaultFontName = entry.Key;
-                                break;
-                            }
-                        }
-                        if (defaultFontName == null)
-                        {
-                            // Common fonts.
-                            FontResources formFonts = Document.Form.Resources.Fonts;
-                            foreach (KeyValuePair<PdfName, fonts::Font> entry in formFonts)
-                            {
-                                if (!entry.Value.Symbolic)
-                                {
-                                    defaultFont = entry.Value;
-                                    defaultFontName = entry.Key;
-                                    break;
-                                }
-                            }
-                            if (defaultFontName == null)
-                            {
-                                //TODO:manage name collision!
-                                formFonts[
-                                  defaultFontName = new PdfName("default")
-                                  ] = defaultFont = new fonts::StandardType1Font(
-                                    Document,
-                                    fonts::StandardType1Font.FamilyEnum.Helvetica,
-                                    false,
-                                    false
-                                    );
-                            }
-                            normalAppearanceFonts[defaultFontName] = defaultFont;
-                        }
-                    }
-                    bytes::Buffer buffer = new bytes::Buffer();
-                    new SetFont(defaultFontName, IsMultiline ? 10 : 0).WriteTo(buffer, Document);
-                    widget.BaseDataObject[PdfName.DA] = defaultAppearanceState = new PdfString(buffer.ToByteArray());
-                }
-
-                // Retrieving the font to use...
-                ContentParser parser = new ContentParser(defaultAppearanceState.ToByteArray());
-                foreach (ContentObject content in parser.ParseContentObjects())
-                {
-                    if (content is SetFont)
-                    {
-                        SetFont setFontOperation = (SetFont)content;
-                        fontName = setFontOperation.Name;
-                        fontSize = setFontOperation.Size;
+                        defaultFont = entry.Value;
+                        defaultFontName = entry.Key;
                         break;
                     }
                 }
-                normalAppearance.Resources.Fonts[fontName] = Document.Form.Resources.Fonts[fontName];
+                if (defaultFontName == null)
+                {
+                    // Common fonts.
+                    var formFonts = this.Document.Form.Resources.Fonts;
+                    foreach (var entry in formFonts)
+                    {
+                        if (!entry.Value.Symbolic)
+                        {
+                            defaultFont = entry.Value;
+                            defaultFontName = entry.Key;
+                            break;
+                        }
+                    }
+                    if (defaultFontName == null)
+                    {
+                        //TODO:manage name collision!
+                        formFonts[
+                          defaultFontName = new PdfName("default")
+                          ] = defaultFont = new fonts::StandardType1Font(
+                            this.Document,
+                            fonts::StandardType1Font.FamilyEnum.Helvetica,
+                            false,
+                            false
+                            );
+                    }
+                    normalAppearanceFonts[defaultFontName] = defaultFont;
+                }
+                var buffer = new bytes::Buffer();
+                new SetFont(defaultFontName, this.IsMultiline ? 10 : 0).WriteTo(buffer, this.Document);
+                widget.BaseDataObject[PdfName.DA] = defaultAppearanceState = new PdfString(buffer.ToByteArray());
             }
+
+            // Retrieving the font to use...
+            var parser = new ContentParser(defaultAppearanceState.ToByteArray());
+            foreach (var content in parser.ParseContentObjects())
+            {
+                if (content is SetFont)
+                {
+                    var setFontOperation = (SetFont)content;
+                    fontName = setFontOperation.Name;
+                    fontSize = setFontOperation.Size;
+                    break;
+                }
+            }
+            normalAppearance.Resources.Fonts[fontName] = this.Document.Form.Resources.Fonts[fontName];
 
             // Refreshing the field appearance...
             /*
              * TODO: resources MUST be resolved both through the apperance stream resource dictionary and
              * from the DR-entry acroform resource dictionary
              */
-            PrimitiveComposer baseComposer = new PrimitiveComposer(normalAppearance);
-            BlockComposer composer = new BlockComposer(baseComposer);
-            ContentScanner currentLevel = composer.Scanner;
-            bool textShown = false;
+            var baseComposer = new PrimitiveComposer(normalAppearance);
+            var composer = new BlockComposer(baseComposer);
+            var currentLevel = composer.Scanner;
+            var textShown = false;
             while (currentLevel != null)
             {
                 if (!currentLevel.MoveNext())
@@ -284,29 +155,29 @@ namespace org.pdfclown.documents.interaction.forms
                     continue;
                 }
 
-                ContentObject content = currentLevel.Current;
+                var content = currentLevel.Current;
                 if (content is MarkedContent)
                 {
-                    MarkedContent markedContent = (MarkedContent)content;
+                    var markedContent = (MarkedContent)content;
                     if (PdfName.Tx.Equals(((BeginMarkedContent)markedContent.Header).Tag))
                     {
                         // Remove old text representation!
                         markedContent.Objects.Clear();
                         // Add new text representation!
                         baseComposer.Scanner = currentLevel.ChildLevel; // Ensures the composer places new contents within the marked content block.
-                        ShowText(composer, fontName, fontSize);
+                        this.ShowText(composer, fontName, fontSize);
                         textShown = true;
                     }
                 }
                 else if (content is Text)
-                { currentLevel.Remove(); }
+                { _ = currentLevel.Remove(); }
                 else if (currentLevel.ChildLevel != null)
                 { currentLevel = currentLevel.ChildLevel; }
             }
             if (!textShown)
             {
-                baseComposer.BeginMarkedContent(PdfName.Tx);
-                ShowText(composer, fontName, fontSize);
+                _ = baseComposer.BeginMarkedContent(PdfName.Tx);
+                this.ShowText(composer, fontName, fontSize);
                 baseComposer.End();
             }
             baseComposer.Flush();
@@ -318,9 +189,9 @@ namespace org.pdfclown.documents.interaction.forms
           double fontSize
           )
         {
-            PrimitiveComposer baseComposer = composer.BaseComposer;
-            ContentScanner scanner = baseComposer.Scanner;
-            RectangleF textBox = scanner.ContentContext.Box;
+            var baseComposer = composer.BaseComposer;
+            var scanner = baseComposer.Scanner;
+            var textBox = scanner.ContentContext.Box;
             if (scanner.State.Font == null)
             {
                 /*
@@ -332,15 +203,15 @@ namespace org.pdfclown.documents.interaction.forms
                 baseComposer.SetFont(fontName, fontSize);
             }
 
-            string text = (string)Value;
+            var text = (string)this.Value;
 
-            FlagsEnum flags = Flags;
-            if ((flags & FlagsEnum.Comb) == FlagsEnum.Comb
-              && (flags & FlagsEnum.FileSelect) == 0
-              && (flags & FlagsEnum.Multiline) == 0
-              && (flags & FlagsEnum.Password) == 0)
+            var flags = this.Flags;
+            if (((flags & FlagsEnum.Comb) == FlagsEnum.Comb)
+              && ((flags & FlagsEnum.FileSelect) == 0)
+              && ((flags & FlagsEnum.Multiline) == 0)
+              && ((flags & FlagsEnum.Password) == 0))
             {
-                int maxLength = MaxLength;
+                var maxLength = this.MaxLength;
                 if (maxLength > 0)
                 {
                     textBox.Width /= maxLength;
@@ -351,7 +222,7 @@ namespace org.pdfclown.documents.interaction.forms
                           XAlignmentEnum.Center,
                           YAlignmentEnum.Middle
                           );
-                        composer.ShowText(text[index].ToString());
+                        _ = composer.ShowText(text[index].ToString());
                         composer.End();
                         textBox.X += textBox.Width;
                     }
@@ -374,14 +245,122 @@ namespace org.pdfclown.documents.interaction.forms
             }
             composer.Begin(
               textBox,
-              Justification.ToXAlignment(),
+              this.Justification.ToXAlignment(),
               yAlignment
               );
-            composer.ShowText(text);
+            _ = composer.ShowText(text);
             composer.End();
         }
-        #endregion
-        #endregion
-        #endregion
+
+        /**
+<summary>Gets/Sets whether the field can contain multiple lines of text.</summary>
+*/
+        public bool IsMultiline
+        {
+            get => (this.Flags & FlagsEnum.Multiline) == FlagsEnum.Multiline;
+            set => this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.Multiline, value);
+        }
+
+        /**
+          <summary>Gets/Sets whether the field is intended for entering a secure password.</summary>
+        */
+        public bool IsPassword
+        {
+            get => (this.Flags & FlagsEnum.Password) == FlagsEnum.Password;
+            set => this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.Password, value);
+        }
+
+        /**
+          <summary>Gets/Sets the justification to be used in displaying this field's text.</summary>
+        */
+        public JustificationEnum Justification
+        {
+            get => JustificationEnumExtension.Get((PdfInteger)this.BaseDataObject[PdfName.Q]);
+            set => this.BaseDataObject[PdfName.Q] = value.GetCode();
+        }
+
+        /**
+          <summary>Gets/Sets the maximum length of the field's text, in characters.</summary>
+          <remarks>It corresponds to the maximum integer value in case no explicit limit is defined.</remarks>
+        */
+        public int MaxLength
+        {
+            get
+            {
+                var maxLengthObject = (PdfInteger)PdfObject.Resolve(this.GetInheritableAttribute(PdfName.MaxLen));
+                return (maxLengthObject != null) ? maxLengthObject.IntValue : int.MaxValue;
+            }
+            set => this.BaseDataObject[PdfName.MaxLen] = (value != int.MaxValue) ? PdfInteger.Get(value) : null;
+        }
+
+        /**
+          <summary>Gets/Sets whether text entered in the field is spell-checked.</summary>
+        */
+        public bool SpellChecked
+        {
+            get => (this.Flags & FlagsEnum.DoNotSpellCheck) != FlagsEnum.DoNotSpellCheck;
+            set => this.Flags = EnumUtils.Mask(this.Flags, FlagsEnum.DoNotSpellCheck, !value);
+        }
+
+        /**
+          <returns>Either a string or an <see cref="IBuffer"/>.</returns>
+        */
+        public override object Value
+        {
+            get
+            {
+                var valueObject = PdfObject.Resolve(this.GetInheritableAttribute(PdfName.V));
+                if (valueObject is PdfString)
+                {
+                    return ((PdfString)valueObject).Value;
+                }
+                else if (valueObject is PdfStream)
+                {
+                    return ((PdfStream)valueObject).Body;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                if (!((value == null)
+                    || (value is string)
+                    || (value is bytes::IBuffer)))
+                {
+                    throw new ArgumentException("Value MUST be either a String or an IBuffer");
+                }
+
+                if (value != null)
+                {
+                    var oldValueObject = this.BaseDataObject.Resolve(PdfName.V);
+                    bytes::IBuffer valueObjectBuffer = null;
+                    if (oldValueObject is PdfStream)
+                    {
+                        valueObjectBuffer = ((PdfStream)oldValueObject).Body;
+                        valueObjectBuffer.SetLength(0);
+                    }
+                    if (value is string)
+                    {
+                        if (valueObjectBuffer != null)
+                        { _ = valueObjectBuffer.Append((string)value); }
+                        else
+                        { this.BaseDataObject[PdfName.V] = new PdfTextString((string)value); }
+                    }
+                    else // IBuffer.
+                    {
+                        if (valueObjectBuffer != null)
+                        { _ = valueObjectBuffer.Append((bytes::IBuffer)value); }
+                        else
+                        { this.BaseDataObject[PdfName.V] = this.File.Register(new PdfStream((bytes::IBuffer)value)); }
+                    }
+                }
+                else
+                { this.BaseDataObject[PdfName.V] = null; }
+
+                this.RefreshAppearance();
+            }
+        }
     }
 }

@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using org.pdfclown.documents.interaction.actions;
-using org.pdfclown.documents.interaction.navigation.document;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction
 {
+    using org.pdfclown.documents.interaction.actions;
+    using org.pdfclown.documents.interaction.navigation.document;
+    using org.pdfclown.objects;
+
     /**
       <summary>Link.</summary>
     */

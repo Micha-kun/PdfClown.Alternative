@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.util.parsers
 {
+    using System;
+
     /**
       <summary>Exception thrown in case of unexpected condition while parsing PostScript-based data.
       </summary>
@@ -34,16 +34,17 @@ namespace org.pdfclown.util.parsers
     public class PostScriptParseException
       : ParseException
     {
-        #region dynamic
-        #region fields
         private readonly object token;
         private readonly PostScriptParser.TokenTypeEnum? tokenType;
-        #endregion
 
-        #region constructors
         public PostScriptParseException(
-          string message
-          ) : this(message, -1)
+  string message
+  ) : this(message, -1)
+        { }
+
+        public PostScriptParseException(
+          Exception cause
+          ) : this(null, cause)
         { }
 
         public PostScriptParseException(
@@ -56,19 +57,6 @@ namespace org.pdfclown.util.parsers
           string message,
           long position
           ) : this(message, position, null, null)
-        { }
-
-        public PostScriptParseException(
-          string message,
-          long position,
-          object token,
-          PostScriptParser.TokenTypeEnum? tokenType
-          ) : this(message, null, position, token, tokenType)
-        { }
-
-        public PostScriptParseException(
-          Exception cause
-          ) : this(null, cause)
         { }
 
         public PostScriptParseException(
@@ -93,6 +81,14 @@ namespace org.pdfclown.util.parsers
 
         public PostScriptParseException(
           string message,
+          long position,
+          object token,
+          PostScriptParser.TokenTypeEnum? tokenType
+          ) : this(message, null, position, token, tokenType)
+        { }
+
+        public PostScriptParseException(
+          string message,
           Exception cause,
           long position,
           object token,
@@ -102,29 +98,15 @@ namespace org.pdfclown.util.parsers
             this.token = token;
             this.tokenType = tokenType;
         }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Gets the token on which the exception happened.</summary>
-        */
-        public object Token
-        {
-            get
-            { return token; }
-        }
+<summary>Gets the token on which the exception happened.</summary>
+*/
+        public object Token => this.token;
 
         /**
           <summary>Gets the type of the token on which the exception happened.</summary>
         */
-        public PostScriptParser.TokenTypeEnum? TokenType
-        {
-            get
-            { return tokenType; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public PostScriptParser.TokenTypeEnum? TokenType => this.tokenType;
     }
 }

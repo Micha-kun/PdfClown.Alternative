@@ -24,13 +24,10 @@
 */
 
 
-using System;
-using org.pdfclown.objects;
-
-using bytes = org.pdfclown.bytes;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>'Cause a script to be compiled and executed by the JavaScript interpreter'
       action [PDF:1.6:8.6.4].</summary>
@@ -39,25 +36,40 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class JavaScript
       : Action
     {
-        #region static
-        #region interface
-        #region internal
+
+        internal JavaScript(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
+
         /**
-          <summary>Gets the Javascript script from the specified base data object.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public JavaScript(
+          Document context,
+          string script
+          ) : base(context, PdfName.JavaScript)
+        { this.Script = script; }
+        /**
+<summary>Gets the Javascript script from the specified base data object.</summary>
+*/
         internal static string GetScript(
           PdfDictionary baseDataObject,
           PdfName key
           )
         {
-            PdfDataObject scriptObject = baseDataObject.Resolve(key);
+            var scriptObject = baseDataObject.Resolve(key);
             if (scriptObject == null)
+            {
                 return null;
+            }
             else if (scriptObject is PdfTextString)
+            {
                 return ((PdfTextString)scriptObject).StringValue;
+            }
             else
             {
-                bytes::IBuffer scriptBuffer = ((PdfStream)scriptObject).Body;
+                var scriptBuffer = ((PdfStream)scriptObject).Body;
                 return scriptBuffer.GetString(0, (int)scriptBuffer.Length);
             }
         }
@@ -71,68 +83,31 @@ namespace org.pdfclown.documents.interaction.actions
           string value
           )
         {
-            PdfDataObject scriptObject = baseDataObject.Resolve(key);
-            if (!(scriptObject is PdfStream) && value.Length > 256)
+            var scriptObject = baseDataObject.Resolve(key);
+            if (!(scriptObject is PdfStream) && (value.Length > 256))
             { baseDataObject[key] = baseDataObject.File.Register(scriptObject = new PdfStream()); }
             // Insert the script!
             if (scriptObject is PdfStream)
             {
-                bytes::IBuffer scriptBuffer = ((PdfStream)scriptObject).Body;
+                var scriptBuffer = ((PdfStream)scriptObject).Body;
                 scriptBuffer.Clear();
-                scriptBuffer.Append(value);
+                _ = scriptBuffer.Append(value);
             }
             else
             { baseDataObject[key] = new PdfTextString(value); }
         }
-        #endregion
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
+        public PdfString Name => this.RetrieveName();
+
+        public PdfDirectObject NamedBaseObject => this.RetrieveNamedBaseObject();
+
         /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public JavaScript(
-          Document context,
-          string script
-          ) : base(context, PdfName.JavaScript)
-        { Script = script; }
-
-        internal JavaScript(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets/Sets the JavaScript script to be executed.</summary>
-        */
+<summary>Gets/Sets the JavaScript script to be executed.</summary>
+*/
         public string Script
         {
-            get
-            { return GetScript(BaseDataObject, PdfName.JS); }
-            set
-            { SetScript(BaseDataObject, PdfName.JS, value); }
+            get => GetScript(this.BaseDataObject, PdfName.JS);
+            set => SetScript(this.BaseDataObject, PdfName.JS, value);
         }
-
-        #region IPdfNamedObjectWrapper
-        public PdfString Name
-        {
-            get
-            { return RetrieveName(); }
-        }
-
-        public PdfDirectObject NamedBaseObject
-        {
-            get
-            { return RetrieveNamedBaseObject(); }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,12 +23,12 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interchange.access
 {
+    using System;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Language identifier [PDF:1.7:10.8.1][RFC 3066].</summary>
       <remarks>
@@ -44,48 +44,40 @@ namespace org.pdfclown.documents.interchange.access
     public sealed class LanguageIdentifier
       : PdfObjectWrapper<PdfTextString>
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Wraps a language identifier base object into a language identifier object.</summary>
-        */
-        public static LanguageIdentifier Wrap(
-          PdfDirectObject baseObject
-          )
-        {
-            if (baseObject == null)
-                return null;
-
-            if (baseObject.Resolve() is PdfTextString)
-                return new LanguageIdentifier(baseObject);
-            else
-                throw new ArgumentException("It doesn't represent a valid language identifier object.", "baseObject");
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public LanguageIdentifier(
-          string code
-          ) : base(new PdfTextString(code))
-        { }
 
         internal LanguageIdentifier(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public LanguageIdentifier(
+string code
+) : base(new PdfTextString(code))
+        { }
+
         public override string ToString(
+)
+        { return this.BaseDataObject.StringValue; }
+        /**
+<summary>Wraps a language identifier base object into a language identifier object.</summary>
+*/
+        public static LanguageIdentifier Wrap(
+          PdfDirectObject baseObject
           )
-        { return BaseDataObject.StringValue; }
-        #endregion
-        #endregion
-        #endregion
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
+
+            if (baseObject.Resolve() is PdfTextString)
+            {
+                return new LanguageIdentifier(baseObject);
+            }
+            else
+            {
+                throw new ArgumentException("It doesn't represent a valid language identifier object.", nameof(baseObject));
+            }
+        }
     }
 }

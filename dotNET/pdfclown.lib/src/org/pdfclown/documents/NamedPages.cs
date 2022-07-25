@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Named pages [PDF:1.6:3.6.3].</summary>
     */
@@ -36,27 +35,19 @@ namespace org.pdfclown.documents
     public sealed class NamedPages
       : NameTree<Page>
     {
-        #region dynamic
-        #region constructors
-        public NamedPages(
-          Document context
-          ) : base(context)
-        { }
 
         internal NamedPages(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public NamedPages(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override Page WrapValue(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return Page.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

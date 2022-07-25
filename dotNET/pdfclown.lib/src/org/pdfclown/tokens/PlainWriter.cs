@@ -24,224 +24,39 @@
 */
 
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+    using System.Text;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+
     /**
       <summary>PDF file writer implementing classic cross-reference table [PDF:1.6:3.4.3].</summary>
     */
     internal sealed class PlainWriter
       : Writer
     {
-        #region static
-        #region fields
-        private static readonly byte[] TrailerChunk = Encoding.Pdf.Encode(Keyword.Trailer + Symbol.LineFeed);
-        private static readonly string XRefChunk = Keyword.XRef + Symbol.LineFeed;
-        private static readonly string XRefEOLChunk = string.Empty + Symbol.CarriageReturn + Symbol.LineFeed;
 
         private const string XRefGenerationFormat = "00000";
         private const string XRefOffsetFormat = "0000000000";
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
+        private static readonly byte[] TrailerChunk = Encoding.Pdf.Encode(Keyword.Trailer + Symbol.LineFeed);
+        private static readonly string XRefChunk = Keyword.XRef + Symbol.LineFeed;
+        private static readonly string XRefEOLChunk = $"{Symbol.CarriageReturn}{Symbol.LineFeed}";
+
         internal PlainWriter(
-          files.File file,
-          IOutputStream stream
-          ) : base(file, stream)
+File file,
+IOutputStream stream
+) : base(file, stream)
         { }
-        #endregion
 
-        #region interface
-        #region protected
-        protected override void WriteIncremental(
-          )
-        {
-            // 1. Original content (head, body and previous trailer).
-            FileParser parser = file.Reader.Parser;
-            stream.Write(parser.Stream);
-
-            // 2. Body update (modified indirect objects insertion).
-            int xrefSize = file.IndirectObjects.Count;
-            StringBuilder xrefBuilder = new StringBuilder(XRefChunk);
-            {
-                /*
-                  NOTE: Incremental xref table comprises multiple sections
-                  each one composed by multiple subsections; this update
-                  adds a new section.
-                */
-                StringBuilder xrefSubBuilder = new StringBuilder(); // Xref-table subsection builder.
-                int xrefSubCount = 0; // Xref-table subsection counter.
-                int prevKey = 0; // Previous-entry object number.
-                foreach (
-                  KeyValuePair<int, PdfIndirectObject> indirectObjectEntry
-                    in file.IndirectObjects.ModifiedObjects
-                  )
-                {
-                    // Is the object in the current subsection?
-                    /*
-                      NOTE: To belong to the current subsection, the object entry MUST be contiguous with the
-                      previous (condition 1) or the iteration has to have been just started (condition 2).
-                    */
-                    if (indirectObjectEntry.Key - prevKey == 1
-                      || prevKey == 0) // Current subsection continues.
-                    { xrefSubCount++; }
-                    else // Current subsection terminates.
-                    {
-                        // End current subsection!
-                        AppendXRefSubsection(
-                          xrefBuilder,
-                          prevKey - xrefSubCount + 1,
-                          xrefSubCount,
-                          xrefSubBuilder
-                          );
-
-                        // Begin next subsection!
-                        xrefSubBuilder.Length = 0;
-                        xrefSubCount = 1;
-                    }
-
-                    prevKey = indirectObjectEntry.Key;
-
-                    // Current entry insertion.
-                    if (indirectObjectEntry.Value.IsInUse()) // In-use entry.
-                    {
-                        // Add in-use entry!
-                        AppendXRefEntry(
-                          xrefSubBuilder,
-                          indirectObjectEntry.Value.Reference,
-                          stream.Length
-                          );
-                        // Add in-use entry content!
-                        indirectObjectEntry.Value.WriteTo(stream, file);
-                    }
-                    else // Free entry.
-                    {
-                        // Add free entry!
-                        /*
-                          NOTE: We purposely neglect the linked list of free entries (see IndirectObjects.remove(int)),
-                          so that this entry links directly back to object number 0, having a generation number of 65535
-                          (not reusable) [PDF:1.6:3.4.3].
-                        */
-                        AppendXRefEntry(
-                          xrefSubBuilder,
-                          indirectObjectEntry.Value.Reference,
-                          0
-                          );
-                    }
-                }
-                // End last subsection!
-                AppendXRefSubsection(
-                  xrefBuilder,
-                  prevKey - xrefSubCount + 1,
-                  xrefSubCount,
-                  xrefSubBuilder
-                  );
-            }
-
-            // 3. XRef-table last section.
-            long startxref = stream.Length;
-            stream.Write(xrefBuilder.ToString());
-
-            // 4. Trailer.
-            WriteTrailer(startxref, xrefSize, parser);
-        }
-
-        protected override void WriteLinearized(
-          )
-        { throw new NotImplementedException(); }
-
-        protected override void WriteStandard(
-          )
-        {
-            // 1. Header [PDF:1.6:3.4.1].
-            WriteHeader();
-
-            // 2. Body [PDF:1.6:3.4.2].
-            int xrefSize = file.IndirectObjects.Count;
-            StringBuilder xrefBuilder = new StringBuilder(XRefChunk);
-            {
-                /*
-                  NOTE: A standard xref table comprises just one section composed by just one subsection.
-                  NOTE: As xref-table free entries MUST be arrayed as a linked list,
-                  it's needed to cache intermingled in-use entries in order to properly render
-                  the object number of the next free entry inside the previous one.
-                */
-                AppendXRefSubsectionIndexer(xrefBuilder, 0, xrefSize);
-
-                StringBuilder xrefInUseBlockBuilder = new StringBuilder();
-                IndirectObjects indirectObjects = file.IndirectObjects;
-                PdfReference freeReference = indirectObjects[0].Reference; // Initialized to the first free entry.
-                for (
-                  int index = 1;
-                  index < xrefSize;
-                  index++
-                  )
-                {
-                    // Current entry insertion.
-                    PdfIndirectObject indirectObject = indirectObjects[index];
-                    if (indirectObject.IsInUse()) // In-use entry.
-                    {
-                        // Add in-use entry!
-                        AppendXRefEntry(
-                          xrefInUseBlockBuilder,
-                          indirectObject.Reference,
-                          stream.Length
-                          );
-                        // Add in-use entry content!
-                        indirectObject.WriteTo(stream, file);
-                    }
-                    else // Free entry.
-                    {
-                        // Add free entry!
-                        AppendXRefEntry(
-                          xrefBuilder,
-                          freeReference,
-                          index
-                          );
-
-                        // End current block!
-                        xrefBuilder.Append(xrefInUseBlockBuilder);
-
-                        // Initialize next block!
-                        xrefInUseBlockBuilder.Length = 0;
-                        freeReference = indirectObject.Reference;
-                    }
-                }
-                // Add last free entry!
-                AppendXRefEntry(
-                  xrefBuilder,
-                  freeReference,
-                  0
-                  );
-
-                // End last block!
-                xrefBuilder.Append(xrefInUseBlockBuilder);
-            }
-
-            // 3. XRef table (unique section) [PDF:1.6:3.4.3].
-            long startxref = stream.Length;
-            stream.Write(xrefBuilder.ToString());
-
-            // 4. Trailer [PDF:1.6:3.4.4].
-            WriteTrailer(startxref, xrefSize, null);
-        }
-        #endregion
-
-        #region private
         private StringBuilder AppendXRefEntry(
-          StringBuilder xrefBuilder,
-          PdfReference reference,
-          long offset
-          )
+  StringBuilder xrefBuilder,
+  PdfReference reference,
+  long offset
+  )
         {
             string usage;
             switch (reference.IndirectObject.XrefEntry.Usage)
@@ -273,7 +88,7 @@ namespace org.pdfclown.tokens
           int entryCount,
           StringBuilder xrefSubBuilder
           )
-        { return AppendXRefSubsectionIndexer(xrefBuilder, firstObjectNumber, entryCount).Append(xrefSubBuilder); }
+        { return this.AppendXRefSubsectionIndexer(xrefBuilder, firstObjectNumber, entryCount).Append(xrefSubBuilder); }
 
         /**
           <summary>Appends the cross-reference subsection indexer to the specified builder.</summary>
@@ -303,28 +118,194 @@ namespace org.pdfclown.tokens
           )
         {
             // 1. Header.
-            stream.Write(TrailerChunk);
+            this.stream.Write(TrailerChunk);
 
             // 2. Body.
             // Update its entries:
-            PdfDictionary trailer = file.Trailer;
-            UpdateTrailer(trailer, stream);
+            var trailer = this.file.Trailer;
+            this.UpdateTrailer(trailer, this.stream);
             // * Size
             trailer[PdfName.Size] = PdfInteger.Get(xrefSize);
             // * Prev
             if (parser == null)
-            { trailer.Remove(PdfName.Prev); } // [FIX:0.0.4:5] It (wrongly) kept the 'Prev' entry of multiple-section xref tables.
+            { _ = trailer.Remove(PdfName.Prev); } // [FIX:0.0.4:5] It (wrongly) kept the 'Prev' entry of multiple-section xref tables.
             else
             { trailer[PdfName.Prev] = PdfInteger.Get((int)parser.RetrieveXRefOffset()); }
             // Serialize its contents!
-            trailer.WriteTo(stream, file);
-            stream.Write(Chunk.LineFeed);
+            trailer.WriteTo(this.stream, this.file);
+            this.stream.Write(Chunk.LineFeed);
 
             // 3. Tail.
-            WriteTail(startxref);
+            this.WriteTail(startxref);
         }
-        #endregion
-        #endregion
-        #endregion
+
+        protected override void WriteIncremental(
+)
+        {
+            // 1. Original content (head, body and previous trailer).
+            var parser = this.file.Reader.Parser;
+            this.stream.Write(parser.Stream);
+
+            // 2. Body update (modified indirect objects insertion).
+            var xrefSize = this.file.IndirectObjects.Count;
+            var xrefBuilder = new StringBuilder(XRefChunk);
+            /*
+              NOTE: Incremental xref table comprises multiple sections
+              each one composed by multiple subsections; this update
+              adds a new section.
+            */
+            var xrefSubBuilder = new StringBuilder(); // Xref-table subsection builder.
+            var xrefSubCount = 0; // Xref-table subsection counter.
+            var prevKey = 0; // Previous-entry object number.
+            foreach (
+              var indirectObjectEntry
+                in this.file.IndirectObjects.ModifiedObjects
+              )
+            {
+                // Is the object in the current subsection?
+                /*
+                  NOTE: To belong to the current subsection, the object entry MUST be contiguous with the
+                  previous (condition 1) or the iteration has to have been just started (condition 2).
+                */
+                if ((indirectObjectEntry.Key - prevKey == 1)
+                  || (prevKey == 0)) // Current subsection continues.
+                { xrefSubCount++; }
+                else // Current subsection terminates.
+                {
+                    // End current subsection!
+                    _ = this.AppendXRefSubsection(
+                      xrefBuilder,
+                      prevKey - xrefSubCount + 1,
+                      xrefSubCount,
+                      xrefSubBuilder
+                      );
+
+                    // Begin next subsection!
+                    xrefSubBuilder.Length = 0;
+                    xrefSubCount = 1;
+                }
+
+                prevKey = indirectObjectEntry.Key;
+
+                // Current entry insertion.
+                if (indirectObjectEntry.Value.IsInUse()) // In-use entry.
+                {
+                    // Add in-use entry!
+                    _ = this.AppendXRefEntry(
+                      xrefSubBuilder,
+                      indirectObjectEntry.Value.Reference,
+                      this.stream.Length
+                      );
+                    // Add in-use entry content!
+                    indirectObjectEntry.Value.WriteTo(this.stream, this.file);
+                }
+                else // Free entry.
+                {
+                    // Add free entry!
+                    /*
+                      NOTE: We purposely neglect the linked list of free entries (see IndirectObjects.remove(int)),
+                      so that this entry links directly back to object number 0, having a generation number of 65535
+                      (not reusable) [PDF:1.6:3.4.3].
+                    */
+                    _ = this.AppendXRefEntry(
+                      xrefSubBuilder,
+                      indirectObjectEntry.Value.Reference,
+                      0
+                      );
+                }
+            }
+            // End last subsection!
+            _ = this.AppendXRefSubsection(
+              xrefBuilder,
+              prevKey - xrefSubCount + 1,
+              xrefSubCount,
+              xrefSubBuilder
+              );
+
+            // 3. XRef-table last section.
+            var startxref = this.stream.Length;
+            this.stream.Write(xrefBuilder.ToString());
+
+            // 4. Trailer.
+            this.WriteTrailer(startxref, xrefSize, parser);
+        }
+
+        protected override void WriteLinearized(
+          )
+        { throw new NotImplementedException(); }
+
+        protected override void WriteStandard(
+          )
+        {
+            // 1. Header [PDF:1.6:3.4.1].
+            this.WriteHeader();
+
+            // 2. Body [PDF:1.6:3.4.2].
+            var xrefSize = this.file.IndirectObjects.Count;
+            var xrefBuilder = new StringBuilder(XRefChunk);
+            /*
+              NOTE: A standard xref table comprises just one section composed by just one subsection.
+              NOTE: As xref-table free entries MUST be arrayed as a linked list,
+              it's needed to cache intermingled in-use entries in order to properly render
+              the object number of the next free entry inside the previous one.
+            */
+            _ = this.AppendXRefSubsectionIndexer(xrefBuilder, 0, xrefSize);
+
+            var xrefInUseBlockBuilder = new StringBuilder();
+            var indirectObjects = this.file.IndirectObjects;
+            var freeReference = indirectObjects[0].Reference; // Initialized to the first free entry.
+            for (
+              var index = 1;
+              index < xrefSize;
+              index++
+              )
+            {
+                // Current entry insertion.
+                var indirectObject = indirectObjects[index];
+                if (indirectObject.IsInUse()) // In-use entry.
+                {
+                    // Add in-use entry!
+                    _ = this.AppendXRefEntry(
+                      xrefInUseBlockBuilder,
+                      indirectObject.Reference,
+                      this.stream.Length
+                      );
+                    // Add in-use entry content!
+                    indirectObject.WriteTo(this.stream, this.file);
+                }
+                else // Free entry.
+                {
+                    // Add free entry!
+                    _ = this.AppendXRefEntry(
+                      xrefBuilder,
+                      freeReference,
+                      index
+                      );
+
+                    // End current block!
+                    _ = xrefBuilder.Append(xrefInUseBlockBuilder);
+
+                    // Initialize next block!
+                    xrefInUseBlockBuilder.Length = 0;
+                    freeReference = indirectObject.Reference;
+                }
+            }
+            // Add last free entry!
+            _ = this.AppendXRefEntry(
+              xrefBuilder,
+              freeReference,
+              0
+              );
+
+            // End last block!
+            _ = xrefBuilder.Append(xrefInUseBlockBuilder);
+
+            // 3. XRef table (unique section) [PDF:1.6:3.4.3].
+            var startxref = this.stream.Length;
+            this.stream.Write(xrefBuilder.ToString());
+
+            // 4. Trailer [PDF:1.6:3.4.4].
+            this.WriteTrailer(startxref, xrefSize, null);
+        }
     }
 }

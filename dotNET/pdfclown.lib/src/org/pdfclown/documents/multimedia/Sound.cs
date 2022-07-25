@@ -24,13 +24,13 @@
 */
 
 
-using System;
-using org.pdfclown.bytes;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+    using System;
+    using org.pdfclown.bytes;
+
+    using org.pdfclown.objects;
+
     //TODO: this is just a stub.
     /**
       <summary>Sound object [PDF:1.6:9.2].</summary>
@@ -39,11 +39,14 @@ namespace org.pdfclown.documents.multimedia
     public sealed class Sound
       : PdfObjectWrapper<PdfStream>
     {
-        #region dynamic
-        #region constructors
+
+        public Sound(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new sound within the given document context.</summary>
-        */
+<summary>Creates a new sound within the given document context.</summary>
+*/
         public Sound(
           Document context,
           IInputStream stream
@@ -58,14 +61,5 @@ namespace org.pdfclown.documents.multimedia
             )
         { throw new NotImplementedException("Process the sound stream!"); }
 
-        public Sound(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #endregion
-        #endregion
     }
 }

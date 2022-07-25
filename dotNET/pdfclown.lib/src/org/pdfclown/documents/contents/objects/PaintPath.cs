@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using org.pdfclown.util;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Drawing;
+    using org.pdfclown.util;
+
     /**
       <summary>Path-painting operation [PDF:1.6:4.4.2].</summary>
     */
@@ -36,8 +35,6 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class PaintPath
       : Operation
     {
-        #region static
-        #region fields
         public const string CloseFillStrokeEvenOddOperatorKeyword = "b*";
         public const string CloseFillStrokeOperatorKeyword = "b";
         public const string CloseStrokeOperatorKeyword = "s";
@@ -88,111 +85,69 @@ namespace org.pdfclown.documents.contents.objects
           <summary>'Stroke the path' operation.</summary>
         */
         public static readonly PaintPath Stroke = new PaintPath(StrokeOperatorKeyword, false, true, false, null);
-        #endregion
 
-        #region interface
-        #region private
-        private static Pen GetStroke(
-          ContentScanner.GraphicsState state
-          )
-        {
-            Pen stroke = new Pen(
-              state.StrokeColorSpace.GetPaint(state.StrokeColor),
-              (float)state.LineWidth
-              );
-            {
-                LineCap lineCap = state.LineCap.ToGdi();
-                stroke.SetLineCap(lineCap, lineCap, lineCap.ToDashCap());
-                stroke.LineJoin = state.LineJoin.ToGdi();
-                stroke.MiterLimit = (float)state.MiterLimit;
-
-                LineDash lineDash = state.LineDash;
-                double[] dashArray = lineDash.DashArray;
-                if (dashArray.Length > 0)
-                {
-                    stroke.DashPattern = ConvertUtils.ToFloatArray(dashArray);
-                    stroke.DashOffset = (float)lineDash.DashPhase;
-                }
-            }
-            return stroke;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
         private readonly bool closed;
         private readonly bool filled;
         private readonly WindModeEnum fillMode;
         private readonly bool stroked;
-        #endregion
 
-        #region constructors
         private PaintPath(
-          string @operator,
-          bool closed,
-          bool stroked,
-          bool filled,
-          WindModeEnum? fillMode
-          ) : base(@operator)
+  string @operator,
+  bool closed,
+  bool stroked,
+  bool filled,
+  WindModeEnum? fillMode
+  ) : base(@operator)
         {
             this.closed = closed;
             this.stroked = stroked;
             this.filled = filled;
-            this.fillMode = (fillMode.HasValue ? fillMode.Value : WindModeEnum.EvenOdd);
-        }
-        #endregion
-
-        #region interface
-        #region public
-        /**
-          <summary>Gets the filling rule.</summary>
-        */
-        public WindModeEnum FillMode
-        {
-            get
-            { return fillMode; }
+            this.fillMode = fillMode.HasValue ? fillMode.Value : WindModeEnum.EvenOdd;
         }
 
-        /**
-          <summary>Gets whether the current path has to be closed.</summary>
-        */
-        public bool Closed
+        private static Pen GetStroke(
+ContentScanner.GraphicsState state
+)
         {
-            get
-            { return closed; }
-        }
+            var stroke = new Pen(
+              state.StrokeColorSpace.GetPaint(state.StrokeColor),
+              (float)state.LineWidth
+              );
+            var lineCap = state.LineCap.ToGdi();
+            stroke.SetLineCap(lineCap, lineCap, lineCap.ToDashCap());
+            stroke.LineJoin = state.LineJoin.ToGdi();
+            stroke.MiterLimit = (float)state.MiterLimit;
 
-        /**
-          <summary>Gets whether the current path has to be filled.</summary>
-        */
-        public bool Filled
-        {
-            get
-            { return filled; }
+            var lineDash = state.LineDash;
+            var dashArray = lineDash.DashArray;
+            if (dashArray.Length > 0)
+            {
+                stroke.DashPattern = ConvertUtils.ToFloatArray(dashArray);
+                stroke.DashOffset = (float)lineDash.DashPhase;
+            }
+            return stroke;
         }
 
         public override void Scan(
           ContentScanner.GraphicsState state
           )
         {
-            ContentScanner scanner = state.Scanner;
-            GraphicsPath pathObject = scanner.RenderObject;
+            var scanner = state.Scanner;
+            var pathObject = scanner.RenderObject;
             if (pathObject != null)
             {
-                Graphics context = scanner.RenderContext;
+                var context = scanner.RenderContext;
 
-                if (closed)
+                if (this.closed)
                 {
                     pathObject.CloseFigure();
                 }
-                if (filled)
+                if (this.filled)
                 {
-                    pathObject.FillMode = fillMode.ToGdi();
+                    pathObject.FillMode = this.fillMode.ToGdi();
                     context.FillPath(state.FillColorSpace.GetPaint(state.FillColor), pathObject);
                 }
-                if (stroked)
+                if (this.stroked)
                 {
                     context.DrawPath(GetStroke(state), pathObject);
                 }
@@ -200,15 +155,23 @@ namespace org.pdfclown.documents.contents.objects
         }
 
         /**
+          <summary>Gets whether the current path has to be closed.</summary>
+        */
+        public bool Closed => this.closed;
+
+        /**
+          <summary>Gets whether the current path has to be filled.</summary>
+        */
+        public bool Filled => this.filled;
+
+        /**
+<summary>Gets the filling rule.</summary>
+*/
+        public WindModeEnum FillMode => this.fillMode;
+
+        /**
           <summary>Gets whether the current path has to be stroked.</summary>
         */
-        public bool Stroked
-        {
-            get
-            { return stroked; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public bool Stroked => this.stroked;
     }
 }

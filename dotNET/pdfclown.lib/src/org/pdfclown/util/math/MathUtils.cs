@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using System;
-
 namespace org.pdfclown.util.math
 {
+    using System;
+
     /**
       <summary>Mathematic utilities.</summary>
     */

@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Play a movie' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,36 +37,31 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class PlayMovie
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public PlayMovie(
-          Document context,
-          Movie movie
-          ) : base(context, PdfName.Movie)
-        { Movie = movie; }
 
         internal PlayMovie(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the movie to be played.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public PlayMovie(
+          Document context,
+          Movie movie
+          ) : base(context, PdfName.Movie)
+        { this.Movie = movie; }
+
+        /**
+<summary>Gets/Sets the movie to be played.</summary>
+*/
         public Movie Movie
         {
             get
             {
-                PdfDirectObject annotationObject = BaseDataObject[PdfName.Annotation];
+                var annotationObject = this.BaseDataObject[PdfName.Annotation];
                 if (annotationObject == null)
                 {
-                    annotationObject = BaseDataObject[PdfName.T];
+                    annotationObject = this.BaseDataObject[PdfName.T];
                     throw new NotImplementedException("No by-title movie annotation support currently: we have to implement a hook to the page of the referenced movie to get it from its annotations collection.");
                 }
                 return (Movie)Annotation.Wrap(annotationObject);
@@ -74,13 +69,12 @@ namespace org.pdfclown.documents.interaction.actions
             set
             {
                 if (value == null)
+                {
                     throw new ArgumentException("Movie MUST be defined.");
+                }
 
-                BaseDataObject[PdfName.Annotation] = value.BaseObject;
+                this.BaseDataObject[PdfName.Annotation] = value.BaseObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,15 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using System.Drawing.Drawing2D;
-using org.pdfclown.documents.contents.layers;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents.xObjects
 {
+    using System.Drawing;
+
+    using System.Drawing.Drawing2D;
+    using org.pdfclown.documents.contents.layers;
+    using org.pdfclown.objects;
+
     /**
       <summary>External graphics object whose contents are defined by a self-contained content stream,
       separate from the content stream in which it is used [PDF:1.6:4.7].</summary>
@@ -41,41 +40,21 @@ namespace org.pdfclown.documents.contents.xObjects
       : PdfObjectWrapper<PdfStream>,
         ILayerable
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Wraps an external object reference into an external object.</summary>
-          <param name="baseObject">External object base object.</param>
-          <returns>External object associated to the reference.</returns>
-        */
-        public static XObject Wrap(
-          PdfDirectObject baseObject
-          )
-        {
-            if (baseObject == null)
-                return null;
 
-            PdfName subtype = (PdfName)((PdfStream)baseObject.Resolve()).Header[PdfName.Subtype];
-            if (PdfName.Form.Equals(subtype))
-                return FormXObject.Wrap(baseObject);
-            else if (PdfName.Image.Equals(subtype))
-                return ImageXObject.Wrap(baseObject);
-            else
-                return null;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         /**
-          <summary>Creates a new external object inside the document.</summary>
-        */
+<summary>Creates a new external object inside the document.</summary>
+*/
         protected XObject(
           Document context
           ) : this(context, new PdfStream())
+        { }
+
+        /**
+          <summary>Instantiates an existing external object.</summary>
+        */
+        protected XObject(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
         { }
 
         /**
@@ -86,21 +65,44 @@ namespace org.pdfclown.documents.contents.xObjects
           PdfStream baseDataObject
           ) : base(context, baseDataObject)
         { baseDataObject.Header[PdfName.Type] = PdfName.XObject; }
-
         /**
-          <summary>Instantiates an existing external object.</summary>
-        */
-        protected XObject(
+<summary>Wraps an external object reference into an external object.</summary>
+<param name="baseObject">External object base object.</param>
+<returns>External object associated to the reference.</returns>
+*/
+        public static XObject Wrap(
           PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
+          )
+        {
+            if (baseObject == null)
+            {
+                return null;
+            }
 
-        #region interface
-        #region public
+            var subtype = (PdfName)((PdfStream)baseObject.Resolve()).Header[PdfName.Subtype];
+            if (PdfName.Form.Equals(subtype))
+            {
+                return FormXObject.Wrap(baseObject);
+            }
+            else if (PdfName.Image.Equals(subtype))
+            {
+                return ImageXObject.Wrap(baseObject);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public LayerEntity Layer
+        {
+            get => (LayerEntity)PropertyList.Wrap(this.BaseDataObject.Header[PdfName.OC]);
+            set => this.BaseDataObject.Header[PdfName.OC] = (value != null) ? value.Membership.BaseObject : null;
+        }
+
         /**
-          <summary>Gets/Sets the mapping from external-object space to user space.</summary>
-        */
+<summary>Gets/Sets the mapping from external-object space to user space.</summary>
+*/
         public abstract Matrix Matrix
         {
             get;
@@ -115,18 +117,5 @@ namespace org.pdfclown.documents.contents.xObjects
             get;
             set;
         }
-
-        #region ILayerable
-        public LayerEntity Layer
-        {
-            get
-            { return (LayerEntity)PropertyList.Wrap(BaseDataObject.Header[PdfName.OC]); }
-            set
-            { BaseDataObject.Header[PdfName.OC] = value != null ? value.Membership.BaseObject : null; }
-        }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
     }
 }

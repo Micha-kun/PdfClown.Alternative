@@ -23,52 +23,22 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>Line Dash Pattern [PDF:1.6:4.3.2].</summary>
     */
     [PDF(VersionEnum.PDF10)]
     public sealed class LineDash
     {
-        #region static
-        #region interface
-        #region public
-        /**
-          <summary>Gets the pattern corresponding to the specified components.</summary>
-        */
-        public static LineDash Get(
-          PdfArray dashArray,
-          IPdfNumber dashPhase
-          )
-        {
-            if (dashArray == null)
-                return null;
 
-            // Dash array.
-            double[] dashArrayValue = new double[dashArray.Count];
-            for (int index = 0, length = dashArrayValue.Length; index < length; index++)
-            { dashArrayValue[index] = ((IPdfNumber)dashArray[index]).DoubleValue; }
-            // Dash phase.
-            double dashPhaseValue = dashPhase != null ? dashPhase.DoubleValue : 0;
-
-            return new LineDash(dashArrayValue, dashPhaseValue);
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region fields
         private readonly double[] dashArray;
         private readonly double dashPhase;
-        #endregion
 
-        #region constructors
         public LineDash(
-          ) : this(null)
+  ) : this(null)
         { }
 
         public LineDash(
@@ -81,26 +51,34 @@ namespace org.pdfclown.documents.contents
           double dashPhase
           )
         {
-            this.dashArray = dashArray != null ? dashArray : new double[0]; // [FIX:9] NullPointerException if dashArray not initialized.
+            this.dashArray = (dashArray != null) ? dashArray : (new double[0]); // [FIX:9] NullPointerException if dashArray not initialized.
             this.dashPhase = dashPhase;
         }
-        #endregion
-
-        #region interface
-        #region public
-        public double[] DashArray
+        /**
+<summary>Gets the pattern corresponding to the specified components.</summary>
+*/
+        public static LineDash Get(
+          PdfArray dashArray,
+          IPdfNumber dashPhase
+          )
         {
-            get
-            { return dashArray; }
+            if (dashArray == null)
+            {
+                return null;
+            }
+
+            // Dash array.
+            var dashArrayValue = new double[dashArray.Count];
+            for (int index = 0, length = dashArrayValue.Length; index < length; index++)
+            { dashArrayValue[index] = ((IPdfNumber)dashArray[index]).DoubleValue; }
+            // Dash phase.
+            var dashPhaseValue = (dashPhase != null) ? dashPhase.DoubleValue : 0;
+
+            return new LineDash(dashArrayValue, dashPhaseValue);
         }
 
-        public double DashPhase
-        {
-            get
-            { return dashPhase; }
-        }
-        #endregion
-        #endregion
-        #endregion
+        public double[] DashArray => this.dashArray;
+
+        public double DashPhase => this.dashPhase;
     }
 }

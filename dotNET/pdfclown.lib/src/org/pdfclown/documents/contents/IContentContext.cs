@@ -24,12 +24,12 @@
 */
 
 
-using System.Drawing;
-
-using org.pdfclown.documents.interchange.metadata;
-
 namespace org.pdfclown.documents.contents
 {
+    using System.Drawing;
+
+    using org.pdfclown.documents.interchange.metadata;
+
     /**
       <summary>Content stream context.</summary>
     */
@@ -37,6 +37,18 @@ namespace org.pdfclown.documents.contents
       : IAppDataHolder,
         IContentEntity
     {
+
+        /**
+          Renders this content context into the specified rendering context.
+
+          @param context Rendering context.
+          @param size Rendering canvas size.
+          @since 0.1.0
+        */
+        void Render(
+          Graphics context,
+          SizeF size
+          );
         /**
           <summary>Gets the bounding box associated with this content context either explicitly
           (directly associated to the object) or (if not explicitly available) implicitly (inherited
@@ -51,18 +63,6 @@ namespace org.pdfclown.documents.contents
         */
         Contents Contents
         { get; }
-
-        /**
-          Renders this content context into the specified rendering context.
-
-          @param context Rendering context.
-          @param size Rendering canvas size.
-          @since 0.1.0
-        */
-        void Render(
-          Graphics context,
-          SizeF size
-          );
 
         /**
           <summary>Gets the resources associated with this content context either explicitly (directly

@@ -24,13 +24,13 @@
 */
 
 
-using System;
-
-using System.Drawing;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using System;
+
+    using System.Drawing;
+    using org.pdfclown.objects;
+
     /**
       <summary>Rotation (clockwise) [PDF:1.6:3.6.2].</summary>
     */
@@ -64,11 +64,13 @@ namespace org.pdfclown.documents.contents
           )
         {
             if (value == null)
+            {
                 return RotationEnum.Downward;
+            }
 
-            int normalizedValue = (int)(Math.Round(value.DoubleValue / 90) % 4) * 90;
+            var normalizedValue = ((int)(Math.Round(value.DoubleValue / 90) % 4)) * 90;
             if (normalizedValue < 0)
-            { normalizedValue += 360 * (int)Math.Ceiling(-normalizedValue / 360d); }
+            { normalizedValue += 360 * ((int)Math.Ceiling((-normalizedValue) / 360d)); }
             return (RotationEnum)normalizedValue;
         }
 
@@ -77,10 +79,14 @@ namespace org.pdfclown.documents.contents
           SizeF size
           )
         {
-            if ((int)rotation % 180 == 0)
+            if (((int)rotation) % 180 == 0)
+            {
                 return new SizeF(size.Width, size.Height);
+            }
             else
+            {
                 return new SizeF(size.Height, size.Width);
+            }
         }
     }
 }

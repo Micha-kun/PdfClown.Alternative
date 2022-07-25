@@ -70,7 +70,7 @@ namespace org.pdfclown.documents.contents.colorSpaces
         /// <param name="components">Color components to convert.</param>
         ///
         public static new DeviceCMYKColor Get(PdfArray components)
-        { return (components != null) ? (new DeviceCMYKColor(components)) : Default; }
+        { return (components != null) ? new DeviceCMYKColor(components) : Default; }
 
         ///
         /// <summary>Gets/Sets the cyan component.</summary>

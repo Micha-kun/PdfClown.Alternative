@@ -23,39 +23,35 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace org.pdfclown.util
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+
     /**
       <summary>Bidirectional bijective map.</summary>
     */
     public class BiDictionary<TKey, TValue>
       : IDictionary<TKey, TValue>
     {
-        #region dynamic
-        #region fields
         private readonly Dictionary<TKey, TValue> dictionary;
         private readonly Dictionary<TValue, TKey> inverseDictionary;
-        #endregion
 
-        #region constructors
         public BiDictionary(
-          )
+  )
         {
-            dictionary = new Dictionary<TKey, TValue>();
-            inverseDictionary = new Dictionary<TValue, TKey>();
+            this.dictionary = new Dictionary<TKey, TValue>();
+            this.inverseDictionary = new Dictionary<TValue, TKey>();
         }
 
         public BiDictionary(
           int capacity
           )
         {
-            dictionary = new Dictionary<TKey, TValue>(capacity);
-            inverseDictionary = new Dictionary<TValue, TKey>(capacity);
+            this.dictionary = new Dictionary<TKey, TValue>(capacity);
+            this.inverseDictionary = new Dictionary<TValue, TKey>(capacity);
         }
 
         public BiDictionary(
@@ -65,62 +61,9 @@ namespace org.pdfclown.util
             this.dictionary = new Dictionary<TKey, TValue>(dictionary);
             //TODO: key duplicate collisions to resolve!
             //       inverseDictionary = this.dictionary.ToDictionary(entry => entry.Value, entry => entry.Key);
-            inverseDictionary = new Dictionary<TValue, TKey>();
-            foreach (KeyValuePair<TKey, TValue> entry in this.dictionary)
-            { inverseDictionary[entry.Value] = entry.Key; }
-        }
-        #endregion
-
-        #region interface
-        #region public
-        public bool ContainsValue(
-          TValue value
-          )
-        { return inverseDictionary.ContainsKey(value); }
-
-        public virtual TKey GetKey(
-          TValue value
-          )
-        { TKey key; inverseDictionary.TryGetValue(value, out key); return key; }
-
-        #region IDictionary
-        public void Add(
-          TKey key,
-          TValue value
-          )
-        {
-            dictionary.Add(key, value); // Adds the entry.
-            try
-            { inverseDictionary.Add(value, key); } // Adds the inverse entry.
-            catch (Exception exception)
-            {
-                dictionary.Remove(key); // Reverts the entry addition.
-                throw exception;
-            }
-        }
-
-        public bool ContainsKey(
-          TKey key
-          )
-        { return dictionary.ContainsKey(key); }
-
-        public ICollection<TKey> Keys
-        {
-            get
-            { return dictionary.Keys; }
-        }
-
-        public bool Remove(
-          TKey key
-          )
-        {
-            TValue value;
-            if (!dictionary.TryGetValue(key, out value))
-                return false;
-
-            dictionary.Remove(key);
-            inverseDictionary.Remove(value);
-            return true;
+            this.inverseDictionary = new Dictionary<TValue, TKey>();
+            foreach (var entry in this.dictionary)
+            { this.inverseDictionary[entry.Value] = entry.Key; }
         }
 
         public virtual TValue this[
@@ -139,49 +82,69 @@ namespace org.pdfclown.util
                   or an actual null object, it suffices to query ContainsKey() method.
                 */
                 TValue value;
-                dictionary.TryGetValue(key, out value);
+                _ = this.dictionary.TryGetValue(key, out value);
                 return value;
             }
             set
             {
                 TValue oldValue;
-                dictionary.TryGetValue(key, out oldValue);
-                dictionary[key] = value; // Sets the entry.
+                _ = this.dictionary.TryGetValue(key, out oldValue);
+                this.dictionary[key] = value; // Sets the entry.
                 if (oldValue != null)
-                { inverseDictionary.Remove(oldValue); }
-                inverseDictionary[value] = key; // Sets the inverse entry.
+                { _ = this.inverseDictionary.Remove(oldValue); }
+                this.inverseDictionary[value] = key; // Sets the inverse entry.
             }
         }
 
-        public bool TryGetValue(
-          TKey key,
-          out TValue value
-          )
-        { return dictionary.TryGetValue(key, out value); }
-
-        public ICollection<TValue> Values
-        {
-            get
-            { return dictionary.Values; }
-        }
-
-        #region ICollection
         void ICollection<KeyValuePair<TKey, TValue>>.Add(
-          KeyValuePair<TKey, TValue> keyValuePair
-          )
-        { Add(keyValuePair.Key, keyValuePair.Value); }
-
-        public void Clear(
-          )
-        {
-            dictionary.Clear();
-            inverseDictionary.Clear();
-        }
+  KeyValuePair<TKey, TValue> keyValuePair
+  )
+        { this.Add(keyValuePair.Key, keyValuePair.Value); }
 
         bool ICollection<KeyValuePair<TKey, TValue>>.Contains(
           KeyValuePair<TKey, TValue> keyValuePair
           )
-        { return dictionary.Contains(keyValuePair); }
+        { return this.dictionary.Contains(keyValuePair); }
+
+        IEnumerator IEnumerable.GetEnumerator(
+  )
+        { return ((IEnumerable<KeyValuePair<TKey, TValue>>)this).GetEnumerator(); }
+
+        IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator(
+  )
+        { return this.dictionary.GetEnumerator(); }
+
+        public void Add(
+  TKey key,
+  TValue value
+  )
+        {
+            this.dictionary.Add(key, value); // Adds the entry.
+            try
+            { this.inverseDictionary.Add(value, key); } // Adds the inverse entry.
+            catch (Exception exception)
+            {
+                _ = this.dictionary.Remove(key); // Reverts the entry addition.
+                throw exception;
+            }
+        }
+
+        public void Clear(
+          )
+        {
+            this.dictionary.Clear();
+            this.inverseDictionary.Clear();
+        }
+
+        public bool ContainsKey(
+          TKey key
+          )
+        { return this.dictionary.ContainsKey(key); }
+
+        public bool ContainsValue(
+TValue value
+)
+        { return this.inverseDictionary.ContainsKey(value); }
 
         public void CopyTo(
           KeyValuePair<TKey, TValue>[] keyValuePairs,
@@ -189,44 +152,51 @@ namespace org.pdfclown.util
           )
         { throw new NotImplementedException(); }
 
-        public virtual int Count
-        {
-            get
-            { return dictionary.Count; }
-        }
+        public virtual TKey GetKey(
+          TValue value
+          )
+        { TKey key; _ = this.inverseDictionary.TryGetValue(value, out key); return key; }
 
-        public bool IsReadOnly
+        public bool Remove(
+          TKey key
+          )
         {
-            get
-            { return false; }
+            TValue value;
+            if (!this.dictionary.TryGetValue(key, out value))
+            {
+                return false;
+            }
+
+            _ = this.dictionary.Remove(key);
+            _ = this.inverseDictionary.Remove(value);
+            return true;
         }
 
         public bool Remove(
           KeyValuePair<TKey, TValue> keyValuePair
           )
         {
-            if (!((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Remove(keyValuePair))
+            if (!((ICollection<KeyValuePair<TKey, TValue>>)this.dictionary).Remove(keyValuePair))
+            {
                 return false;
+            }
 
-            inverseDictionary.Remove(keyValuePair.Value);
+            _ = this.inverseDictionary.Remove(keyValuePair.Value);
             return true;
         }
 
-        #region IEnumerable<KeyValuePair<TKey,TValue>>
-        IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator(
+        public bool TryGetValue(
+          TKey key,
+          out TValue value
           )
-        { return dictionary.GetEnumerator(); }
+        { return this.dictionary.TryGetValue(key, out value); }
 
-        #region IEnumerable
-        IEnumerator IEnumerable.GetEnumerator(
-          )
-        { return ((IEnumerable<KeyValuePair<TKey, TValue>>)this).GetEnumerator(); }
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
-        #endregion
+        public virtual int Count => this.dictionary.Count;
+
+        public bool IsReadOnly => false;
+
+        public ICollection<TKey> Keys => this.dictionary.Keys;
+
+        public ICollection<TValue> Values => this.dictionary.Values;
     }
 }

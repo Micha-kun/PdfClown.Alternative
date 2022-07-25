@@ -1,11 +1,11 @@
-
-using System;
-using org.pdfclown.files;
-
-using org.pdfclown.tools;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System;
+    using org.pdfclown.files;
+
+    using org.pdfclown.tools;
+
     /**
       <summary>This sample demonstrates how to print a PDF document.<summary>
       <remarks>Note: printing is currently in pre-alpha stage; therefore this sample is
@@ -18,12 +18,12 @@ namespace org.pdfclown.samples.cli
           )
         {
             // 1. Opening the PDF file...
-            string filePath = PromptFileChoice("Please select a PDF file");
+            var filePath = this.PromptFileChoice("Please select a PDF file");
             using (var file = new File(filePath))
             {
                 // 2. Printing the document...
-                Renderer renderer = new Renderer();
-                bool silent = false;
+                var renderer = new Renderer();
+                var silent = false;
                 if (renderer.Print(file.Document, silent))
                 { Console.WriteLine("Print fulfilled."); }
                 else

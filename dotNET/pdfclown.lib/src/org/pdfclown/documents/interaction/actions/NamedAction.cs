@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Named action [PDF:1.6:8.5.3].</summary>
     */
@@ -36,25 +35,19 @@ namespace org.pdfclown.documents.interaction.actions
     public class NamedAction
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public NamedAction(
-          Document context,
-          PdfName actionName
-          ) : base(context, PdfName.Named)
-        { BaseDataObject[PdfName.N] = actionName; }
 
         internal NamedAction(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        /**
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public NamedAction(
+          Document context,
+          PdfName actionName
+          ) : base(context, PdfName.Named)
+        { this.BaseDataObject[PdfName.N] = actionName; }
 
-        #region interface
-        #endregion
-        #endregion
     }
 }

@@ -24,97 +24,68 @@
 */
 
 
-using System;
-using org.pdfclown.bytes;
-using org.pdfclown.objects;
-
-using org.pdfclown.util.parsers;
-
 namespace org.pdfclown.tokens
 {
+    using System;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+    using org.pdfclown.objects;
+    using org.pdfclown.util.parsers;
+
     /**
       <summary>PDF file parser [PDF:1.7:3.2,3.4].</summary>
     */
     public sealed class FileParser
       : BaseParser
     {
-        #region types
-        public struct Reference
-        {
-            public readonly int GenerationNumber;
-            public readonly int ObjectNumber;
 
-            internal Reference(
-              int objectNumber,
-              int generationNumber
-              )
-            {
-                this.ObjectNumber = objectNumber;
-                this.GenerationNumber = generationNumber;
-            }
-        }
-        #endregion
-
-        #region static
-        #region fields
         private static readonly int EOFMarkerChunkSize = 1024; // [PDF:1.6:H.3.18].
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region fields
-        private files.File file;
-        #endregion
+        private readonly File file;
 
-        #region constructors
         internal FileParser(
-          IInputStream stream,
-          files.File file
-          ) : base(stream)
+  IInputStream stream,
+  File file
+  ) : base(stream)
         { this.file = file; }
-        #endregion
 
-        #region interface
-        #region public
         public override bool MoveNext(
-          )
+)
         {
-            bool moved = base.MoveNext();
+            var moved = base.MoveNext();
             if (moved)
             {
-                switch (TokenType)
+                switch (this.TokenType)
                 {
                     case TokenTypeEnum.Integer:
-                    {
                         /*
                           NOTE: We need to verify whether indirect reference pattern is applicable:
                           ref :=  { int int 'R' }
                         */
-                        IInputStream stream = Stream;
-                        long baseOffset = stream.Position; // Backs up the recovery position.
+                        var stream = this.Stream;
+                        var baseOffset = stream.Position; // Backs up the recovery position.
 
                         // 1. Object number.
-                        int objectNumber = (int)Token;
+                        var objectNumber = (int)this.Token;
                         // 2. Generation number.
-                        base.MoveNext();
-                        if (TokenType == TokenTypeEnum.Integer)
+                        _ = base.MoveNext();
+                        if (this.TokenType == TokenTypeEnum.Integer)
                         {
-                            int generationNumber = (int)Token;
+                            var generationNumber = (int)this.Token;
                             // 3. Reference keyword.
-                            base.MoveNext();
-                            if (TokenType == TokenTypeEnum.Keyword
-                              && Token.Equals(Keyword.Reference))
-                            { Token = new Reference(objectNumber, generationNumber); }
+                            _ = base.MoveNext();
+                            if ((this.TokenType == TokenTypeEnum.Keyword)
+                              && this.Token.Equals(Keyword.Reference))
+                            { this.Token = new Reference(objectNumber, generationNumber); }
                         }
-                        if (!(Token is Reference))
+                        if (!(this.Token is Reference))
                         {
                             // Rollback!
                             stream.Seek(baseOffset);
-                            Token = objectNumber;
-                            TokenType = TokenTypeEnum.Integer;
+                            this.Token = objectNumber;
+                            this.TokenType = TokenTypeEnum.Integer;
                         }
-                    }
-                    break;
+                        break;
                 }
             }
             return moved;
@@ -123,63 +94,69 @@ namespace org.pdfclown.tokens
         public override PdfDataObject ParsePdfObject(
           )
         {
-            switch (TokenType)
+            switch (this.TokenType)
             {
                 case TokenTypeEnum.Keyword:
-                    if (Token is Reference)
+                    if (this.Token is Reference)
                     {
-                        Reference reference = (Reference)Token;
-                        return new PdfReference(reference.ObjectNumber, reference.GenerationNumber, file);
+                        var reference = (Reference)this.Token;
+                        return new PdfReference(reference.ObjectNumber, reference.GenerationNumber, this.file);
                     }
                     break;
             }
 
-            PdfDataObject pdfObject = base.ParsePdfObject();
+            var pdfObject = base.ParsePdfObject();
             if (pdfObject is PdfDictionary)
             {
-                IInputStream stream = Stream;
-                int oldOffset = (int)stream.Position;
-                MoveNext();
+                var stream = this.Stream;
+                var oldOffset = (int)stream.Position;
+                _ = this.MoveNext();
                 // Is this dictionary the header of a stream object [PDF:1.6:3.2.7]?
-                if ((TokenType == TokenTypeEnum.Keyword)
-                  && Token.Equals(Keyword.BeginStream))
+                if ((this.TokenType == TokenTypeEnum.Keyword)
+                  && this.Token.Equals(Keyword.BeginStream))
                 {
-                    PdfDictionary streamHeader = (PdfDictionary)pdfObject;
+                    var streamHeader = (PdfDictionary)pdfObject;
 
                     // Keep track of current position!
                     /*
                       NOTE: Indirect reference resolution is an outbound call which affects the stream pointer position,
                       so we need to recover our current position after it returns.
                     */
-                    long position = stream.Position;
+                    var position = stream.Position;
                     // Get the stream length!
-                    int length = ((PdfInteger)streamHeader.Resolve(PdfName.Length)).IntValue;
+                    var length = ((PdfInteger)streamHeader.Resolve(PdfName.Length)).IntValue;
                     // Move to the stream data beginning!
                     stream.Seek(position);
-                    SkipEOL();
+                    _ = this.SkipEOL();
 
                     // Copy the stream data to the instance!
-                    byte[] data = new byte[length];
+                    var data = new byte[length];
                     stream.Read(data);
 
-                    MoveNext(); // Postcondition (last token should be 'endstream' keyword).
+                    _ = this.MoveNext(); // Postcondition (last token should be 'endstream' keyword).
 
-                    Object streamType = streamHeader[PdfName.Type];
+                    object streamType = streamHeader[PdfName.Type];
                     if (PdfName.ObjStm.Equals(streamType)) // Object stream [PDF:1.6:3.4.6].
+                    {
                         return new ObjectStream(
                           streamHeader,
                           new bytes.Buffer(data)
                           );
+                    }
                     else if (PdfName.XRef.Equals(streamType)) // Cross-reference stream [PDF:1.6:3.4.7].
+                    {
                         return new XRefStream(
                           streamHeader,
                           new bytes.Buffer(data)
                           );
+                    }
                     else // Generic stream.
+                    {
                         return new PdfStream(
                           streamHeader,
                           new bytes.Buffer(data)
                           );
+                    }
                 }
                 else // Stand-alone dictionary.
                 { stream.Seek(oldOffset); } // Restores postcondition (last token should be the dictionary end).
@@ -196,17 +173,19 @@ namespace org.pdfclown.tokens
           )
         {
             // Go to the beginning of the indirect object!
-            Seek(xrefEntry.Offset);
+            this.Seek(xrefEntry.Offset);
             // Skip the indirect-object header!
-            MoveNext(4);
+            _ = this.MoveNext(4);
 
             // Empty indirect object?
-            if (TokenType == TokenTypeEnum.Keyword
-                && Keyword.EndIndirectObject.Equals(Token))
+            if ((this.TokenType == TokenTypeEnum.Keyword)
+                && Keyword.EndIndirectObject.Equals(this.Token))
+            {
                 return null;
+            }
 
             // Get the indirect data object!
-            return ParsePdfObject();
+            return this.ParsePdfObject();
         }
 
         /**
@@ -215,11 +194,13 @@ namespace org.pdfclown.tokens
         public string RetrieveVersion(
           )
         {
-            IInputStream stream = Stream;
+            var stream = this.Stream;
             stream.Seek(0);
-            string header = stream.ReadString(10);
+            var header = stream.ReadString(10);
             if (!header.StartsWith(Keyword.BOF))
+            {
                 throw new PostScriptParseException("PDF header not found.", this);
+            }
 
             return header.Substring(Keyword.BOF.Length, 3);
         }
@@ -231,12 +212,12 @@ namespace org.pdfclown.tokens
           )
         {
             // [FIX:69] 'startxref' keyword not found (file was corrupted by alien data in the tail).
-            IInputStream stream = Stream;
-            long streamLength = stream.Length;
-            long position = streamLength;
-            int chunkSize = (int)Math.Min(streamLength, EOFMarkerChunkSize);
-            int index = -1;
-            while (index < 0 && position > 0)
+            var stream = this.Stream;
+            var streamLength = stream.Length;
+            var position = streamLength;
+            var chunkSize = (int)Math.Min(streamLength, EOFMarkerChunkSize);
+            var index = -1;
+            while ((index < 0) && (position > 0))
             {
                 /*
                   NOTE: This condition prevents the keyword from being split by the chunk boundary.
@@ -252,21 +233,37 @@ namespace org.pdfclown.tokens
                 index = stream.ReadString(chunkSize).LastIndexOf(Keyword.StartXRef);
             }
             if (index < 0)
+            {
                 throw new PostScriptParseException("'" + Keyword.StartXRef + "' keyword not found.", this);
+            }
 
             // Go past the 'startxref' keyword!
             stream.Seek(position + index);
-            MoveNext();
+            _ = this.MoveNext();
 
             // Get the xref offset!
-            MoveNext();
-            if (TokenType != TokenTypeEnum.Integer)
+            _ = this.MoveNext();
+            if (this.TokenType != TokenTypeEnum.Integer)
+            {
                 throw new PostScriptParseException("'" + Keyword.StartXRef + "' value invalid.", this);
+            }
 
-            return (int)Token;
+            return (int)this.Token;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public struct Reference
+        {
+            public readonly int GenerationNumber;
+            public readonly int ObjectNumber;
+
+            internal Reference(
+              int objectNumber,
+              int generationNumber
+              )
+            {
+                this.ObjectNumber = objectNumber;
+                this.GenerationNumber = generationNumber;
+            }
+        }
     }
 }

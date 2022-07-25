@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using System;
+    using System.Drawing;
+
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.objects;
+
     /**
       <summary>Pop-up annotation [PDF:1.6:8.4.5].</summary>
       <remarks>It displays text in a pop-up window for entry and editing.
@@ -41,35 +41,27 @@ namespace org.pdfclown.documents.interaction.annotations
     public sealed class Popup
       : Annotation
     {
-        #region dynamic
-        #region fields
         private Markup markup;
-        #endregion
-
-        #region constructors
-        public Popup(
-          Page page,
-          RectangleF box,
-          string text
-          ) : base(page, PdfName.Popup, box, text)
-        { }
 
         internal Popup(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public Popup(
+  Page page,
+  RectangleF box,
+  string text
+  ) : base(page, PdfName.Popup, box, text)
+        { }
+
         public override DeviceColor Color
         {
-            get
-            { return Markup != null ? markup.Color : base.Color; }
+            get => (this.Markup != null) ? this.markup.Color : base.Color;
             set
             {
-                if (Markup != null)
-                { markup.Color = value; }
+                if (this.Markup != null)
+                { this.markup.Color = value; }
                 else
                 { base.Color = value; }
             }
@@ -82,13 +74,11 @@ namespace org.pdfclown.documents.interaction.annotations
         {
             get
             {
-                PdfBoolean openObject = (PdfBoolean)BaseDataObject[PdfName.Open];
-                return openObject != null
-                  ? openObject.BooleanValue
-                  : false;
+                var openObject = (PdfBoolean)this.BaseDataObject[PdfName.Open];
+                return (openObject != null)
+&& openObject.BooleanValue;
             }
-            set
-            { BaseDataObject[PdfName.Open] = PdfBoolean.Get(value); }
+            set => this.BaseDataObject[PdfName.Open] = PdfBoolean.Get(value);
         }
 
         /**
@@ -96,29 +86,27 @@ namespace org.pdfclown.documents.interaction.annotations
         */
         public Markup Markup
         {
-            get
-            { return markup != null ? markup : (markup = (Markup)Annotation.Wrap(BaseDataObject[PdfName.Parent])); }
+            get => (this.markup != null) ? this.markup : (this.markup = (Markup)Annotation.Wrap(this.BaseDataObject[PdfName.Parent]));
             internal set
             {
-                PdfDictionary baseDataObject = BaseDataObject;
+                var baseDataObject = this.BaseDataObject;
                 baseDataObject[PdfName.Parent] = value.BaseObject;
                 /*
                   NOTE: The markup annotation's properties override those of this pop-up annotation.
                 */
-                baseDataObject.Remove(PdfName.Contents);
-                baseDataObject.Remove(PdfName.M);
-                baseDataObject.Remove(PdfName.C);
+                _ = baseDataObject.Remove(PdfName.Contents);
+                _ = baseDataObject.Remove(PdfName.M);
+                _ = baseDataObject.Remove(PdfName.C);
             }
         }
 
         public override DateTime? ModificationDate
         {
-            get
-            { return Markup != null ? markup.ModificationDate : base.ModificationDate; }
+            get => (this.Markup != null) ? this.markup.ModificationDate : base.ModificationDate;
             set
             {
-                if (Markup != null)
-                { markup.ModificationDate = value; }
+                if (this.Markup != null)
+                { this.markup.ModificationDate = value; }
                 else
                 { base.ModificationDate = value; }
             }
@@ -126,18 +114,14 @@ namespace org.pdfclown.documents.interaction.annotations
 
         public override string Text
         {
-            get
-            { return Markup != null ? markup.Text : base.Text; }
+            get => (this.Markup != null) ? this.markup.Text : base.Text;
             set
             {
-                if (Markup != null)
-                { markup.Text = value; }
+                if (this.Markup != null)
+                { this.markup.Text = value; }
                 else
                 { base.Text = value; }
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

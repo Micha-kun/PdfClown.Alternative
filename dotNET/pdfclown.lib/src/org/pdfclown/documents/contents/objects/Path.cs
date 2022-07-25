@@ -23,11 +23,11 @@
   this list of conditions.
 */
 
-using System.Collections.Generic;
-using System.Drawing.Drawing2D;
-
 namespace org.pdfclown.documents.contents.objects
 {
+    using System.Collections.Generic;
+    using System.Drawing.Drawing2D;
+
     /**
       <summary>Path object [PDF:1.6:4.4].</summary>
     */
@@ -35,13 +35,11 @@ namespace org.pdfclown.documents.contents.objects
     public sealed class Path
       : GraphicsObject
     {
-        #region static
-        #region fields
         public static readonly string[] BeginOperatorKeywords = new string[]
-          {
+{
         BeginSubpath.OperatorKeyword,
         DrawRectangle.OperatorKeyword
-          };
+};
         public static readonly string[] EndOperatorKeywords = new string[]
           {
         PaintPath.CloseFillStrokeEvenOddOperatorKeyword,
@@ -55,28 +53,18 @@ namespace org.pdfclown.documents.contents.objects
         PaintPath.FillStrokeOperatorKeyword,
         PaintPath.StrokeOperatorKeyword
           };
-        #endregion
-        #endregion
 
-        #region dynamic
-        #region constructors
         public Path(
-          )
+)
         { }
 
         public Path(
           IList<ContentObject> operations
           ) : base(operations)
         { }
-        #endregion
 
-        #region interface
-        #region protected
         protected override GraphicsPath CreateRenderObject(
-          )
+)
         { return new GraphicsPath(); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

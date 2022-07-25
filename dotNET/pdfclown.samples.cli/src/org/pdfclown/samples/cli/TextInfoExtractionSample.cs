@@ -1,17 +1,15 @@
-
-using System;
-using System.Drawing;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.colorSpaces;
-using org.pdfclown.documents.contents.composition;
-using org.pdfclown.documents.contents.objects;
-
-using org.pdfclown.files;
-using org.pdfclown.tools;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.colorSpaces;
+    using org.pdfclown.documents.contents.composition;
+    using org.pdfclown.documents.contents.objects;
+
+    using org.pdfclown.files;
+    using org.pdfclown.tools;
+
     /**
       <summary>This sample demonstrates how to retrieve text content along with its graphic attributes
       (font, font size, text color, text rendering mode, text bounding box...) from a PDF document;
@@ -20,44 +18,13 @@ namespace org.pdfclown.samples.cli
     public class TextInfoExtractionSample
       : Sample
     {
-        private DeviceRGBColor[] textCharBoxColors = new DeviceRGBColor[]
+        private readonly DeviceRGBColor[] textCharBoxColors = new DeviceRGBColor[]
           {
         new DeviceRGBColor(200 / 255d, 100 / 255d, 100 / 255d),
         new DeviceRGBColor(100 / 255d, 200 / 255d, 100 / 255d),
         new DeviceRGBColor(100 / 255d, 100 / 255d, 200 / 255d)
           };
-        private DeviceRGBColor textStringBoxColor = DeviceRGBColor.Black;
-
-        public override void Run(
-          )
-        {
-            // 1. Opening the PDF file...
-            string filePath = PromptFileChoice("Please select a PDF file");
-            using (var file = new File(filePath))
-            {
-                Document document = file.Document;
-
-                PageStamper stamper = new PageStamper(); // NOTE: Page stamper is used to draw contents on existing pages.
-
-                // 2. Iterating through the document pages...
-                foreach (Page page in document.Pages)
-                {
-                    Console.WriteLine("\nScanning page " + page.Number + "...\n");
-
-                    stamper.Page = page;
-
-                    Extract(
-                      new ContentScanner(page), // Wraps the page contents into a scanner.
-                      stamper.Foreground
-                      );
-
-                    stamper.Flush();
-                }
-
-                // 3. Decorated version serialization.
-                Serialize(file);
-            }
-        }
+        private readonly DeviceRGBColor textStringBoxColor = DeviceRGBColor.Black;
 
         /**
           <summary>Scans a content level looking for text.</summary>
@@ -72,31 +39,28 @@ namespace org.pdfclown.samples.cli
           )
         {
             if (level == null)
+            {
                 return;
+            }
 
             while (level.MoveNext())
             {
-                ContentObject content = level.Current;
+                var content = level.Current;
                 if (content is Text)
                 {
-                    ContentScanner.TextWrapper text = (ContentScanner.TextWrapper)level.CurrentWrapper;
-                    int colorIndex = 0;
-                    foreach (ContentScanner.TextStringWrapper textString in text.TextStrings)
+                    var text = (ContentScanner.TextWrapper)level.CurrentWrapper;
+                    var colorIndex = 0;
+                    foreach (var textString in text.TextStrings)
                     {
-                        RectangleF textStringBox = textString.Box.Value;
+                        var textStringBox = textString.Box.Value;
                         Console.WriteLine(
-                          "Text ["
-                            + "x:" + Math.Round(textStringBox.X) + ","
-                            + "y:" + Math.Round(textStringBox.Y) + ","
-                            + "w:" + Math.Round(textStringBox.Width) + ","
-                            + "h:" + Math.Round(textStringBox.Height)
-                            + "] [font size:" + Math.Round(textString.Style.FontSize) + "]: " + textString.Text
+                          $"Text [x:{Math.Round(textStringBox.X)},y:{Math.Round(textStringBox.Y)},w:{Math.Round(textStringBox.Width)},h:{Math.Round(textStringBox.Height)}] [font size:{Math.Round(textString.Style.FontSize)}]: {textString.Text}"
                             );
 
                         // Drawing text character bounding boxes...
-                        colorIndex = (colorIndex + 1) % textCharBoxColors.Length;
-                        composer.SetStrokeColor(textCharBoxColors[colorIndex]);
-                        foreach (TextChar textChar in textString.TextChars)
+                        colorIndex = (colorIndex + 1) % this.textCharBoxColors.Length;
+                        composer.SetStrokeColor(this.textCharBoxColors[colorIndex]);
+                        foreach (var textChar in textString.TextChars)
                         {
                             /*
                               NOTE: You can get further text information
@@ -108,9 +72,9 @@ namespace org.pdfclown.samples.cli
                         }
 
                         // Drawing text string bounding box...
-                        composer.BeginLocalState();
+                        _ = composer.BeginLocalState();
                         composer.SetLineDash(new LineDash(new double[] { 5 }));
-                        composer.SetStrokeColor(textStringBoxColor);
+                        composer.SetStrokeColor(this.textStringBoxColor);
                         composer.DrawRectangle(textString.Box.Value);
                         composer.Stroke();
                         composer.End();
@@ -119,7 +83,7 @@ namespace org.pdfclown.samples.cli
                 else if (content is XObject)
                 {
                     // Scan the external level!
-                    Extract(
+                    this.Extract(
                       ((XObject)content).GetScanner(level),
                       composer
                       );
@@ -127,11 +91,42 @@ namespace org.pdfclown.samples.cli
                 else if (content is ContainerObject)
                 {
                     // Scan the inner level!
-                    Extract(
+                    this.Extract(
                       level.ChildLevel,
                       composer
                       );
                 }
+            }
+        }
+
+        public override void Run(
+          )
+        {
+            // 1. Opening the PDF file...
+            var filePath = this.PromptFileChoice("Please select a PDF file");
+            using (var file = new File(filePath))
+            {
+                var document = file.Document;
+
+                var stamper = new PageStamper(); // NOTE: Page stamper is used to draw contents on existing pages.
+
+                // 2. Iterating through the document pages...
+                foreach (var page in document.Pages)
+                {
+                    Console.WriteLine($"\nScanning page {page.Number}...\n");
+
+                    stamper.Page = page;
+
+                    this.Extract(
+                      new ContentScanner(page), // Wraps the page contents into a scanner.
+                      stamper.Foreground
+                      );
+
+                    stamper.Flush();
+                }
+
+                // 3. Decorated version serialization.
+                _ = this.Serialize(file);
             }
         }
     }

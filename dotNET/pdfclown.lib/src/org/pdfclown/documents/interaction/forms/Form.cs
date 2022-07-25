@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.contents;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.forms
 {
+    using org.pdfclown.documents.contents;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Interactive form (AcroForm) [PDF:1.6:8.6.1].</summary>
     */
@@ -37,49 +36,37 @@ namespace org.pdfclown.documents.interaction.forms
     public sealed class Form
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region static
-        #region interface
-        #region public
-        public static Form Wrap(
-          PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Form(baseObject) : null; }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
-        public Form(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Fields},
-              new PdfDirectObject[]
-              {new PdfArray()}
-              )
-            )
-        { }
 
         private Form(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
+        public Form(
+Document context
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Fields},
+new PdfDirectObject[]
+{new PdfArray()}
+)
+)
+        { }
+
+        public static Form Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Form(baseObject) : null; }
+
         /**
-          <summary>Gets/Sets the fields collection.</summary>
-        */
+<summary>Gets/Sets the fields collection.</summary>
+*/
         public Fields Fields
         {
-            get
-            { return new Fields(BaseDataObject.Get<PdfArray>(PdfName.Fields)); }
-            set
-            { BaseDataObject[PdfName.Fields] = value.BaseObject; }
+            get => new Fields(this.BaseDataObject.Get<PdfArray>(PdfName.Fields));
+            set => this.BaseDataObject[PdfName.Fields] = value.BaseObject;
         }
 
         /**
@@ -87,13 +74,8 @@ namespace org.pdfclown.documents.interaction.forms
         */
         public Resources Resources
         {
-            get
-            { return Resources.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.DR)); }
-            set
-            { BaseDataObject[PdfName.DR] = value.BaseObject; }
+            get => Resources.Wrap(this.BaseDataObject.Get<PdfDictionary>(PdfName.DR));
+            set => this.BaseDataObject[PdfName.DR] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

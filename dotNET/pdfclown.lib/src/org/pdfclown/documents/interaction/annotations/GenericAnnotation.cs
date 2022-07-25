@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>Weakly-typed annotation.</summary>
       <remarks>This is used to model annotations which do not have a dedicated type.</remarks>

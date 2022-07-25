@@ -23,12 +23,11 @@
   this list of conditions.
 */
 
-using System;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.multimedia
 {
+
+    using org.pdfclown.objects;
+
     /**
       <summary>Media player info [PDF:1.7:9.1.6].</summary>
     */
@@ -36,41 +35,31 @@ namespace org.pdfclown.documents.multimedia
     public sealed class MediaPlayer
       : PdfObjectWrapper<PdfDictionary>
     {
-        #region dynamic
-        #region constructors
-        public MediaPlayer(
-          Document context
-          ) : base(
-            context,
-            new PdfDictionary(
-              new PdfName[]
-              {PdfName.Type},
-              new PdfDirectObject[]
-              {PdfName.MediaPlayerInfo}
-              )
-            )
-        { }
 
         internal MediaPlayer(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public MediaPlayer(
+Document context
+) : base(
+context,
+new PdfDictionary(
+new PdfName[]
+{PdfName.Type},
+new PdfDirectObject[]
+{PdfName.MediaPlayerInfo}
+)
+)
+        { }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the player identifier.</summary>
-        */
+<summary>Gets/Sets the player identifier.</summary>
+*/
         public SoftwareIdentifier Identifier
         {
-            get
-            { return SoftwareIdentifier.Wrap(BaseDataObject.Get<PdfDictionary>(PdfName.PID)); }
-            set
-            { BaseDataObject[PdfName.PID] = value.BaseObject; }
+            get => SoftwareIdentifier.Wrap(this.BaseDataObject.Get<PdfDictionary>(PdfName.PID));
+            set => this.BaseDataObject[PdfName.PID] = value.BaseObject;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

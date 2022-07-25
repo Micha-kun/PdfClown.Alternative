@@ -24,14 +24,14 @@
 */
 
 
-using System;
-using org.pdfclown.bytes;
-using org.pdfclown.files;
-
-using org.pdfclown.tokens;
-
 namespace org.pdfclown.objects
 {
+    using System;
+    using org.pdfclown.bytes;
+    using org.pdfclown.files;
+
+    using org.pdfclown.tokens;
+
     /**
       <summary>PDF indirect reference object [PDF:1.6:3.2.9].</summary>
     */
@@ -39,26 +39,20 @@ namespace org.pdfclown.objects
       : PdfDirectObject,
         IPdfIndirectObject
     {
-        #region static
         private const int DelegatedReferenceNumber = -1;
-        #endregion
 
-        #region dynamic
-        #region fields
+        private readonly File file;
+
         private readonly int generationNumber;
-        private readonly int objectNumber;
 
         private PdfIndirectObject indirectObject;
-
-        private File file;
+        private readonly int objectNumber;
         private PdfObject parent;
         private bool updated;
-        #endregion
 
-        #region constructors
         internal PdfReference(
-          PdfIndirectObject indirectObject
-          )
+  PdfIndirectObject indirectObject
+  )
         {
             this.objectNumber = DelegatedReferenceNumber;
             this.generationNumber = DelegatedReferenceNumber;
@@ -77,14 +71,21 @@ namespace org.pdfclown.objects
 
             this.file = file;
         }
-        #endregion
 
-        #region interface
-        #region public
+        protected internal override bool Virtual
+        {
+            get => (this.IndirectObject != null) && this.indirectObject.Virtual;
+            set =>
+                /*
+NOTE: Fail fast if the referenced indirect object is undefined.
+*/
+                this.IndirectObject.Virtual = value;
+        }
+
         public override PdfObject Accept(
-          IVisitor visitor,
-          object data
-          )
+IVisitor visitor,
+object data
+)
         { return visitor.Visit(this, data); }
 
         public override int CompareTo(
@@ -101,29 +102,18 @@ namespace org.pdfclown.objects
              * the same identifier within the same file instance.
              */
             if (base.Equals(other))
+            {
                 return true;
-            else if (other == null
-                || !other.GetType().Equals(GetType()))
+            }
+            else if ((other == null)
+                || !other.GetType().Equals(this.GetType()))
+            {
                 return false;
+            }
 
-            PdfReference otherReference = (PdfReference)other;
-            return otherReference.File == File
-                && otherReference.Id.Equals(Id);
-        }
-
-        public override File File
-        {
-            get
-            { return file != null ? file : base.File; }
-        }
-
-        /**
-          <summary>Gets the generation number.</summary>
-        */
-        public int GenerationNumber
-        {
-            get
-            { return generationNumber == DelegatedReferenceNumber ? IndirectObject.XrefEntry.Generation : generationNumber; }
+            var otherReference = (PdfReference)other;
+            return (otherReference.File == this.File)
+                && otherReference.Id.Equals(this.Id);
         }
 
         public override int GetHashCode(
@@ -133,44 +123,7 @@ namespace org.pdfclown.objects
               NOTE: Uniqueness should be achieved XORring the (local) reference hash-code with the (global)
               file hash-code.
             */
-            return Id.GetHashCode() ^ File.GetHashCode();
-        }
-
-        /**
-          <summary>Gets the object identifier.</summary>
-          <remarks>This corresponds to the serialized representation of an object identifier within a PDF file.</remarks>
-        */
-        public string Id
-        {
-            get
-            { return (string.Empty + ObjectNumber + Symbol.Space + GenerationNumber); }
-        }
-
-        /**
-          <summary>Gets the object reference.</summary>
-          <remarks>This corresponds to the serialized representation of a reference within a PDF file.</remarks>
-        */
-        public string IndirectReference
-        {
-            get
-            { return (Id + Symbol.Space + Symbol.CapitalR); }
-        }
-
-        /**
-          <summary>Gets the object number.</summary>
-        */
-        public int ObjectNumber
-        {
-            get
-            { return objectNumber == DelegatedReferenceNumber ? IndirectObject.XrefEntry.Number : objectNumber; }
-        }
-
-        public override PdfObject Parent
-        {
-            get
-            { return parent; }
-            internal set
-            { parent = value; }
+            return this.Id.GetHashCode() ^ this.File.GetHashCode();
         }
 
         public override PdfObject Swap(
@@ -180,53 +133,41 @@ namespace org.pdfclown.objects
             /*
               NOTE: Fail fast if the referenced indirect object is undefined.
             */
-            return IndirectObject.Swap(((PdfReference)other).IndirectObject).Reference;
+            return this.IndirectObject.Swap(((PdfReference)other).IndirectObject).Reference;
         }
 
         public override string ToString(
           )
-        { return IndirectReference; }
-
-        public override bool Updateable
-        {
-            get
-            { return IndirectObject != null ? indirectObject.Updateable : false; }
-            set
-            {
-                /*
-                  NOTE: Fail fast if the referenced indirect object is undefined.
-                */
-                IndirectObject.Updateable = value;
-            }
-        }
-
-        public override bool Updated
-        {
-            get
-            { return updated; }
-            protected internal set
-            { updated = value; }
-        }
+        { return this.IndirectReference; }
 
         public override void WriteTo(
           IOutputStream stream,
           File context
           )
-        { stream.Write(IndirectReference); }
+        { stream.Write(this.IndirectReference); }
 
-        #region IPdfIndirectObject
         public PdfDataObject DataObject
         {
-            get
-            { return IndirectObject != null ? indirectObject.DataObject : null; }
-            set
-            {
+            get => (this.IndirectObject != null) ? this.indirectObject.DataObject : null;
+            set =>
                 /*
-                  NOTE: Fail fast if the referenced indirect object is undefined.
-                */
-                IndirectObject.DataObject = value;
-            }
+NOTE: Fail fast if the referenced indirect object is undefined.
+*/
+                this.IndirectObject.DataObject = value;
         }
+
+        public override File File => (this.file != null) ? this.file : base.File;
+
+        /**
+          <summary>Gets the generation number.</summary>
+        */
+        public int GenerationNumber => (this.generationNumber == DelegatedReferenceNumber) ? this.IndirectObject.XrefEntry.Generation : this.generationNumber;
+
+        /**
+          <summary>Gets the object identifier.</summary>
+          <remarks>This corresponds to the serialized representation of an object identifier within a PDF file.</remarks>
+        */
+        public string Id => $"{this.ObjectNumber}{Symbol.Space}{this.GenerationNumber}";
 
         /**
           <returns><code>null</code>, if the indirect object is undefined.</returns>
@@ -235,36 +176,46 @@ namespace org.pdfclown.objects
         {
             get
             {
-                if (indirectObject == null)
-                { indirectObject = file.IndirectObjects[objectNumber]; }
+                if (this.indirectObject == null)
+                { this.indirectObject = this.file.IndirectObjects[this.objectNumber]; }
 
-                return indirectObject;
+                return this.indirectObject;
             }
         }
 
-        public override PdfReference Reference
-        {
-            get
-            { return this; }
-        }
-        #endregion
-        #endregion
+        /**
+          <summary>Gets the object reference.</summary>
+          <remarks>This corresponds to the serialized representation of a reference within a PDF file.</remarks>
+        */
+        public string IndirectReference => $"{this.Id}{Symbol.Space}{Symbol.CapitalR}";
 
-        #region protected
-        protected internal override bool Virtual
+        /**
+          <summary>Gets the object number.</summary>
+        */
+        public int ObjectNumber => (this.objectNumber == DelegatedReferenceNumber) ? this.IndirectObject.XrefEntry.Number : this.objectNumber;
+
+        public override PdfObject Parent
         {
-            get
-            { return IndirectObject != null ? indirectObject.Virtual : false; }
-            set
-            {
+            get => this.parent;
+            internal set => this.parent = value;
+        }
+
+        public override PdfReference Reference => this;
+
+        public override bool Updateable
+        {
+            get => (this.IndirectObject != null) && this.indirectObject.Updateable;
+            set =>
                 /*
-                  NOTE: Fail fast if the referenced indirect object is undefined.
-                */
-                IndirectObject.Virtual = value;
-            }
+NOTE: Fail fast if the referenced indirect object is undefined.
+*/
+                this.IndirectObject.Updateable = value;
         }
-        #endregion
-        #endregion
-        #endregion
+
+        public override bool Updated
+        {
+            get => this.updated;
+            protected internal set => this.updated = value;
+        }
     }
 }

@@ -23,13 +23,13 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.multimedia;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+    using org.pdfclown.documents.multimedia;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Play a sound' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,49 +37,41 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class PlaySound
       : Action
     {
-        #region dynamic
-        #region constructors
-        /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
-        public PlaySound(
-          Document context,
-          Sound sound
-          ) : base(context, PdfName.Sound)
-        { Sound = sound; }
 
         internal PlaySound(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
-
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the sound to be played.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
+        public PlaySound(
+          Document context,
+          Sound sound
+          ) : base(context, PdfName.Sound)
+        { this.Sound = sound; }
+
+        /**
+<summary>Gets/Sets the sound to be played.</summary>
+*/
         public Sound Sound
         {
-            get
-            {
+            get =>
                 /*
-                  NOTE: 'Sound' entry MUST exist.
-                */
-                return new Sound(
-                  BaseDataObject[PdfName.Sound]
+NOTE: 'Sound' entry MUST exist.
+*/
+                new Sound(
+                  this.BaseDataObject[PdfName.Sound]
                   );
-            }
             set
             {
                 if (value == null)
+                {
                     throw new ArgumentException("Sound MUST be defined.");
+                }
 
-                BaseDataObject[PdfName.Sound] = value.BaseObject;
+                this.BaseDataObject[PdfName.Sound] = value.BaseObject;
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

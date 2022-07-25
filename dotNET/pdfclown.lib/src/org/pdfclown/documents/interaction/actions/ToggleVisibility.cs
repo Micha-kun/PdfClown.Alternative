@@ -23,15 +23,15 @@
   this list of conditions.
 */
 
-using System;
-using System.Collections.Generic;
-using org.pdfclown.documents.interaction.annotations;
-
-using org.pdfclown.documents.interaction.forms;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+    using System.Collections.Generic;
+    using org.pdfclown.documents.interaction.annotations;
+
+    using org.pdfclown.documents.interaction.forms;
+    using org.pdfclown.objects;
+
     /**
       <summary>'Toggle the visibility of one or more annotations on the screen' action [PDF:1.6:8.5.3].</summary>
     */
@@ -39,47 +39,76 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class ToggleVisibility
       : Action
     {
-        #region dynamic
-        #region constructors
+
+        internal ToggleVisibility(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
         public ToggleVisibility(
           Document context,
           ICollection<PdfObjectWrapper> objects,
           bool visible
           ) : base(context, PdfName.Hide)
         {
-            Objects = objects;
-            Visible = visible;
+            this.Objects = objects;
+            this.Visible = visible;
         }
 
-        internal ToggleVisibility(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
+        private void FillObjects(
+  PdfDataObject objectObject,
+  ICollection<PdfObjectWrapper> objects
+  )
+        {
+            var objectDataObject = PdfObject.Resolve(objectObject);
+            if (objectDataObject is PdfArray) // Multiple objects.
+            {
+                foreach (var itemObject in (PdfArray)objectDataObject)
+                { this.FillObjects(itemObject, objects); }
+            }
+            else // Single object.
+            {
+                if (objectDataObject is PdfDictionary) // Annotation.
+                {
+                    objects.Add(
+                      Annotation.Wrap((PdfReference)objectObject)
+                      );
+                }
+                else if (objectDataObject is PdfTextString) // Form field (associated to widget annotations).
+                {
+                    objects.Add(
+                      this.Document.Form.Fields[
+                        (string)((PdfTextString)objectDataObject).Value
+                        ]
+                      );
+                }
+                else // Invalid object type.
+                {
+                    throw new Exception(
+                      $"Invalid 'Hide' action target type ({objectDataObject.GetType().Name}).\nIt should be either an annotation or a form field."
+                      );
+                }
+            }
+        }
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the annotations (or associated form fields) to be affected.</summary>
-        */
+<summary>Gets/Sets the annotations (or associated form fields) to be affected.</summary>
+*/
         public ICollection<PdfObjectWrapper> Objects
         {
             get
             {
-                List<PdfObjectWrapper> objects = new List<PdfObjectWrapper>();
-                {
-                    PdfDirectObject objectsObject = BaseDataObject[PdfName.T];
-                    FillObjects(objectsObject, objects);
-                }
+                var objects = new List<PdfObjectWrapper>();
+                var objectsObject = this.BaseDataObject[PdfName.T];
+                this.FillObjects(objectsObject, objects);
                 return objects;
             }
             set
             {
-                PdfArray objectsDataObject = new PdfArray();
-                foreach (PdfObjectWrapper item in value)
+                var objectsDataObject = new PdfArray();
+                foreach (var item in value)
                 {
                     if (item is Annotation)
                     {
@@ -96,12 +125,11 @@ namespace org.pdfclown.documents.interaction.actions
                     else
                     {
                         throw new ArgumentException(
-                          "Invalid 'Hide' action target type (" + item.GetType().Name + ").\n"
-                            + "It MUST be either an annotation or a form field."
+                          $"Invalid 'Hide' action target type ({item.GetType().Name}).\nIt MUST be either an annotation or a form field."
                           );
                     }
                 }
-                BaseDataObject[PdfName.T] = objectsDataObject;
+                this.BaseDataObject[PdfName.T] = objectsDataObject;
             }
         }
 
@@ -112,55 +140,11 @@ namespace org.pdfclown.documents.interaction.actions
         {
             get
             {
-                PdfBoolean hideObject = (PdfBoolean)BaseDataObject[PdfName.H];
-                return hideObject != null
-                  ? !hideObject.BooleanValue
-                  : false;
+                var hideObject = (PdfBoolean)this.BaseDataObject[PdfName.H];
+                return (hideObject != null)
+&& !hideObject.BooleanValue;
             }
-            set
-            { BaseDataObject[PdfName.H] = PdfBoolean.Get(!value); }
+            set => this.BaseDataObject[PdfName.H] = PdfBoolean.Get(!value);
         }
-        #endregion
-
-        #region private
-        private void FillObjects(
-          PdfDataObject objectObject,
-          ICollection<PdfObjectWrapper> objects
-          )
-        {
-            PdfDataObject objectDataObject = PdfObject.Resolve(objectObject);
-            if (objectDataObject is PdfArray) // Multiple objects.
-            {
-                foreach (PdfDirectObject itemObject in (PdfArray)objectDataObject)
-                { FillObjects(itemObject, objects); }
-            }
-            else // Single object.
-            {
-                if (objectDataObject is PdfDictionary) // Annotation.
-                {
-                    objects.Add(
-                      Annotation.Wrap((PdfReference)objectObject)
-                      );
-                }
-                else if (objectDataObject is PdfTextString) // Form field (associated to widget annotations).
-                {
-                    objects.Add(
-                      Document.Form.Fields[
-                        (string)((PdfTextString)objectDataObject).Value
-                        ]
-                      );
-                }
-                else // Invalid object type.
-                {
-                    throw new Exception(
-                      "Invalid 'Hide' action target type (" + objectDataObject.GetType().Name + ").\n"
-                        + "It should be either an annotation or a form field."
-                      );
-                }
-            }
-        }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -24,15 +24,13 @@
 */
 
 
-using System;
-using System.IO;
-
-using System.Xml;
-using org.pdfclown.bytes;
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interchange.metadata
 {
+    using System.IO;
+
+    using System.Xml;
+    using org.pdfclown.objects;
+
     /**
       <summary>Metadata stream [PDF:1.6:10.2.2].</summary>
     */
@@ -40,55 +38,48 @@ namespace org.pdfclown.documents.interchange.metadata
     public sealed class Metadata
       : PdfObjectWrapper<PdfStream>
     {
-        #region dynamic
-        #region constructors
         public Metadata(
-          Document context
-          ) : base(
-            context,
-            new PdfStream(
-              new PdfDictionary(
-                new PdfName[]
-                {
+Document context
+) : base(
+context,
+new PdfStream(
+new PdfDictionary(
+new PdfName[]
+{
               PdfName.Type,
               PdfName.Subtype
-                },
-                new PdfDirectObject[]
-                {
+},
+new PdfDirectObject[]
+{
               PdfName.Metadata,
               PdfName.XML
-                }
-                ))
-            )
+}
+))
+)
         { }
 
         public Metadata(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
 
-        #region interface
-        #region public
         /**
-          <summary>Gets/Sets the metadata contents.</summary>
-        */
+<summary>Gets/Sets the metadata contents.</summary>
+*/
         public XmlDocument Content
         {
             get
             {
                 XmlDocument content;
+                using (var contentStream = new MemoryStream(this.BaseDataObject.Body.ToByteArray()))
                 {
-                    using (var contentStream = new MemoryStream(BaseDataObject.Body.ToByteArray()))
+                    if (contentStream.Length > 0)
                     {
-                        if (contentStream.Length > 0)
-                        {
-                            content = new XmlDocument();
-                            content.Load(contentStream);
-                        }
-                        else
-                        { content = null; }
+                        content = new XmlDocument();
+                        content.Load(contentStream);
                     }
+                    else
+                    { content = null; }
                 }
                 return content;
             }
@@ -98,14 +89,11 @@ namespace org.pdfclown.documents.interchange.metadata
                 {
                     value.Save(contentStream);
 
-                    IBuffer body = BaseDataObject.Body;
+                    var body = this.BaseDataObject.Body;
                     body.Clear();
                     body.Write(contentStream.ToArray());
                 }
             }
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

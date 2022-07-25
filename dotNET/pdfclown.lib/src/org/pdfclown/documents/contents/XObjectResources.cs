@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.contents.xObjects;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.contents
 {
+    using org.pdfclown.documents.contents.xObjects;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>External object resources collection [PDF:1.6:3.7.2].</summary>
     */
@@ -37,27 +36,19 @@ namespace org.pdfclown.documents.contents
     public sealed class XObjectResources
       : ResourceItems<XObject>
     {
-        #region dynamic
-        #region constructors
-        public XObjectResources(
-          Document context
-          ) : base(context)
-        { }
 
         internal XObjectResources(
           PdfDirectObject baseObject
           ) : base(baseObject)
         { }
-        #endregion
+        public XObjectResources(
+Document context
+) : base(context)
+        { }
 
-        #region interface
-        #region protected
         protected override XObject Wrap(
-          PdfDirectObject baseObject
-          )
+PdfDirectObject baseObject
+)
         { return XObject.Wrap(baseObject); }
-        #endregion
-        #endregion
-        #endregion
     }
 }

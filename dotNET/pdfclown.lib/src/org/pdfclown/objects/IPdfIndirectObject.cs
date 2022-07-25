@@ -23,10 +23,10 @@
   this list of conditions.
 */
 
-using org.pdfclown.files;
-
 namespace org.pdfclown.objects
 {
+    using org.pdfclown.files;
+
     /**
       <summary>PDF indirect object interface.</summary>
     */
@@ -37,12 +37,6 @@ namespace org.pdfclown.objects
           );
 
         /**
-          <summary>Gets/Sets the actual data associated to the indirect reference.</summary>
-        */
-        PdfDataObject DataObject
-        { get; set; }
-
-        /**
           <summary>Removes the object from its file context.</summary>
           <remarks>
             <para>The object is no more usable after this method returns.</para>
@@ -50,6 +44,12 @@ namespace org.pdfclown.objects
         */
         bool Delete(
           );
+
+        /**
+          <summary>Gets/Sets the actual data associated to the indirect reference.</summary>
+        */
+        PdfDataObject DataObject
+        { get; set; }
 
         /**
           <summary>Gets the indirect object associated to the indirect reference.</summary>

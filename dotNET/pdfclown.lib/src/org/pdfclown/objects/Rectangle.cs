@@ -23,11 +23,10 @@
   this list of conditions.
 */
 
-using System;
-using System.Drawing;
-
 namespace org.pdfclown.objects
 {
+    using System.Drawing;
+
     /**
       <summary>PDF rectangle object [PDF:1.6:3.8.4].</summary>
       <remarks>
@@ -41,48 +40,20 @@ namespace org.pdfclown.objects
     public sealed class Rectangle
       : PdfObjectWrapper<PdfArray>
     {
-        #region static
-        #region interface
-        #region public
-        public static Rectangle Wrap(
+
+        private Rectangle(
           PdfDirectObject baseObject
-          )
-        { return baseObject != null ? new Rectangle(baseObject) : null; }
-        #endregion
+          ) : base(Normalize((PdfArray)baseObject.Resolve()))
+        { }
 
-        #region private
-        private static PdfArray Normalize(
-          PdfArray rectangle
-          )
-        {
-            if (rectangle[0].CompareTo(rectangle[2]) > 0)
-            {
-                PdfDirectObject leftCoordinate = rectangle[2];
-                rectangle[2] = rectangle[0];
-                rectangle[0] = leftCoordinate;
-            }
-            if (rectangle[1].CompareTo(rectangle[3]) > 0)
-            {
-                PdfDirectObject bottomCoordinate = rectangle[3];
-                rectangle[3] = rectangle[1];
-                rectangle[1] = bottomCoordinate;
-            }
-            return rectangle;
-        }
-        #endregion
-        #endregion
-        #endregion
-
-        #region dynamic
-        #region constructors
         public Rectangle(
-          RectangleF rectangle
-          ) : this(
-            rectangle.Left,
-            rectangle.Bottom,
-            rectangle.Width,
-            rectangle.Height
-            )
+RectangleF rectangle
+) : this(
+rectangle.Left,
+rectangle.Bottom,
+rectangle.Width,
+rectangle.Height
+)
         { }
 
         public Rectangle(
@@ -114,83 +85,79 @@ namespace org.pdfclown.objects
             )
         { }
 
-        private Rectangle(
-          PdfDirectObject baseObject
-          ) : base(Normalize((PdfArray)baseObject.Resolve()))
-        { }
-        #endregion
-
-        #region interface
-        #region public
-        public double Bottom
+        private static PdfArray Normalize(
+  PdfArray rectangle
+  )
         {
-            get
-            { return ((IPdfNumber)BaseDataObject[1]).RawValue; }
-            set
-            { BaseDataObject[1] = PdfReal.Get(value); }
-        }
-
-        public double Height
-        {
-            get
-            { return (Top - Bottom); }
-            set
-            { Bottom = Top - value; }
-        }
-
-        public double Left
-        {
-            get
-            { return ((IPdfNumber)BaseDataObject[0]).RawValue; }
-            set
-            { BaseDataObject[0] = PdfReal.Get(value); }
-        }
-
-        public double Right
-        {
-            get
-            { return ((IPdfNumber)BaseDataObject[2]).RawValue; }
-            set
-            { BaseDataObject[2] = PdfReal.Get(value); }
-        }
-
-        public double Top
-        {
-            get
-            { return ((IPdfNumber)BaseDataObject[3]).RawValue; }
-            set
-            { BaseDataObject[3] = PdfReal.Get(value); }
+            if (rectangle[0].CompareTo(rectangle[2]) > 0)
+            {
+                var leftCoordinate = rectangle[2];
+                rectangle[2] = rectangle[0];
+                rectangle[0] = leftCoordinate;
+            }
+            if (rectangle[1].CompareTo(rectangle[3]) > 0)
+            {
+                var bottomCoordinate = rectangle[3];
+                rectangle[3] = rectangle[1];
+                rectangle[1] = bottomCoordinate;
+            }
+            return rectangle;
         }
 
         public RectangleF ToRectangleF(
           )
-        { return new RectangleF((float)X, (float)Y, (float)Width, (float)Height); }
+        { return new RectangleF((float)this.X, (float)this.Y, (float)this.Width, (float)this.Height); }
+        public static Rectangle Wrap(
+PdfDirectObject baseObject
+)
+        { return (baseObject != null) ? new Rectangle(baseObject) : null; }
+
+        public double Bottom
+        {
+            get => ((IPdfNumber)this.BaseDataObject[1]).RawValue;
+            set => this.BaseDataObject[1] = PdfReal.Get(value);
+        }
+
+        public double Height
+        {
+            get => this.Top - this.Bottom;
+            set => this.Bottom = this.Top - value;
+        }
+
+        public double Left
+        {
+            get => ((IPdfNumber)this.BaseDataObject[0]).RawValue;
+            set => this.BaseDataObject[0] = PdfReal.Get(value);
+        }
+
+        public double Right
+        {
+            get => ((IPdfNumber)this.BaseDataObject[2]).RawValue;
+            set => this.BaseDataObject[2] = PdfReal.Get(value);
+        }
+
+        public double Top
+        {
+            get => ((IPdfNumber)this.BaseDataObject[3]).RawValue;
+            set => this.BaseDataObject[3] = PdfReal.Get(value);
+        }
 
         public double Width
         {
-            get
-            { return Right - Left; }
-            set
-            { Right = Left + value; }
+            get => this.Right - this.Left;
+            set => this.Right = this.Left + value;
         }
 
         public double X
         {
-            get
-            { return Left; }
-            set
-            { Left = value; }
+            get => this.Left;
+            set => this.Left = value;
         }
 
         public double Y
         {
-            get
-            { return Bottom; }
-            set
-            { Bottom = value; }
+            get => this.Bottom;
+            set => this.Bottom = value;
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

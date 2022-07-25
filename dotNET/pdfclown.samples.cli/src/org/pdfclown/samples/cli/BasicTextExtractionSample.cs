@@ -1,14 +1,12 @@
-
-using System;
-using org.pdfclown.documents;
-using org.pdfclown.documents.contents;
-using org.pdfclown.documents.contents.fonts;
-using org.pdfclown.documents.contents.objects;
-
-using org.pdfclown.files;
-
 namespace org.pdfclown.samples.cli
 {
+
+    using System;
+    using org.pdfclown.documents.contents;
+    using org.pdfclown.documents.contents.objects;
+
+    using org.pdfclown.files;
+
     /**
       <summary>This sample demonstrates the low-level way to extract text from a PDF document.</summary>
       <remarks>In order to obtain richer information about the extracted text content,
@@ -18,30 +16,6 @@ namespace org.pdfclown.samples.cli
     public class BasicTextExtractionSample
       : Sample
     {
-        public override void Run(
-          )
-        {
-            // 1. Opening the PDF file...
-            string filePath = PromptFileChoice("Please select a PDF file");
-            using (var file = new File(filePath))
-            {
-                Document document = file.Document;
-
-                // 2. Text extraction from the document pages.
-                foreach (Page page in document.Pages)
-                {
-                    if (!PromptNextPage(page, false))
-                    {
-                        Quit();
-                        break;
-                    }
-
-                    Extract(
-                      new ContentScanner(page) // Wraps the page contents into a scanner.
-                      );
-                }
-            }
-        }
 
         /**
           <summary>Scans a content level looking for text.</summary>
@@ -55,22 +29,49 @@ namespace org.pdfclown.samples.cli
           )
         {
             if (level == null)
+            {
                 return;
+            }
 
             while (level.MoveNext())
             {
-                ContentObject content = level.Current;
+                var content = level.Current;
                 if (content is ShowText)
                 {
-                    Font font = level.State.Font;
+                    var font = level.State.Font;
                     // Extract the current text chunk, decoding it!
                     Console.WriteLine(font.Decode(((ShowText)content).Text));
                 }
-                else if (content is Text
-                  || content is ContainerObject)
+                else if ((content is Text)
+                  || (content is ContainerObject))
                 {
                     // Scan the inner level!
-                    Extract(level.ChildLevel);
+                    this.Extract(level.ChildLevel);
+                }
+            }
+        }
+
+        public override void Run(
+          )
+        {
+            // 1. Opening the PDF file...
+            var filePath = this.PromptFileChoice("Please select a PDF file");
+            using (var file = new File(filePath))
+            {
+                var document = file.Document;
+
+                // 2. Text extraction from the document pages.
+                foreach (var page in document.Pages)
+                {
+                    if (!this.PromptNextPage(page, false))
+                    {
+                        this.Quit();
+                        break;
+                    }
+
+                    this.Extract(
+                      new ContentScanner(page) // Wraps the page contents into a scanner.
+                      );
                 }
             }
         }

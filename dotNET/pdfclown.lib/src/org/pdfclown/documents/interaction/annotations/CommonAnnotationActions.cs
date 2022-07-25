@@ -23,29 +23,25 @@
   this list of conditions.
 */
 
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.annotations
 {
+    using org.pdfclown.objects;
+
     /**
       <summary>Common annotation actions [PDF:1.6:8.5.2].</summary>
     */
     public sealed class CommonAnnotationActions
       : AnnotationActions
     {
-        #region dynamic
-        #region constructors
-        public CommonAnnotationActions(
-          Annotation parent,
-          PdfDirectObject baseObject
-          ) : base(parent, baseObject)
-        { }
 
         public CommonAnnotationActions(
           Annotation parent
           ) : base(parent)
         { }
-        #endregion
-        #endregion
+        public CommonAnnotationActions(
+Annotation parent,
+PdfDirectObject baseObject
+) : base(parent, baseObject)
+        { }
     }
 }

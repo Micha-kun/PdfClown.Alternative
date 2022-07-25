@@ -23,14 +23,14 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.files;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using System;
+    using org.pdfclown.documents.files;
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Change the view to a specified destination in another PDF file' action
       [PDF:1.6:8.5.3].</summary>
@@ -39,11 +39,14 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class GoToRemote
       : GotoNonLocal<RemoteDestination>
     {
-        #region dynamic
-        #region constructors
+
+        internal GoToRemote(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
         public GoToRemote(
           Document context,
           FileSpecification destinationFile,
@@ -51,28 +54,10 @@ namespace org.pdfclown.documents.interaction.actions
           ) : base(context, PdfName.GoToR, destinationFile, destination)
         { }
 
-        internal GoToRemote(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #region public
         public override FileSpecification DestinationFile
         {
-            get
-            { return base.DestinationFile; }
-            set
-            {
-                if (value == null)
-                    throw new ArgumentNullException("value");
-
-                base.DestinationFile = value;
-            }
+            get => base.DestinationFile;
+            set => base.DestinationFile = value ?? throw new ArgumentNullException(nameof(value));
         }
-        #endregion
-        #endregion
-        #endregion
     }
 }

@@ -23,13 +23,12 @@
   this list of conditions.
 */
 
-using System;
-using org.pdfclown.documents.interaction.navigation.document;
-
-using org.pdfclown.objects;
-
 namespace org.pdfclown.documents.interaction.actions
 {
+    using org.pdfclown.documents.interaction.navigation.document;
+
+    using org.pdfclown.objects;
+
     /**
       <summary>'Change the view to a specified destination within the same PDF file' action [PDF:1.6:8.5.3].</summary>
     */
@@ -37,25 +36,19 @@ namespace org.pdfclown.documents.interaction.actions
     public sealed class GoToLocal
       : GoToDestination<LocalDestination>
     {
-        #region dynamic
-        #region constructors
+
+        internal GoToLocal(
+          PdfDirectObject baseObject
+          ) : base(baseObject)
+        { }
         /**
-          <summary>Creates a new action within the given document context.</summary>
-        */
+<summary>Creates a new action within the given document context.</summary>
+*/
         public GoToLocal(
           Document context,
           LocalDestination destination
           ) : base(context, PdfName.GoTo, destination)
         { }
 
-        internal GoToLocal(
-          PdfDirectObject baseObject
-          ) : base(baseObject)
-        { }
-        #endregion
-
-        #region interface
-        #endregion
-        #endregion
     }
 }
